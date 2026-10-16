@@ -49,6 +49,7 @@ export default function DomainGraph() {
   const [showAiModal, setShowAiModal] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [updatingGraph, setUpdatingGraph] = useState(false)
   const [htmlUrl, setHtmlUrl] = useState('')
   const [iframeLoading, setIframeLoading] = useState(false)
   const [selectedNodeData, setSelectedNodeData] = useState(null)
@@ -520,10 +521,16 @@ export default function DomainGraph() {
       <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_440px]">
         {/* Knowledge Graph Dynamic Canvas */}
         <div className="card relative h-[68vh] min-h-[460px] overflow-hidden p-0 border border-line">
-          {/* Minimalist Spinner Loader (No unnecessary text / badges) */}
-          {(generating || g.loading) && (
-            <div className="absolute inset-0 z-40 flex items-center justify-center bg-surface/85 backdrop-blur-xs">
-              <div className="h-9 w-9 animate-spin rounded-full border-3 border-brand/20 border-t-brand" />
+          {/* Minimalist Spinner Loader with update message */}
+          {(generating || g.loading || updatingGraph) && (
+            <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-surface/80 backdrop-blur-xs transition-opacity duration-300">
+              <div className="relative">
+                <div className="h-10 w-10 animate-spin rounded-full border-3 border-brand/20 border-t-brand" />
+                <Sparkles size={16} className="absolute inset-0 m-auto text-brand animate-pulse" />
+              </div>
+              <span className="mt-3 text-xs font-semibold tracking-wide text-ink/80 animate-pulse">
+                {updatingGraph ? 'Updating Knowledge Graph with AI…' : 'Loading Knowledge Graph…'}
+              </span>
             </div>
           )}
 
@@ -599,6 +606,18 @@ export default function DomainGraph() {
                 nodeName={node?.name}
                 onProposal={setProposal}
                 onSwitchToDetails={() => setActiveRightTab('details')}
+                onAnsweringChange={setUpdatingGraph}
+                onGraphUpdate={(res) => {
+                  if (res?.graph) {
+                    setAiGraph(res.graph)
+                    if (res.graph.html_url) setHtmlUrl(res.graph.html_url)
+                  } else {
+                    setAiGraph(null)
+                  }
+                  Promise.allSettled([g.reload(), wf.reload()]).finally(() => {
+                    setUpdatingGraph(false)
+                  })
+                }}
               />
             ) : (
               <div className="h-full overflow-y-auto p-4 scroll-thin">

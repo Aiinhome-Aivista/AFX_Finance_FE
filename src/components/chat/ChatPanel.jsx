@@ -21,6 +21,8 @@ export default function ChatPanel({
   askNode,
   nodeName,
   onProposal,
+  onGraphUpdate,
+  onAnsweringChange,
   locked,
   disabledReason,
   onSwitchToDetails,
@@ -41,7 +43,12 @@ export default function ChatPanel({
     }
   }, [askNode])
 
-  const merge = (r) => setSnap((s) => ({ ...r, messages: [...(s?.messages || []), ...r.messages] }))
+  const merge = (r) => {
+    setSnap((s) => ({ ...r, messages: [...(s?.messages || []), ...r.messages] }))
+    if (r?.graph_updated || r?.graph) {
+      onGraphUpdate?.(r)
+    }
+  }
 
   const run = async (fn, after) => {
     setBusy(true)
@@ -55,23 +62,45 @@ export default function ChatPanel({
     }
   }
 
-  const start = () => run(() => chat.start(slug), setSnap)
+  const start = () => run(() => chat.start(slug), (r) => {
+    setSnap(r)
+    if (r?.graph_updated || r?.graph) onGraphUpdate?.(r)
+  })
 
   const send = (e) => {
     e?.preventDefault()
     const msg = text.trim()
     if (!msg) return
     setText('')
+    const isAnsweringQuestion = mode === 'answer' && !!activeSnap?.open_question
+    if (isAnsweringQuestion) {
+      onAnsweringChange?.(true)
+    }
     if (mode === 'ask' && askNode) {
       run(() => chat.askNode(slug, askNode, msg), merge)
-    } else if (mode === 'answer' && activeSnap?.open_question) {
-      run(() => chat.answer(slug, msg), merge)
+    } else if (isAnsweringQuestion) {
+      run(
+        () => chat.answer(slug, msg),
+        (r) => {
+          merge(r)
+          onAnsweringChange?.(false)
+        }
+      ).catch(() => onAnsweringChange?.(false))
     } else {
       run(() => chat.message(slug, msg, askNode), merge)
     }
   }
 
-  const skip = () => run(() => chat.answer(slug, 'skip'), merge)
+  const skip = () => {
+    onAnsweringChange?.(true)
+    run(
+      () => chat.answer(slug, 'skip'),
+      (r) => {
+        merge(r)
+        onAnsweringChange?.(false)
+      }
+    ).catch(() => onAnsweringChange?.(false))
+  }
 
   const propose = () =>
     run(
@@ -154,9 +183,9 @@ export default function ChatPanel({
   }
 
   const q = activeSnap.open_question
-  const progressPercent = activeSnap.progress.planned
-    ? Math.min(100, Math.round((activeSnap.progress.answered / activeSnap.progress.planned) * 100))
-    : 0
+  const plannedCount = activeSnap.progress.planned || 10
+  const answeredCount = activeSnap.progress.answered || 0
+  const progressPercent = Math.min(100, Math.round((answeredCount / plannedCount) * 100))
 
   return (
     <div className="flex h-full flex-col bg-surface/90 text-ink">
@@ -167,7 +196,7 @@ export default function ChatPanel({
             <Sparkles size={13} className="text-brand" />
             <span className="text-ink">Progress:</span>
             <span>
-              {activeSnap.progress.answered} / {activeSnap.progress.planned} questions
+              {answeredCount}/{plannedCount} questions
             </span>
           </div>
 
