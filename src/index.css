@@ -1,0 +1,260 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 255 255 255;
+  --surface: 255 255 255;
+  --surface2: 245 247 250;
+  --line: 226 232 240;
+  --ink: 15 23 42;
+  --muted: 100 116 139;
+  --brand: 79 70 229;
+  --brand-ink: 255 255 255;
+  --ok: 16 185 129;
+  --warn: 217 119 6;
+  --bad: 239 68 68;
+  --ont-bg: #FFFFFF;
+  --ont-card: #FFFFFF;
+  --ont-text: #0F172A;
+  --ont-muted: #64748B;
+  --ont-border: #E2E8F0;
+  --ont-accent: #4F46E5;
+  --ont-edge: #94A3B8;
+  --ont-chip-bg: #EEF2FF;
+  --ont-code-bg: #F1F5F9;
+}
+
+.dark {
+  --bg: 10 15 26;
+  --surface: 16 23 38;
+  --surface2: 24 35 56;
+  --line: 36 50 78;
+  --ink: 248 250 252;
+  --muted: 148 163 184;
+  --brand: 99 102 241;
+  --brand-ink: 10 15 26;
+  --ok: 52 211 153;
+  --warn: 245 158 11;
+  --bad: 248 113 113;
+  --ont-bg: #0A0F1A;
+  --ont-card: #101726;
+  --ont-text: #F8FAFC;
+  --ont-muted: #94A3B8;
+  --ont-border: #24334E;
+  --ont-accent: #818CF8;
+  --ont-edge: #475569;
+  --ont-chip-bg: #1E293B;
+  --ont-code-bg: #182338;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  @apply bg-bg text-ink antialiased;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-surface shadow-card;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-brand text-brand-ink hover:opacity-90;
+  }
+
+  .btn-ghost {
+    @apply btn border border-line bg-surface text-ink hover:bg-surface2;
+  }
+
+  .btn-danger {
+    @apply btn bg-bad text-white hover:opacity-90;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-ink transition hover:bg-surface2;
+  }
+
+  .chip-on {
+    @apply border-brand bg-brand/10 text-brand;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold;
+  }
+
+  .h-section {
+    @apply text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+}
+
+/* React Flow tweaks that follow our theme */
+.react-flow__attribution {
+  display: none;
+}
+
+.react-flow__controls {
+  @apply rounded-xl overflow-hidden border border-line shadow-card;
+}
+
+.react-flow__controls-button {
+  @apply bg-surface text-ink border-line;
+}
+
+.react-flow__controls-button:hover {
+  @apply bg-surface2;
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+.react-flow__edge-textbg {
+  fill: rgb(var(--surface));
+}
+
+.react-flow__edge-text {
+  fill: rgb(var(--muted));
+  font-size: 10px;
+}
+
+.react-flow__minimap {
+  @apply rounded-xl border border-line;
+  background: rgb(var(--surface));
+}
+
+/* graph drawer / bottom sheet */
+.sheet-enter {
+  animation: sheetUp .22s ease-out;
+}
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.drawer-enter {
+  animation: drawerIn .2s ease-out;
+}
+
+@keyframes drawerIn {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: rgb(var(--line));
+  border-radius: 8px;
+}
+
+/* Premium AI SaaS Login Styling */
+.auth-bg-gradient {
+  background: radial-gradient(circle at 15% 20%, rgba(224, 215, 255, 0.45) 0%, transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(200, 214, 255, 0.4) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(243, 240, 255, 0.6) 0%, transparent 60%),
+    linear-gradient(135deg, #FAF8FF 0%, #F3F1FA 50%, #ECE9F8 100%);
+}
+
+.auth-card-shadow {
+  box-shadow: 0 20px 50px -10px rgba(17, 27, 50, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 40px -10px rgba(117, 59, 255, 0.15);
+}
+
+.auth-btn-gradient {
+  background: linear-gradient(135deg, #4565FF 0%, #753BFF 100%);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.auth-btn-gradient:hover:not(:disabled) {
+  background: linear-gradient(135deg, #3754F0 0%, #682EEB 100%);
+  box-shadow: 0 8px 24px -4px rgba(117, 59, 255, 0.5),
+    0 0 16px 2px rgba(69, 101, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.auth-btn-gradient:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px -2px rgba(117, 59, 255, 0.4);
+}
+
+.auth-input-field {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E2E8F0;
+  color: #111827 !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-input-field:hover {
+  border-color: #CBD5E1;
+}
+
+.auth-input-field:focus,
+.auth-input-field:focus-visible,
+.auth-input-field:active {
+  background-color: #FFFFFF !important;
+  border-color: #8B5CF6;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+
+.auth-input-field::placeholder {
+  color: #94A3B8;
+}
+
+/* Chrome/Safari autofill background override to force white background and dark text */
+.auth-input-field:-webkit-autofill,
+.auth-input-field:-webkit-autofill:hover,
+.auth-input-field:-webkit-autofill:focus,
+.auth-input-field:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  -webkit-text-fill-color: #111827 !important;
+  caret-color: #111827 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
