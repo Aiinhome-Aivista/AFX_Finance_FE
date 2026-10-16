@@ -20,8 +20,9 @@ import {
 import Layout from '../components/common/Layout'
 import { ErrorState, Loading } from '../components/common/States'
 import useAsync from '../components/common/useAsync'
+import { useTheme } from '../context/ThemeContext'
 import { domains } from '../api'
-import ReactFlowOntologyCanvas from '../components/graph/ReactFlowOntologyCanvas'
+import OntologyGraphCanvas from '../components/graph/OntologyGraphCanvas'
 import {
   DOMMETA,
   FLOWS,
@@ -35,6 +36,8 @@ import {
 export default function FinanceLanding() {
   const nav = useNavigate()
   const canvasRef = useRef(null)
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
 
   // State
   const [selectedDomain, setSelectedDomain] = useState('all') // 'all' or 'f1'..'f8'
@@ -92,16 +95,17 @@ export default function FinanceLanding() {
     }
   }, [selectedNodeId, nodesById])
 
-  // Domain selection handler - directly navigate to sub-domain graph & copilot
+  // Domain selection handler - navigate directly to domain copilot & workflow page
   const handleDomainSelect = (dKey) => {
     if (dKey === 'all') {
       setSelectedDomain('all')
+      setSelectedNodeId(null)
       setActiveFlowIdx(-1)
-    } else {
-      const slug = DOMAIN_SLUGS[dKey]
-      if (slug) {
-        nav(`/finance/${slug}`)
-      }
+      return
+    }
+    const targetSlug = DOMAIN_SLUGS[dKey]
+    if (targetSlug) {
+      nav(`/finance/${targetSlug}`)
     }
   }
 
@@ -183,7 +187,7 @@ export default function FinanceLanding() {
             <span className="tracking-tight">All Domains</span>
           </button>
 
-          {/* 8 Specific Domain Tabs with Full Title, Normal Font Size, Unified Single Active Color */}
+          {/* 8 Specific Domain Tabs with Colored Dots & Full Title */}
           {ORDER.map((dKey) => {
             const meta = DOMMETA[dKey]
             const isSelected = selectedDomain === dKey
@@ -201,7 +205,13 @@ export default function FinanceLanding() {
                 onClick={() => handleDomainSelect(dKey)}
                 title={meta.n}
               >
-                {/* Full domain title - never truncated or shortened */}
+                <span
+                  className="h-2 w-2 rounded-full shrink-0 transition-transform group-hover:scale-125"
+                  style={{
+                    backgroundColor: isSelected ? '#FFFFFF' : meta.c,
+                    boxShadow: isSelected ? '0 0 8px rgba(255,255,255,0.8)' : undefined,
+                  }}
+                />
                 <span className="font-semibold text-xs sm:text-[13px] tracking-tight whitespace-nowrap">
                   {meta.n}
                 </span>
@@ -211,9 +221,11 @@ export default function FinanceLanding() {
         </div>
 
         {/* Toolbar: Search, Neighbour Toggle & View Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 ">
-          {/* Active Filter Indicator */}
-      
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <div className="text-xs text-muted flex items-center gap-2">
+            <span className="inline-block h-2 w-2 rounded-full bg-brand" />
+            <span className="font-medium text-ink/80">8 Finance Sub-Domains + Conformed Master-Data Spine</span>
+          </div>
 
           <div className="flex flex-wrap items-center gap-3 ml-auto">
             {/* Search Input */}
@@ -250,14 +262,13 @@ export default function FinanceLanding() {
         </div>
       </div>
 
-
       {/* =========================================================================
-          MAIN INTERACTIVE CANVAS (REACT FLOW) & DETAILS PANEL
+          MAIN INTERACTIVE CANVAS (SVG ONTOLOGY GRAPH) & DETAILS PANEL
          ========================================================================= */}
       <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-        {/* Left: React Flow Canvas */}
+        {/* Left: SVG Canvas */}
         <div className="flex-1 min-w-0">
-          <ReactFlowOntologyCanvas
+          <OntologyGraphCanvas
             ref={canvasRef}
             selectedNodeId={selectedNodeId}
             onSelectNode={handleSelectNode}
@@ -526,45 +537,139 @@ export default function FinanceLanding() {
           )}
         </summary>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-5 pt-2 border-t border-line bg-surface2/30">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 p-5 pt-3 border-t border-line bg-surface2/30">
           {FLOWS.map((f, i) => {
             const isActive = activeFlowIdx === i
+            const isLast = i === FLOWS.length - 1
+
+            // Dynamic arrow color: Pure black in light theme, pure white in dark theme, brand when active
+            const arrowColor = isActive
+              ? (isDark ? '#818CF8' : '#4F46E5')
+              : (isDark ? '#FFFFFF' : '#000000')
+
+            // Serpentine snake placement on desktop XL:
+            // Row 1 (left to right): Col 1, Col 2, Col 3, Col 4
+            // Row 2 (right to left): Col 4, Col 3, Col 2
+            const SNAKE_GRID_XL = [
+              'xl:col-start-1 xl:row-start-1',
+              'xl:col-start-2 xl:row-start-1',
+              'xl:col-start-3 xl:row-start-1',
+              'xl:col-start-4 xl:row-start-1',
+              'xl:col-start-4 xl:row-start-2',
+              'xl:col-start-3 xl:row-start-2',
+              'xl:col-start-2 xl:row-start-2',
+            ]
+
+            // Serpentine snake placement on tablet MD:
+            const SNAKE_GRID_MD = [
+              'md:col-start-1 md:row-start-1',
+              'md:col-start-2 md:row-start-1',
+              'md:col-start-2 md:row-start-2',
+              'md:col-start-1 md:row-start-2',
+              'md:col-start-1 md:row-start-3',
+              'md:col-start-2 md:row-start-3',
+              'md:col-start-2 md:row-start-4',
+            ]
+
             return (
-              <div
-                key={f.t}
-                onClick={() => handleFlowToggle(i)}
-                className={`rounded-2xl border p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-                  isActive
-                    ? 'border-brand ring-2 ring-brand/30 bg-surface shadow-md scale-[1.01]'
-                    : 'border-line bg-surface hover:border-brand/60 hover:shadow-sm'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <b className={`text-xs font-bold ${isActive ? 'text-brand' : 'text-ink'}`}>
-                      {f.t}
-                    </b>
-                    {isActive ? (
-                      <span className="text-[10px] uppercase font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full border border-brand/20">
-                        Tracing
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-muted font-mono">
-                        {f.ids.length} steps
-                      </span>
-                    )}
+              <div key={f.t} className={`relative flex flex-col ${SNAKE_GRID_XL[i] || ''} ${SNAKE_GRID_MD[i] || ''}`}>
+                <div
+                  onClick={() => handleFlowToggle(i)}
+                  className={`rounded-2xl border p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between flex-1 ${
+                    isActive
+                      ? 'border-brand ring-2 ring-brand/30 bg-surface shadow-md scale-[1.01]'
+                      : 'border-line bg-surface hover:border-brand/60 hover:shadow-sm'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <b className={`text-xs font-bold ${isActive ? 'text-brand' : 'text-ink'}`}>
+                        {f.t}
+                      </b>
+                      {isActive ? (
+                        <span className="text-[10px] uppercase font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full border border-brand/20">
+                          Tracing
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-muted font-mono">
+                          {f.ids.length} steps
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-mono text-[10.5px] text-muted leading-relaxed break-words">
+                      {f.x}
+                    </p>
                   </div>
-                  <p className="font-mono text-[10.5px] text-muted leading-relaxed break-words">
-                    {f.x}
-                  </p>
+
+                  <div className="mt-3 pt-2.5 border-t border-line/60 flex items-center justify-between text-[11px]">
+                    <span className={isActive ? 'font-semibold text-brand' : 'text-muted'}>
+                      {isActive ? 'Click to deactivate' : 'Click to trace path'}
+                    </span>
+                    <ChevronRight size={13} className={isActive ? 'text-brand' : 'text-muted'} />
+                  </div>
                 </div>
 
-                <div className="mt-3 pt-2.5 border-t border-line/60 flex items-center justify-between text-[11px]">
-                  <span className={isActive ? 'font-semibold text-brand' : 'text-muted'}>
-                    {isActive ? 'Click to deactivate' : 'Click to trace path'}
-                  </span>
-                  <ChevronRight size={13} className={isActive ? 'text-brand' : 'text-muted'} />
-                </div>
+                {/* Arrow connecting to the next card in serpentine flow */}
+                {!isLast && (
+                  <>
+                    {/* Desktop XL: 0->1->2->3 (right), 3->4 (down), 4->5->6 (left) */}
+                    <div className="hidden xl:flex">
+                      {(i === 0 || i === 1 || i === 2) && (
+                        <div className="absolute left-full top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
+                          <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                            <path d="M1 6H15M10.5 1.5L15 6L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      )}
+                      {i === 3 && (
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 flex items-center justify-center pointer-events-none">
+                          <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                            <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      )}
+                      {(i === 4 || i === 5) && (
+                        <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
+                          <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                            <path d="M17 6H3M7.5 1.5L3 6L7.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Tablet MD: 0->1 (right), 1->2 (down), 2->3 (left), 3->4 (down), 4->5 (right), 5->6 (down) */}
+                    <div className="hidden md:flex xl:hidden">
+                      {(i === 0 || i === 4) && (
+                        <div className="absolute left-full top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
+                          <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                            <path d="M1 6H15M10.5 1.5L15 6L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      )}
+                      {(i === 1 || i === 3 || i === 5) && (
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 flex items-center justify-center pointer-events-none">
+                          <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                            <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      )}
+                      {i === 2 && (
+                        <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
+                          <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                            <path d="M17 6H3M7.5 1.5L3 6L7.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Mobile (1 column): all down */}
+                    <div className="flex md:hidden absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 items-center justify-center pointer-events-none">
+                      <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                        <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                  </>
+                )}
               </div>
             )
           })}

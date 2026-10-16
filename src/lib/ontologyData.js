@@ -1,13 +1,13 @@
 /* ============ DATA (Domain 07 of FMCG ONTOLOGY.md v1.1 + finance mining files) ============ */
 export const DOMMETA = {
-  spine: { n: 'Finance Master-Data Spine', short: 'Master-Data Spine', c: '#0284C7', code: 'SPINE' },
-  f1: { n: 'F1 Planning, Budgeting & Forecasting', short: 'Planning & Budgeting', c: '#6366F1', code: 'F1' },
-  f2: { n: 'F2 Management Reporting & Gross-to-Net', short: 'Reporting & Gross-to-Net', c: '#8B5CF6', code: 'F2' },
-  f3: { n: 'F3 Cost & Profitability Management', short: 'Cost & Profitability', c: '#EC4899', code: 'F3' },
-  f4: { n: 'F4 Working Capital & Treasury', short: 'Working Capital & Treasury', c: '#0D9488', code: 'F4' },
-  f5: { n: 'F5 Consolidation, Close & Statutory', short: 'Consolidation & Close', c: '#D97706', code: 'F5' },
-  f6: { n: 'F6 Statement Analysis & Valuation', short: 'Statement & Valuation', c: '#10B981', code: 'F6' },
-  f7: { n: 'F7 Risk, Governance & Controls', short: 'Risk & Governance', c: '#F43F5E', code: 'F7' },
+  spine: { n: 'Finance master-data spine', short: 'Master-Data Spine', c: '#5A8AC3', code: 'SPINE' },
+  f1: { n: 'F1 Planning, Budgeting & Forecasting', short: 'Planning & Budgeting', c: '#2E6FCA', code: 'F1' },
+  f2: { n: 'F2 Management Reporting & Gross-to-Net', short: 'Reporting & Gross-to-Net', c: '#8A4FD0', code: 'F2' },
+  f3: { n: 'F3 Cost & Profitability', short: 'Cost & Profitability', c: '#C05A9E', code: 'F3' },
+  f4: { n: 'F4 Working Capital & Treasury', short: 'Working Capital & Treasury', c: '#2FA096', code: 'F4' },
+  f5: { n: 'F5 Consolidation, Close & Statutory', short: 'Consolidation & Close', c: '#A0784A', code: 'F5' },
+  f6: { n: 'F6 Statement Analysis & Valuation', short: 'Statement & Valuation', c: '#4EA36A', code: 'F6' },
+  f7: { n: 'F7 Risk, Governance & Controls', short: 'Risk & Governance', c: '#C2503E', code: 'F7' },
   f8: { n: 'F8 EPM Platforms & Operating Model', short: 'EPM & Platforms', c: '#64748B', code: 'F8' },
 }
 
@@ -722,10 +722,10 @@ export const FLOWS = [
  * Computes canonical radial positions and box sizes for the ontology canvas.
  */
 export function computeLayout() {
-  const W = 2600
-  const H = 2200
-  const CX = 1300
-  const CY = 1100
+  const W = 1900
+  const H = 1650
+  const CX = 950
+  const CY = 800
 
   const byId = {}
   const nodes = NODES.map((n) => ({ ...n, a: [...n.a] }))
@@ -739,12 +739,12 @@ export function computeLayout() {
   })
 
   // spine ring
-  const spineMeta = { ...DOMMETA.spine, cx: CX, cy: CY, r: 340 }
+  const spineMeta = { ...DOMMETA.spine, cx: CX, cy: CY, r: 255 }
   if (domNodes.spine) {
     domNodes.spine.forEach((n, i) => {
       const a = -Math.PI / 2 + (i * 2 * Math.PI) / domNodes.spine.length
-      n.x = CX + 280 * Math.cos(a)
-      n.y = CY + 230 * Math.sin(a)
+      n.x = CX + 180 * Math.cos(a)
+      n.y = CY + 155 * Math.sin(a)
     })
   }
 
@@ -752,10 +752,10 @@ export function computeLayout() {
   const domMetas = {}
   ORDER.forEach((d, di) => {
     const a = -Math.PI / 2 + (di * 2 * Math.PI) / ORDER.length
-    const cx = CX + 820 * Math.cos(a)
-    const cy = CY + 730 * Math.sin(a)
+    const cx = CX + 565 * Math.cos(a)
+    const cy = CY + 525 * Math.sin(a)
     const dNodes = domNodes[d] || []
-    const r = dNodes.length <= 3 ? 120 : dNodes.length <= 6 ? 195 : 240
+    const r = dNodes.length <= 3 ? 85 : dNodes.length <= 6 ? 150 : 185
     domMetas[d] = { ...DOMMETA[d], cx, cy, r }
     dNodes.forEach((n, i) => {
       const na = a + (i * 2 * Math.PI) / dNodes.length

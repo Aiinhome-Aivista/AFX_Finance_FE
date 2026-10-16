@@ -284,7 +284,7 @@ export default function ChatPanel({
                   }`}
                   onClick={() => setMode('answer')}
                 >
-                  Answer interview
+                  Answer 
                 </button>
               )}
 

@@ -5,6 +5,7 @@ import Layout from '../components/common/Layout'
 import Stepper from '../components/common/Stepper'
 import { EmptyState, ErrorState, Loading } from '../components/common/States'
 import GraphCanvas from '../components/graph/GraphCanvas'
+import OntologyGraphCanvas from '../components/graph/OntologyGraphCanvas'
 import NodeDetailsPanel from '../components/graph/NodeDetailsPanel'
 import FlowCards from '../components/graph/FlowCards'
 import BlockSelector from '../components/graph/BlockSelector'
@@ -14,6 +15,7 @@ import useAsync from '../components/common/useAsync'
 import { chat, domains, graphs, ontology } from '../api'
 import { edgeId } from '../lib/format'
 import { useToast } from '../context/ToastContext'
+import { DOMAIN_SLUGS, DOMMETA, FLOWS, NODES, ORDER, SLUG_TO_DOM } from '../lib/ontologyData'
 
 const SCOPES = [
   ['all', 'Everything'],
@@ -26,6 +28,8 @@ export default function DomainGraph() {
   const { slug } = useParams()
   const nav = useNavigate()
   const toast = useToast()
+  const domainKey = SLUG_TO_DOM[slug] || SLUG_TO_DOM[slug?.replace(/_/g, '-')] || 'all'
+  const [activeDomainFilter, setActiveDomainFilter] = useState(domainKey)
   const [neighbours, setNeighbours] = useState(false)
   const [selected, setSelected] = useState(null)
   const [hidden, setHidden] = useState(new Set())
@@ -66,6 +70,7 @@ export default function DomainGraph() {
 
   // Load chat conversation and proposals whenever slug changes
   useEffect(() => {
+    setActiveDomainFilter(domainKey)
     setSelected(null)
     setAiGraph(null)
     setFlowKey(null)
@@ -198,19 +203,21 @@ export default function DomainGraph() {
     [results, view]
   )
 
+  const activeFlowIdx = useMemo(() => {
+    if (!flowKey) return -1
+    const norm = flowKey.toLowerCase().replace(/[^a-z0-9]/g, '')
+    return FLOWS.findIndex((f) => {
+      const fn = f.t.toLowerCase().replace(/[^a-z0-9]/g, '')
+      return fn.includes(norm) || norm.includes(fn)
+    })
+  }, [flowKey])
+
   const select = (key) => {
-    if (key && view && !view.nodes.some((n) => n.key === key)) {
-      if (!neighbours) {
-        pending.current = key
-        setNeighbours(true)
-        return
-      }
-    }
     setSelected(key)
   }
 
   useEffect(() => {
-    if (pending.current && view?.nodes.some((n) => n.key === pending.current)) {
+    if (pending.current) {
       setSelected(pending.current)
       pending.current = null
     }
@@ -254,31 +261,70 @@ export default function DomainGraph() {
   }
 
   const domain = dom.data?.domains.find((d) => d.slug === slug)
-  const node = view?.nodes.find((n) => n.key === selected)
+  const ontologyNode = useMemo(() => {
+    if (!selected) return null
+    return NODES.find((n) => n.id === selected) || null
+  }, [selected])
+
+  const node = view?.nodes.find((n) => n.key === selected) || (ontologyNode ? {
+    key: ontologyNode.id,
+    name: ontologyNode.n,
+    group_name: DOMMETA[ontologyNode.d]?.n || ontologyNode.d,
+    color: DOMMETA[ontologyNode.d]?.c || '#94a3b8',
+    def: ontologyNode.def,
+    attributes: ontologyNode.a?.map((attr) => ({ name: attr })) || [],
+    formulas: ontologyNode.f?.map((frm) => ({ name: frm })) || [],
+    role: 'reference',
+  } : null)
 
   return (
     <Layout wide>
-      {/* Top Header Navigation */}
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        <Link
-          to="/finance"
-          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-muted hover:text-ink transition cursor-pointer"
-        >
-          <ArrowLeft size={15} /> All domains
-        </Link>
+      {/* Top Header Navigation with Domain Tabs */}
+      <div className="mb-4 flex flex-col gap-2.5 rounded-2xl border border-line bg-surface/70 p-3 sm:p-3.5 backdrop-blur shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 select-none">
+          <Link
+            to="/finance"
+            className="group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] font-semibold transition-all duration-200 cursor-pointer flex items-center gap-1.5 shrink-0 border border-line bg-surface/90 text-muted hover:text-ink hover:border-brand/40 hover:bg-surface2 shadow-2xs hover:-translate-y-0.5"
+          >
+            <ArrowLeft size={14} className="text-brand" />
+            <span className="tracking-tight">All Domains</span>
+          </Link>
 
-        <select
-          className="input !w-auto max-w-full text-xs sm:text-sm font-semibold rounded-xl"
-          value={slug}
-          onChange={(e) => nav(`/finance/${e.target.value}`)}
-          aria-label="Switch sub-domain"
-        >
-          {dom.data?.domains.map((d) => (
-            <option key={d.slug} value={d.slug}>
-              {d.code} · {d.name}
-            </option>
-          ))}
-        </select>
+          {ORDER.map((dKey) => {
+            const meta = DOMMETA[dKey]
+            const targetSlug = DOMAIN_SLUGS[dKey]
+            const isSelected = domainKey === dKey
+
+            return (
+              <button
+                key={dKey}
+                type="button"
+                className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${
+                  isSelected
+                    ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
+                    : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
+                }`}
+                onClick={() => {
+                  if (targetSlug && targetSlug !== slug) {
+                    nav(`/finance/${targetSlug}`)
+                  }
+                }}
+                title={meta.n}
+              >
+                <span
+                  className="h-2 w-2 rounded-full shrink-0 transition-transform group-hover:scale-125"
+                  style={{
+                    backgroundColor: isSelected ? '#FFFFFF' : meta.c,
+                    boxShadow: isSelected ? '0 0 8px rgba(255,255,255,0.8)' : undefined,
+                  }}
+                />
+                <span className="font-semibold text-xs sm:text-[13px] tracking-tight whitespace-nowrap">
+                  {meta.n}
+                </span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {wf.data && <Stepper slug={slug} steps={wf.data.steps} current={3} />}
@@ -370,29 +416,34 @@ export default function DomainGraph() {
           </label>
         </div>
 
-        {/* Group chips */}
+        {/* Domain filter chips */}
         <div className="mt-3 flex flex-wrap items-center gap-1.5" aria-label="Sub-domain filters">
           <span className="h-section mr-1">Show</span>
-          {groups.map(([name, color]) => (
+          <button
+            type="button"
+            className={`chip cursor-pointer ${activeDomainFilter === 'all' ? 'chip-on' : 'opacity-70'}`}
+            onClick={() => setActiveDomainFilter('all')}
+          >
+            All Domains
+          </button>
+          {domainKey !== 'all' && DOMMETA[domainKey] && (
             <button
-              key={name}
-              className={`chip ${hidden.has(name) ? 'opacity-50' : 'chip-on'}`}
-              aria-pressed={!hidden.has(name)}
-              onClick={() => {
-                const s = new Set(hidden)
-                s.has(name) ? s.delete(name) : s.add(name)
-                setHidden(s)
-              }}
+              type="button"
+              className={`chip cursor-pointer ${activeDomainFilter === domainKey ? 'chip-on' : 'opacity-70'}`}
+              onClick={() => setActiveDomainFilter(domainKey)}
             >
-              <span className="h-2 w-2 rounded-full shrink-0" style={{ background: color }} />
-              {name}
-            </button>
-          ))}
-          {hidden.size > 0 && (
-            <button className="chip" onClick={() => setHidden(new Set())}>
-              Show all
+              <span className="h-2 w-2 rounded-full shrink-0" style={{ background: DOMMETA[domainKey].c }} />
+              {DOMMETA[domainKey].n}
             </button>
           )}
+          <button
+            type="button"
+            className={`chip cursor-pointer ${activeDomainFilter === 'spine' ? 'chip-on' : 'opacity-70'}`}
+            onClick={() => setActiveDomainFilter(activeDomainFilter === 'spine' ? domainKey : 'spine')}
+          >
+            <span className="h-2 w-2 rounded-full shrink-0" style={{ background: DOMMETA.spine.c }} />
+            {DOMMETA.spine.n}
+          </button>
         </div>
       </div>
 
@@ -400,26 +451,18 @@ export default function DomainGraph() {
       <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_440px]">
         {/* Knowledge Graph Canvas */}
         <div className="card relative h-[68vh] min-h-[460px] overflow-hidden">
-          {g.loading && !base && <Loading label="Building reference graph…" className="h-full" />}
-          {g.error && <ErrorState error={g.error} onRetry={g.reload} className="h-full justify-center" />}
-          {view && view.nodes.length === 0 && (
-            <EmptyState title="Nothing to show" hint="All groups are hidden. Use “Show all” above." className="h-full justify-center" />
-          )}
-          {view && view.nodes.length > 0 && (
-            <GraphCanvas
-              nodes={view.nodes}
-              edges={view.edges}
-              selectedKey={selected}
-              onSelect={select}
-              highlight={highlight}
-              found={found}
-            />
-          )}
-          {g.loading && base && (
-            <div className="absolute left-3 top-3 rounded-lg bg-surface px-2.5 py-1 text-xs shadow-card font-medium">
-              Updating…
-            </div>
-          )}
+          <OntologyGraphCanvas
+            activeDomain={activeDomainFilter}
+            showNeighbours={neighbours}
+            selectedNodeId={selected}
+            onSelectNode={(nodeId) => {
+              select(nodeId)
+              setActiveRightTab('details')
+            }}
+            activeFlowIdx={activeFlowIdx}
+            searchQuery={q}
+            className="w-full h-full"
+          />
         </div>
 
         {/* Right Column: AI Chatbot (with quick toggle for Node Specs) */}
