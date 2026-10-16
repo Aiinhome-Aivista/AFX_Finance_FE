@@ -40,6 +40,7 @@ export const graphs = {
   versions: (slug) => http.get(`/domains/${slug}/versions`).then(d),
   versionGraph: (slug, n) => http.get(`/domains/${slug}/versions/${n}/graph`).then(d),
   working: (slug) => http.get(`/domains/${slug}/working-graph`).then(d),
+  graphHtml: (slug) => http.get(`/domains/${slug}/graph-html`).then(d),
   generateGraph: (slug, body) => http.post(`/domains/${slug}/generate-graph`, body).then(d),
   compare: (slug, from, to) => http.get(`/domains/${slug}/compare`, { params: { from, to } }).then(d),
   proposals: (slug) => http.get(`/domains/${slug}/proposals`).then(d),

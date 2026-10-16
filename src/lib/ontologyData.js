@@ -842,3 +842,254 @@ export function computeLayout() {
     adj,
   }
 }
+
+const DYNAMIC_PALETTE = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0891B2', '#4F46E5', '#DB2777']
+
+/**
+ * Computes radial positions, cluster halos, box sizing, and curved arrows
+ * dynamically from any backend / LLM-generated nodes and edges while preserving
+ * the exact same visual design language.
+ */
+export function computeDynamicLayout(rawNodes, rawEdges, activeDomain = 'all', domainMeta = null) {
+  const W = 1900
+  const H = 1650
+  const CX = 950
+  const CY = 800
+
+  if (!rawNodes || rawNodes.length === 0) {
+    return computeLayout()
+  }
+
+  const byId = {}
+  const nodes = rawNodes.map((rn, idx) => {
+    const id = String(rn.key || rn.id || `node-${idx}`)
+    const n = String(rn.name || rn.n || id)
+    const rawGroup = rn.group_key || rn.group_name || rn.d || 'general'
+    const d = rawGroup.toLowerCase().replace(/[^a-z0-9]/g, '-')
+    const groupName = rn.group_name || DOMMETA[d]?.n || rawGroup
+    const color = rn.color || DOMMETA[d]?.c || DYNAMIC_PALETTE[idx % DYNAMIC_PALETTE.length]
+    const def = rn.definition || rn.def || ''
+    const a = Array.isArray(rn.attributes || rn.a)
+      ? (rn.attributes || rn.a).map((attr) => (typeof attr === 'string' ? attr : attr.name || attr.key || ''))
+      : []
+    const f = Array.isArray(rn.formulas || rn.f)
+      ? (rn.formulas || rn.f).map((frm) => (typeof frm === 'string' ? frm : frm.name || frm.expression || ''))
+      : []
+    const ev = rn.evidence || rn.ev || ''
+
+    const nodeObj = {
+      ...rn,
+      id,
+      key: id,
+      n,
+      name: n,
+      d,
+      group_key: d,
+      group_name: groupName,
+      color,
+      def,
+      definition: def,
+      a,
+      attributes: a,
+      f,
+      formulas: f,
+      ev,
+      evidence: ev,
+    }
+    byId[id] = nodeObj
+    return nodeObj
+  })
+
+  // Group nodes by domain / cluster
+  const domNodes = {}
+  nodes.forEach((node) => {
+    ;(domNodes[node.d] = domNodes[node.d] || []).push(node)
+  })
+  const groupKeys = Object.keys(domNodes)
+
+  // Identify spine / central cluster
+  const spineKey = groupKeys.find((k) => k === 'spine' || k.toLowerCase().includes('spine'))
+  const spineMeta = {
+    ...DOMMETA.spine,
+    n: spineKey ? (domNodes[spineKey][0]?.group_name || 'Finance master-data spine') : 'Finance master-data spine',
+    c: DOMMETA.spine?.c || '#4F46E5',
+    cx: CX,
+    cy: CY,
+    r: 255,
+  }
+
+  const domMetas = {}
+
+  if (spineKey && domNodes[spineKey]) {
+    // Spine nodes on center ring
+    domNodes[spineKey].forEach((n, i) => {
+      const a = -Math.PI / 2 + (i * 2 * Math.PI) / domNodes[spineKey].length
+      n.x = CX + 180 * Math.cos(a)
+      n.y = CY + 155 * Math.sin(a)
+    })
+
+    // Other groups on surrounding orbital circles
+    const otherGroups = groupKeys.filter((k) => k !== spineKey)
+    otherGroups.forEach((d, di) => {
+      const a = -Math.PI / 2 + (di * 2 * Math.PI) / otherGroups.length
+      const cx = CX + 560 * Math.cos(a)
+      const cy = CY + 510 * Math.sin(a)
+      const dNodes = domNodes[d] || []
+      const r = dNodes.length <= 3 ? 95 : dNodes.length <= 6 ? 155 : 190
+      const groupColor = dNodes[0]?.color || DYNAMIC_PALETTE[di % DYNAMIC_PALETTE.length]
+      domMetas[d] = {
+        n: dNodes[0]?.group_name || d,
+        c: groupColor,
+        cx,
+        cy,
+        r,
+      }
+      dNodes.forEach((n, i) => {
+        const na = a + (i * 2 * Math.PI) / dNodes.length
+        n.x = cx + r * Math.cos(na)
+        n.y = cy + r * Math.sin(na)
+      })
+    })
+  } else if (groupKeys.length === 1) {
+    // Single domain: place nodes gracefully in celestial concentric orbital pattern
+    const singleKey = groupKeys[0]
+    const all = domNodes[singleKey] || []
+    const groupColor = all[0]?.color || domainMeta?.color || '#2563EB'
+    const groupTitle = all[0]?.group_name || domainMeta?.name || 'Knowledge Graph'
+
+    domMetas[singleKey] = {
+      n: groupTitle,
+      c: groupColor,
+      cx: CX,
+      cy: CY,
+      r: 320,
+    }
+
+    if (all.length <= 7) {
+      all.forEach((n, i) => {
+        const a = -Math.PI / 2 + (i * 2 * Math.PI) / all.length
+        n.x = CX + 280 * Math.cos(a)
+        n.y = CY + 220 * Math.sin(a)
+      })
+    } else {
+      const innerCount = Math.min(4, Math.floor(all.length / 2))
+      const outerCount = all.length - innerCount
+
+      for (let i = 0; i < innerCount; i++) {
+        const a = -Math.PI / 2 + (i * 2 * Math.PI) / innerCount
+        all[i].x = CX + 190 * Math.cos(a)
+        all[i].y = CY + 155 * Math.sin(a)
+      }
+      for (let i = 0; i < outerCount; i++) {
+        const a = -Math.PI / 2 + (i * 2 * Math.PI) / outerCount + Math.PI / outerCount
+        all[innerCount + i].x = CX + 440 * Math.cos(a)
+        all[innerCount + i].y = CY + 350 * Math.sin(a)
+      }
+    }
+  } else {
+    // Multiple groups without explicit spine: distribute groups evenly in celestial orbit
+    groupKeys.forEach((d, di) => {
+      const a = -Math.PI / 2 + (di * 2 * Math.PI) / groupKeys.length
+      const dist = groupKeys.length <= 4 ? 420 : 540
+      const cx = CX + dist * Math.cos(a)
+      const cy = CY + (dist - 40) * Math.sin(a)
+      const dNodes = domNodes[d] || []
+      const r = dNodes.length <= 3 ? 90 : dNodes.length <= 6 ? 145 : 180
+      const groupColor = dNodes[0]?.color || DYNAMIC_PALETTE[di % DYNAMIC_PALETTE.length]
+
+      domMetas[d] = {
+        n: dNodes[0]?.group_name || d,
+        c: groupColor,
+        cx,
+        cy,
+        r,
+      }
+      dNodes.forEach((n, i) => {
+        const na = a + (i * 2 * Math.PI) / dNodes.length
+        n.x = cx + r * Math.cos(na)
+        n.y = cy + r * Math.sin(na)
+      })
+    })
+  }
+
+  // Box sizing and label wrapping
+  nodes.forEach((n) => {
+    const t = n.n
+    if (t.length > 21) {
+      const mid = Math.floor(t.length / 2)
+      let best = -1
+      for (let i = 0; i < t.length; i++) {
+        if (t[i] === ' ' && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i
+      }
+      if (best > 0) {
+        n.l1 = t.slice(0, best)
+        n.l2 = t.slice(best + 1)
+      } else {
+        n.l1 = t
+      }
+    } else {
+      n.l1 = t
+    }
+    const wtext = Math.max((n.l1 || '').length, (n.l2 || '').length)
+    n.w = Math.min(220, Math.max(105, wtext * 7.4 + 22))
+    n.h = n.l2 ? 46 : 32
+  })
+
+  // Precalculate edge coordinates (curved quadratic bezier arrows)
+  const edges = (rawEdges || []).map((re, idx) => {
+    const srcId = String(re.source || re.srcId || re.from || '')
+    const tgtId = String(re.target || re.tgtId || re.to || '')
+    const label = re.label || ''
+    const a = byId[srcId]
+    const b = byId[tgtId]
+    if (!a || !b || srcId === tgtId) return null
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const len = Math.sqrt(dx * dx + dy * dy) || 1
+    const ux = dx / len
+    const uy = dy / len
+    const sx = a.x + ux * Math.min(len / 2, a.w / 2 + 6)
+    const sy = a.y + uy * Math.min(len / 2, a.h / 2 + 8)
+    const tx = b.x - ux * Math.min(len / 2, b.w / 2 + 10)
+    const ty = b.y - uy * Math.min(len / 2, b.h / 2 + 12)
+    const mx = (sx + tx) / 2 - uy * len * 0.09
+    const my = (sy + ty) / 2 + ux * len * 0.09
+    const d = `M${sx},${sy} Q${mx},${my} ${tx},${ty}`
+    return {
+      id: `e-${idx}`,
+      srcId,
+      tgtId,
+      label,
+      sx,
+      sy,
+      tx,
+      ty,
+      mx,
+      my,
+      d,
+    }
+  }).filter(Boolean)
+
+  // Adjacency map
+  const adj = {}
+  nodes.forEach((n) => {
+    adj[n.id] = new Set()
+  })
+  edges.forEach((e) => {
+    adj[e.srcId]?.add(e.tgtId)
+    adj[e.tgtId]?.add(e.srcId)
+  })
+
+  return {
+    W,
+    H,
+    CX,
+    CY,
+    nodes,
+    byId,
+    edges,
+    domMetas,
+    spineMeta,
+    adj,
+  }
+}

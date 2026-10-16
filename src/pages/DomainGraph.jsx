@@ -4,7 +4,6 @@ import { ArrowLeft, Bot, FileText, Layers, Search, Sparkles, X } from 'lucide-re
 import Layout from '../components/common/Layout'
 import Stepper from '../components/common/Stepper'
 import { EmptyState, ErrorState, Loading } from '../components/common/States'
-import GraphCanvas from '../components/graph/GraphCanvas'
 import OntologyGraphCanvas from '../components/graph/OntologyGraphCanvas'
 import NodeDetailsPanel from '../components/graph/NodeDetailsPanel'
 import FlowCards from '../components/graph/FlowCards'
@@ -50,6 +49,10 @@ export default function DomainGraph() {
   const [showAiModal, setShowAiModal] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [htmlUrl, setHtmlUrl] = useState('')
+  const [iframeLoading, setIframeLoading] = useState(false)
+  const [selectedNodeData, setSelectedNodeData] = useState(null)
+  const iframeRef = useRef(null)
   const pending = useRef(null)
 
   const wf = useAsync(() => domains.workflow(slug), [slug])
@@ -64,14 +67,15 @@ export default function DomainGraph() {
       domains
         .select(slug)
         .then(() => wf.reload())
-        .catch(() => {})
+        .catch(() => { })
     }
   }, [wf.data, slug]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load chat conversation and proposals whenever slug changes
+  // Load chat conversation, proposals, and HTML graph whenever slug changes
   useEffect(() => {
     setActiveDomainFilter(domainKey)
     setSelected(null)
+    setSelectedNodeData(null)
     setAiGraph(null)
     setFlowKey(null)
     setFlowDetail(null)
@@ -81,6 +85,23 @@ export default function DomainGraph() {
     setResults(null)
     setNeighbours(false)
     setActiveRightTab('chat')
+
+    if (slug) {
+      setIframeLoading(true)
+      const cleanSlug = slug.replace(/\s+/g, '-').toLowerCase()
+      graphs
+        .graphHtml(cleanSlug)
+        .then((res) => {
+          if (res?.html_url) {
+            setHtmlUrl(`${res.html_url}?t=${Date.now()}`)
+          } else {
+            setHtmlUrl(`/api/graphs/${cleanSlug}.html?t=${Date.now()}`)
+          }
+        })
+        .catch(() => {
+          setHtmlUrl(`/api/graphs/${cleanSlug}.html?t=${Date.now()}`)
+        })
+    }
 
     chat
       .get(slug)
@@ -103,8 +124,42 @@ export default function DomainGraph() {
         const p = r.proposals?.find((x) => x.status === 'pending' && x.source === 'chat') || null
         setProposal(p)
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [slug])
+
+  // Bidirectional communication with graph iframe
+  useEffect(() => {
+    const handleMsg = (event) => {
+      const data = event.data
+      if (!data || typeof data !== 'object') return
+
+      if (data.type === 'NODE_SELECTED') {
+        setSelected(data.key)
+        if (data.node) {
+          setSelectedNodeData({
+            key: data.node.key || data.key,
+            name: data.node.name || data.name,
+            group_name: data.node.group_name || '',
+            color: data.node.color || '#3b82f6',
+            def: data.node.definition || '',
+            definition: data.node.definition || '',
+            attributes: (data.node.attributes || []).map((a) => (typeof a === 'string' ? { name: a } : a)),
+            formulas: (data.node.formulas || []).map((f) => (typeof f === 'string' ? { name: f } : f)),
+            role: data.node.role || 'entity',
+          })
+        }
+        setActiveRightTab('details')
+      } else if (data.type === 'NODE_DESELECTED') {
+        setSelected(null)
+        setSelectedNodeData(null)
+      } else if (data.type === 'GRAPH_READY') {
+        setIframeLoading(false)
+      }
+    }
+
+    window.addEventListener('message', handleMsg)
+    return () => window.removeEventListener('message', handleMsg)
+  }, [])
 
   useEffect(() => {
     if (!blocks.data || picked) return
@@ -148,10 +203,16 @@ export default function DomainGraph() {
     try {
       const res = await graphs.generateGraph(slug, { prompt: aiPrompt, persist: true })
       setAiGraph(res)
+      if (res.html_url) {
+        setHtmlUrl(res.html_url)
+      } else {
+        const cleanSlug = slug.replace(/\s+/g, '-').toLowerCase()
+        setHtmlUrl(`/api/graphs/${cleanSlug}.html?t=${Date.now()}`)
+      }
       toast.success(`Generated ${res.nodes?.length || 0} entities and ${res.edges?.length || 0} relationships with LLM!`)
       setShowAiModal(false)
-      wf.reload().catch(() => {})
-      chat.get(slug).then(setSnap).catch(() => {})
+      wf.reload().catch(() => { })
+      chat.get(slug).then(setSnap).catch(() => { })
     } catch (e) {
       toast.error(e.message || 'Failed to generate Knowledge Graph with LLM.')
     } finally {
@@ -214,6 +275,11 @@ export default function DomainGraph() {
 
   const select = (key) => {
     setSelected(key)
+    if (iframeRef.current?.contentWindow) {
+      try {
+        iframeRef.current.contentWindow.postMessage({ type: 'SELECT_NODE', key }, '*')
+      } catch (e) { }
+    }
   }
 
   useEffect(() => {
@@ -228,7 +294,7 @@ export default function DomainGraph() {
     try {
       await domains.confirmBlocks(slug, picked)
       toast.success('Blocks saved.')
-      chat.get(slug).then(setSnap).catch(() => {})
+      chat.get(slug).then(setSnap).catch(() => { })
     } catch (e) {
       toast.error(e.message)
     } finally {
@@ -247,7 +313,7 @@ export default function DomainGraph() {
       } else {
         toast.success('Proposal rejected. Your graph is unchanged.')
       }
-      chat.get(slug).then(setSnap).catch(() => {})
+      chat.get(slug).then(setSnap).catch(() => { })
     } catch (e) {
       toast.error(
         e.details?.length
@@ -266,16 +332,20 @@ export default function DomainGraph() {
     return NODES.find((n) => n.id === selected) || null
   }, [selected])
 
-  const node = view?.nodes.find((n) => n.key === selected) || (ontologyNode ? {
-    key: ontologyNode.id,
-    name: ontologyNode.n,
-    group_name: DOMMETA[ontologyNode.d]?.n || ontologyNode.d,
-    color: DOMMETA[ontologyNode.d]?.c || '#94a3b8',
-    def: ontologyNode.def,
-    attributes: ontologyNode.a?.map((attr) => ({ name: attr })) || [],
-    formulas: ontologyNode.f?.map((frm) => ({ name: frm })) || [],
-    role: 'reference',
-  } : null)
+  const node = selectedNodeData ||
+    base?.nodes?.find((n) => n.key === selected || n.id === selected) ||
+    view?.nodes?.find((n) => n.key === selected || n.id === selected) ||
+    (ontologyNode ? {
+      key: ontologyNode.id,
+      name: ontologyNode.n,
+      group_name: DOMMETA[ontologyNode.d]?.n || ontologyNode.d,
+      color: DOMMETA[ontologyNode.d]?.c || '#94a3b8',
+      def: ontologyNode.def,
+      definition: ontologyNode.def,
+      attributes: ontologyNode.a?.map((attr) => ({ name: attr })) || [],
+      formulas: ontologyNode.f?.map((frm) => ({ name: frm })) || [],
+      role: 'reference',
+    } : null)
 
   return (
     <Layout wide>
@@ -299,11 +369,10 @@ export default function DomainGraph() {
               <button
                 key={dKey}
                 type="button"
-                className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${
-                  isSelected
+                className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${isSelected
                     ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
                     : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
-                }`}
+                  }`}
                 onClick={() => {
                   if (targetSlug && targetSlug !== slug) {
                     nav(`/finance/${targetSlug}`)
@@ -339,13 +408,13 @@ export default function DomainGraph() {
           )}
         </div>
 
-        <button
+        {/* <button
           onClick={() => setShowAiModal(true)}
           className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand to-indigo-600 px-3.5 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm hover:opacity-95 active:scale-95 transition cursor-pointer"
         >
           <Sparkles size={15} />
           <span>Generate KG with AI</span>
-        </button>
+        </button> */}
       </div>
 
       {/* Search and Filters Bar */}
@@ -449,8 +518,15 @@ export default function DomainGraph() {
 
       {/* Main Grid: Left Graph Canvas | Right Chatbot */}
       <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_440px]">
-        {/* Knowledge Graph Canvas */}
-        <div className="card relative h-[68vh] min-h-[460px] overflow-hidden">
+        {/* Knowledge Graph Dynamic Canvas */}
+        <div className="card relative h-[68vh] min-h-[460px] overflow-hidden p-0 border border-line">
+          {/* Minimalist Spinner Loader (No unnecessary text / badges) */}
+          {(generating || g.loading) && (
+            <div className="absolute inset-0 z-40 flex items-center justify-center bg-surface/85 backdrop-blur-xs">
+              <div className="h-9 w-9 animate-spin rounded-full border-3 border-brand/20 border-t-brand" />
+            </div>
+          )}
+
           <OntologyGraphCanvas
             activeDomain={activeDomainFilter}
             showNeighbours={neighbours}
@@ -461,6 +537,9 @@ export default function DomainGraph() {
             }}
             activeFlowIdx={activeFlowIdx}
             searchQuery={q}
+            nodes={base?.nodes}
+            edges={base?.edges}
+            domainMeta={domain}
             className="w-full h-full"
           />
         </div>
@@ -473,11 +552,10 @@ export default function DomainGraph() {
               <button
                 type="button"
                 onClick={() => setActiveRightTab('chat')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
-                  activeRightTab === 'chat'
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${activeRightTab === 'chat'
                     ? 'bg-brand text-white shadow-2xs'
                     : 'text-muted hover:text-ink'
-                }`}
+                  }`}
               >
                 <Bot size={14} />
                 <span>Chatbot</span>
@@ -491,11 +569,10 @@ export default function DomainGraph() {
               <button
                 type="button"
                 onClick={() => setActiveRightTab('details')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
-                  activeRightTab === 'details'
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${activeRightTab === 'details'
                     ? 'bg-brand text-white shadow-2xs'
                     : 'text-muted hover:text-ink'
-                }`}
+                  }`}
               >
                 <FileText size={14} />
                 <span>Entity Specs</span>

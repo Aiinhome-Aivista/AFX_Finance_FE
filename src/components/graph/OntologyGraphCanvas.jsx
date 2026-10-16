@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, forwardRef } from 'react'
-import { computeLayout, DOMMETA, FLOWS, ORDER } from '../../lib/ontologyData'
+import { computeDynamicLayout, computeLayout, DOMMETA, FLOWS, ORDER } from '../../lib/ontologyData'
 import { useTheme } from '../../context/ThemeContext'
 import { Maximize2, Minimize2, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react'
 
@@ -25,6 +25,9 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
     activeFlow = -1, // backward-compat alias
     searchQuery = '',
     className = '',
+    nodes: propNodes,
+    edges: propEdges,
+    domainMeta: propDomainMeta,
   },
   ref
 ) {
@@ -41,19 +44,24 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
   const panStartRef = useRef({ x: 0, y: 0, moved: false, currentTx: 0, currentTy: 0 })
   const animFrameRef = useRef(null)
 
-  // Layout computations
-  const layout = useMemo(() => computeLayout(), [])
+  // Layout computations (dynamic when propNodes provided, otherwise canonical layout)
+  const layout = useMemo(() => {
+    if (propNodes && propNodes.length > 0) {
+      return computeDynamicLayout(propNodes, propEdges || [], activeDomain, propDomainMeta)
+    }
+    return computeLayout()
+  }, [propNodes, propEdges, activeDomain, propDomainMeta])
   const { W, H, CX, CY, nodes, byId, edges, domMetas, spineMeta, adj } = layout
 
   // Visible set of nodes based on active domain
   const visibleSet = useMemo(() => {
-    if (activeDomain === 'all') return null
+    if (activeDomain === 'all' || (propNodes && propNodes.length > 0)) return null
     const s = new Set()
     nodes.forEach((n) => {
-      if (n.d === activeDomain || n.d === 'spine') s.add(n.id)
+      if (n.d === activeDomain || n.d === 'spine' || n.group_key === activeDomain) s.add(n.id)
     })
     return s
-  }, [activeDomain, nodes])
+  }, [activeDomain, nodes, propNodes])
 
   // Cross-domain neighbours set
   const neighbourSet = useMemo(() => {
@@ -599,9 +607,8 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
             Finance master-data spine
           </text>
 
-          {/* 8 Satellite Sub-Domain Halos & Labels */}
-          {ORDER.map((d) => {
-            const m = domMetas[d]
+          {/* Satellite Sub-Domain Halos & Labels */}
+          {Object.entries(domMetas).map(([d, m]) => {
             if (!m) return null
             const isTargetDomain = activeDomain === d
             return (
@@ -700,7 +707,8 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
           {/* Nodes Layer */}
           <g className="nodes-layer">
             {nodes.map((n) => {
-              const meta = DOMMETA[n.d] || DOMMETA.spine
+              const meta = domMetas[n.d] || DOMMETA[n.d] || DOMMETA.spine
+              const nodeColor = n.color || meta?.c || '#3B82F6'
               const isSelected = selId === n.id
               const isFound = searchMatches?.has(n.id)
 
@@ -746,13 +754,13 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
                     width={n.w}
                     height={n.h}
                     rx={9}
-                    stroke={isSelected ? themeColors.accent : meta.c}
+                    stroke={isSelected ? themeColors.accent : nodeColor}
                     strokeWidth={strokeWidth}
                     strokeDasharray={isFound ? '5 3' : undefined}
                     style={{
                       fill: themeColors.card,
                       filter: isSelected
-                        ? `drop-shadow(0 0 10px ${meta.c}88)`
+                        ? `drop-shadow(0 0 10px ${nodeColor}88)`
                         : isDark
                           ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.35))'
                           : 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.12))',
@@ -764,7 +772,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
                     cx={n.x - n.w / 2 + 11}
                     cy={n.y - n.h / 2 + 10}
                     r={3.4}
-                    fill={meta.c}
+                    fill={nodeColor}
                   />
                   {/* Label (1 or 2 lines) */}
                   {n.l2 ? (
