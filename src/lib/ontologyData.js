@@ -928,15 +928,24 @@ export function computeDynamicLayout(rawNodes, rawEdges, activeDomain = 'all', d
       n.y = CY + 155 * Math.sin(a)
     })
 
-    // Other groups on surrounding orbital circles
-    const otherGroups = groupKeys.filter((k) => k !== spineKey)
+    // Other groups on surrounding orbital circles (aligned to canonical ORDER or sort order)
+    const otherGroups = groupKeys
+      .filter((k) => k !== spineKey)
+      .sort((a, b) => {
+        const ia = ORDER.indexOf(a)
+        const ib = ORDER.indexOf(b)
+        if (ia !== -1 && ib !== -1) return ia - ib
+        if (ia !== -1) return -1
+        if (ib !== -1) return 1
+        return a.localeCompare(b)
+      })
     otherGroups.forEach((d, di) => {
       const a = -Math.PI / 2 + (di * 2 * Math.PI) / otherGroups.length
       const cx = CX + 560 * Math.cos(a)
       const cy = CY + 510 * Math.sin(a)
       const dNodes = domNodes[d] || []
       const r = dNodes.length <= 3 ? 95 : dNodes.length <= 6 ? 155 : 190
-      const groupColor = dNodes[0]?.color || DYNAMIC_PALETTE[di % DYNAMIC_PALETTE.length]
+      const groupColor = dNodes[0]?.color || DOMMETA[d]?.c || DYNAMIC_PALETTE[di % DYNAMIC_PALETTE.length]
       domMetas[d] = {
         n: dNodes[0]?.group_name || d,
         c: groupColor,
@@ -1037,9 +1046,9 @@ export function computeDynamicLayout(rawNodes, rawEdges, activeDomain = 'all', d
 
   // Precalculate edge coordinates (curved quadratic bezier arrows)
   const edges = (rawEdges || []).map((re, idx) => {
-    const srcId = String(re.source || re.srcId || re.from || '')
-    const tgtId = String(re.target || re.tgtId || re.to || '')
-    const label = re.label || ''
+    const srcId = String(Array.isArray(re) ? re[0] : (re.source || re.srcId || re.from || ''))
+    const tgtId = String(Array.isArray(re) ? re[1] : (re.target || re.tgtId || re.to || ''))
+    const label = Array.isArray(re) ? (re[2] || '') : (re.label || '')
     const a = byId[srcId]
     const b = byId[tgtId]
     if (!a || !b || srcId === tgtId) return null

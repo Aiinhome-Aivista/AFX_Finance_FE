@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
+  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   ChevronRight,
@@ -21,13 +22,10 @@ import Layout from '../components/common/Layout'
 import { ErrorState, Loading } from '../components/common/States'
 import useAsync from '../components/common/useAsync'
 import { useTheme } from '../context/ThemeContext'
-import { domains } from '../api'
+import { domains, ontology } from '../api'
 import OntologyGraphCanvas from '../components/graph/OntologyGraphCanvas'
 import {
   DOMMETA,
-  FLOWS,
-  NODES,
-  EDGES,
   ORDER,
   DOMAIN_SLUGS,
   SLUG_TO_DOM,
@@ -47,9 +45,33 @@ export default function FinanceLanding() {
   const [showNeighbours, setShowNeighbours] = useState(true)
   const [canonModalOpen, setCanonModalOpen] = useState(false)
 
-  // Fetch domain workflow states from backend
-  const { data, loading, error, reload } = useAsync(() => domains.list(), [])
+  // Fetch full dynamic ontology graph & domain workflow states from backend
+  const { data, loading, error, reload } = useAsync(() => ontology.overviewGraph(), [])
   const progress = data?.progress || {}
+
+  // Dynamic nodes ONLY from backend API (strictly no hardcoded fallback)
+  const activeNodes = useMemo(() => {
+    return Array.isArray(data?.nodes) ? data.nodes : []
+  }, [data])
+
+  // Dynamic edges ONLY from backend API (strictly no hardcoded fallback)
+  const activeEdges = useMemo(() => {
+    return Array.isArray(data?.edges) ? data.edges : []
+  }, [data])
+
+  // Dynamic flows ONLY from backend API (strictly no hardcoded fallback)
+  const activeFlows = useMemo(() => {
+    const list = Array.isArray(data?.flows) ? data.flows : []
+    return list.map((f) => ({
+      ...f,
+      t: f.t || f.title || f.key,
+      title: f.title || f.t || f.key,
+      ids: f.ids || f.steps || [],
+      steps: f.steps || f.ids || [],
+      x: f.x || f.narrative || '',
+      narrative: f.narrative || f.x || '',
+    }))
+  }, [data])
 
   // Map API domain objects by code
   const apiDomainMap = useMemo(() => {
@@ -60,14 +82,16 @@ export default function FinanceLanding() {
     return m
   }, [data])
 
-  // Lookup node by id
+  // Lookup node by id (supports both id and key)
   const nodesById = useMemo(() => {
     const m = {}
-    NODES.forEach((n) => {
-      m[n.id] = n
+    activeNodes.forEach((n) => {
+      const id = n.id || n.key
+      m[id] = n
+      if (n.key && n.key !== id) m[n.key] = n
     })
     return m
-  }, [])
+  }, [activeNodes])
 
   // Selected node details
   const selectedNode = selectedNodeId ? nodesById[selectedNodeId] : null
@@ -79,21 +103,25 @@ export default function FinanceLanding() {
     const inc = []
     const joins = new Set()
 
-    EDGES.forEach(([src, tgt, label]) => {
+    activeEdges.forEach((e) => {
+      const src = Array.isArray(e) ? e[0] : (e.source || e.srcId || e.from)
+      const tgt = Array.isArray(e) ? e[1] : (e.target || e.tgtId || e.to)
+      const label = Array.isArray(e) ? e[2] : (e.label || '')
+
       if (src === selectedNodeId) {
-        out.push({ otherId: tgt, otherName: nodesById[tgt]?.n || tgt, label, dir: 'out' })
+        out.push({ otherId: tgt, otherName: nodesById[tgt]?.n || nodesById[tgt]?.name || tgt, label, dir: 'out' })
         joins.add(tgt)
       } else if (tgt === selectedNodeId) {
-        inc.push({ otherId: src, otherName: nodesById[src]?.n || src, label, dir: 'in' })
+        inc.push({ otherId: src, otherName: nodesById[src]?.n || nodesById[src]?.name || src, label, dir: 'in' })
         joins.add(src)
       }
     })
 
     return {
       all: [...out, ...inc],
-      joins: Array.from(joins).map((id) => ({ id, name: nodesById[id]?.n || id })),
+      joins: Array.from(joins).map((id) => ({ id, name: nodesById[id]?.n || nodesById[id]?.name || id })),
     }
-  }, [selectedNodeId, nodesById])
+  }, [selectedNodeId, activeEdges, nodesById])
 
   // Domain selection handler - navigate directly to domain copilot & workflow page
   const handleDomainSelect = (dKey) => {
@@ -266,17 +294,66 @@ export default function FinanceLanding() {
           MAIN INTERACTIVE CANVAS (SVG ONTOLOGY GRAPH) & DETAILS PANEL
          ========================================================================= */}
       <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-        {/* Left: SVG Canvas */}
-        <div className="flex-1 min-w-0">
-          <OntologyGraphCanvas
-            ref={canvasRef}
-            selectedNodeId={selectedNodeId}
-            onSelectNode={handleSelectNode}
-            activeDomain={selectedDomain}
-            showNeighbours={showNeighbours}
-            activeFlowIdx={activeFlowIdx}
-            searchQuery={searchQuery}
-          />
+        {/* Left: SVG Canvas / Loader / Error */}
+        <div className="flex-1 min-w-0 rounded-2xl border border-line bg-surface overflow-hidden relative min-h-[550px] h-[74vh] flex flex-col justify-center items-center shadow-card">
+          {loading && (
+            <div className="flex flex-col items-center justify-center gap-3 p-8">
+              <div className="relative flex items-center justify-center">
+                <div className="h-14 w-14 rounded-full border-4 border-brand/20 border-t-brand animate-spin" />
+                <Network className="absolute text-brand animate-pulse" size={20} />
+              </div>
+              <div className="text-center mt-2">
+                <p className="text-sm font-semibold text-ink">Fetching Knowledge Graph...</p>
+                <p className="text-xs text-muted mt-1">dynamic ontology nodes, edges and governance definitions</p>
+              </div>
+            </div>
+          )}
+
+          {!loading && error && (
+            <div className="flex flex-col items-center justify-center gap-3 p-8 max-w-lg text-center">
+              <div className="h-12 w-12 rounded-2xl bg-bad/10 text-bad flex items-center justify-center mb-1">
+                <AlertTriangle size={24} />
+              </div>
+              <h3 className="text-base font-bold text-ink">Failed to Load Knowledge Graph</h3>
+              <p className="text-xs text-muted leading-relaxed">
+                {error?.message || String(error) || 'Could not connect to the backend database server.'}
+              </p>
+              <div className="mt-2 flex items-center gap-3">
+                <button
+                  onClick={reload}
+                  className="btn-primary btn-sm flex items-center gap-1.5 px-4 py-2 text-xs font-semibold shadow-sm"
+                >
+                  <RotateCcw size={13} />
+                  <span>Retry Connection</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!loading && !error && activeNodes.length === 0 && (
+            <div className="flex flex-col items-center justify-center gap-2 p-8 text-center text-muted">
+              <Database size={28} className="text-muted/60 mb-1" />
+              <p className="text-sm font-semibold text-ink">No Graph Data Found</p>
+              <p className="text-xs max-w-md">The backend did not return any ontology nodes or edges from the database.</p>
+              <button onClick={reload} className="mt-2 btn-ghost btn-sm">Refresh</button>
+            </div>
+          )}
+
+          {!loading && !error && activeNodes.length > 0 && (
+            <OntologyGraphCanvas
+              ref={canvasRef}
+              selectedNodeId={selectedNodeId}
+              onSelectNode={handleSelectNode}
+              activeDomain={selectedDomain}
+              showNeighbours={showNeighbours}
+              activeFlowIdx={activeFlowIdx}
+              searchQuery={searchQuery}
+              nodes={activeNodes}
+              edges={activeEdges}
+              flows={activeFlows}
+              className="w-full h-full"
+            />
+          )}
         </div>
 
         {/* Right: Modern Side Details Panel */}
@@ -336,16 +413,6 @@ export default function FinanceLanding() {
                             </span>
                           </div>
                         </div>
-
-                        <Link
-                          to={`/finance/${slug}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-surface border border-line px-2 py-1 text-[11px] font-medium text-muted hover:text-brand hover:border-brand transition shadow-sm"
-                          title="Open domain workflow"
-                        >
-                          <span>{p ? (p.finalized ? 'Final' : `Step ${p.current_step}`) : 'Start'}</span>
-                          <ArrowRight size={11} />
-                        </Link>
                       </div>
                     )
                   })}
@@ -513,7 +580,8 @@ export default function FinanceLanding() {
       {/* =========================================================================
           END-TO-END OPERATIONAL CYCLES (BOTTOM SECTION)
          ========================================================================= */}
-      <details className="mt-5 rounded-2xl border border-line bg-surface shadow-card overflow-hidden group" open>
+      {activeFlows.length > 0 && (
+        <details className="mt-5 rounded-2xl border border-line bg-surface shadow-card overflow-hidden group" open>
         <summary className="cursor-pointer px-5 py-4 text-sm sm:text-base font-bold text-ink flex items-center justify-between select-none hover:bg-surface2 transition">
           <div className="flex items-center gap-2.5">
             <span className="grid h-6 w-6 place-items-center rounded-md bg-brand/10 text-brand text-xs font-bold transition-transform group-open:rotate-90">
@@ -538,9 +606,9 @@ export default function FinanceLanding() {
         </summary>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 p-5 pt-3 border-t border-line bg-surface2/30">
-          {FLOWS.map((f, i) => {
+          {activeFlows.map((f, i) => {
             const isActive = activeFlowIdx === i
-            const isLast = i === FLOWS.length - 1
+            const isLast = i === activeFlows.length - 1
 
             // Dynamic arrow color: Pure black in light theme, pure white in dark theme, brand when active
             const arrowColor = isActive
@@ -572,10 +640,10 @@ export default function FinanceLanding() {
             ]
 
             return (
-              <div key={f.t} className={`relative flex flex-col ${SNAKE_GRID_XL[i] || ''} ${SNAKE_GRID_MD[i] || ''}`}>
+              <div key={f.key || f.t || i} className={`relative flex flex-col ${SNAKE_GRID_XL[i] || ''} ${SNAKE_GRID_MD[i] || ''}`}>
                 <div
                   onClick={() => handleFlowToggle(i)}
-                  className={`rounded-2xl border p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between flex-1 ${
+                  className={`rounded-2xl border p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between h-[178px] ${
                     isActive
                       ? 'border-brand ring-2 ring-brand/30 bg-surface shadow-md scale-[1.01]'
                       : 'border-line bg-surface hover:border-brand/60 hover:shadow-sm'
@@ -583,25 +651,34 @@ export default function FinanceLanding() {
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <b className={`text-xs font-bold ${isActive ? 'text-brand' : 'text-ink'}`}>
-                        {f.t}
+                      <b className={`text-xs font-bold truncate pr-2 ${isActive ? 'text-brand' : 'text-ink'}`} title={f.t || f.title}>
+                        {f.t || f.title}
                       </b>
                       {isActive ? (
-                        <span className="text-[10px] uppercase font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full border border-brand/20">
+                        <span className="text-[10px] uppercase font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full border border-brand/20 shrink-0">
                           Tracing
                         </span>
                       ) : (
-                        <span className="text-[10px] text-muted font-mono">
-                          {f.ids.length} steps
+                        <span className="text-[10px] text-muted font-mono shrink-0">
+                          {(f.ids || f.steps || []).length} steps
                         </span>
                       )}
                     </div>
-                    <p className="font-mono text-[10.5px] text-muted leading-relaxed break-words">
-                      {f.x}
+                    <p
+                      className="font-mono text-[10.5px] text-muted leading-relaxed break-words line-clamp-4 h-[4.25rem] overflow-hidden"
+                      style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 4,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                      title={f.x || f.narrative}
+                    >
+                      {f.x || f.narrative}
                     </p>
                   </div>
 
-                  <div className="mt-3 pt-2.5 border-t border-line/60 flex items-center justify-between text-[11px]">
+                  <div className="mt-3 pt-2.5 border-t border-line/60 flex items-center justify-between text-[11px] shrink-0">
                     <span className={isActive ? 'font-semibold text-brand' : 'text-muted'}>
                       {isActive ? 'Click to deactivate' : 'Click to trace path'}
                     </span>
@@ -675,6 +752,7 @@ export default function FinanceLanding() {
           })}
         </div>
       </details>
+      )}
 
       {/* =========================================================================
           REFERENCE CANON MODAL

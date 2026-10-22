@@ -27,6 +27,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
     className = '',
     nodes: propNodes,
     edges: propEdges,
+    flows: propFlows,
     domainMeta: propDomainMeta,
   },
   ref
@@ -55,13 +56,16 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
 
   // Visible set of nodes based on active domain
   const visibleSet = useMemo(() => {
-    if (activeDomain === 'all' || (propNodes && propNodes.length > 0)) return null
+    if (activeDomain === 'all') return null
     const s = new Set()
     nodes.forEach((n) => {
-      if (n.d === activeDomain || n.d === 'spine' || n.group_key === activeDomain) s.add(n.id)
+      const gKey = String(n.group_key || n.d || '').toLowerCase()
+      if (gKey === activeDomain || gKey === 'spine' || n.d === activeDomain || n.d === 'spine') {
+        s.add(n.id)
+      }
     })
     return s
-  }, [activeDomain, nodes, propNodes])
+  }, [activeDomain, nodes])
 
   // Cross-domain neighbours set
   const neighbourSet = useMemo(() => {
@@ -79,9 +83,10 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
 
   // Active flow node IDs
   const flowNodeIds = useMemo(() => {
-    if (currentFlow < 0 || !FLOWS[currentFlow]) return null
-    return new Set(FLOWS[currentFlow].ids)
-  }, [currentFlow])
+    const list = propFlows || FLOWS
+    if (currentFlow < 0 || !list[currentFlow]) return null
+    return new Set(list[currentFlow].ids || list[currentFlow].steps || [])
+  }, [currentFlow, propFlows])
 
   // Search matches set
   const searchMatches = useMemo(() => {
