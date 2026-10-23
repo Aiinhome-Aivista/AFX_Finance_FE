@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Bot, FileText, Layers, Search, Sparkles, X } from 'lucide-react'
+import { ArrowLeft, Bot, FileText, Layers, Network, Search, Sparkles, X } from 'lucide-react'
 import Layout from '../components/common/Layout'
 import Stepper from '../components/common/Stepper'
 import { EmptyState, ErrorState, Loading } from '../components/common/States'
@@ -521,15 +521,15 @@ export default function DomainGraph() {
       <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_440px]">
         {/* Knowledge Graph Dynamic Canvas */}
         <div className="card relative h-[68vh] min-h-[460px] overflow-hidden p-0 border border-line">
-          {/* Minimalist Spinner Loader with update message */}
+          {/* Circular Spinner Loader with pulse icon and status message */}
           {(generating || g.loading || updatingGraph) && (
-            <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-surface/80 backdrop-blur-xs transition-opacity duration-300">
-              <div className="relative">
-                <div className="h-10 w-10 animate-spin rounded-full border-3 border-brand/20 border-t-brand" />
-                <Sparkles size={16} className="absolute inset-0 m-auto text-brand animate-pulse" />
+            <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-surface/80 backdrop-blur-md transition-opacity duration-300">
+              <div className="relative flex items-center justify-center">
+                <div className="h-14 w-14 rounded-full border-4 border-brand/20 border-t-brand animate-spin" />
+                <Network className="absolute text-brand animate-pulse" size={20} />
               </div>
               <span className="mt-3 text-xs font-semibold tracking-wide text-ink/80 animate-pulse">
-                {updatingGraph ? 'Updating Knowledge Graph with AI…' : 'Loading Knowledge Graph…'}
+                {updatingGraph ? 'Updating Knowledge Graph' : 'Loading Knowledge Graph…'}
               </span>
             </div>
           )}

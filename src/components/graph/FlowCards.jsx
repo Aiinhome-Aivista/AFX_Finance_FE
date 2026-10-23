@@ -45,14 +45,13 @@ export default function FlowCards({ flows, activeKey, onToggle, detail, loading,
           ]
 
           return (
-            <div key={f.key} className={`relative flex flex-col ${SNAKE_GRID_XL[i] || ''} ${SNAKE_GRID_MD[i] || ''}`}>
+            <div key={f.key} className={`group/flow relative flex flex-col ${SNAKE_GRID_XL[i] || ''} ${SNAKE_GRID_MD[i] || ''}`}>
               <button
                 type="button"
                 onClick={() => onToggle(f.key)}
                 aria-pressed={isActive}
-                className={`card p-4 text-left transition hover:border-brand flex-1 h-full flex flex-col justify-between cursor-pointer ${
-                  isActive ? 'border-brand ring-2 ring-brand' : ''
-                }`}
+                className={`card p-4 text-left transition hover:border-brand flex-1 h-full flex flex-col justify-between cursor-pointer ${isActive ? 'border-brand ring-2 ring-brand' : ''
+                  }`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2">
@@ -71,7 +70,18 @@ export default function FlowCards({ flows, activeKey, onToggle, detail, loading,
                       ) : null}
                     </div>
                   </div>
-                  <p className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-muted">{f.narrative}</p>
+                  <div className="relative mt-1.5">
+                    <p className="line-clamp-3 text-xs leading-relaxed text-muted">
+                      {f.narrative}
+                    </p>
+
+                    {/* Hover Tooltip: reveals complete remaining flow path without clipping */}
+                    <div className="pointer-events-none absolute -inset-x-2 -top-2 z-40 opacity-0 invisible group-hover/flow:opacity-100 group-hover/flow:visible transition-all duration-150 rounded-xl border border-brand/50 bg-surface/98 p-2.5 text-xs text-ink shadow-2xl backdrop-blur-md">
+                      <p className="text-xs leading-relaxed text-ink font-medium">
+                        {f.narrative}
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 <p className="mt-2 text-[11px] text-muted">{f.step_count} steps</p>
               </button>
