@@ -28,7 +28,7 @@ export default function DomainGraph() {
   const nav = useNavigate()
   const toast = useToast()
   const domainKey = SLUG_TO_DOM[slug] || SLUG_TO_DOM[slug?.replace(/_/g, '-')] || 'all'
-  const [activeDomainFilter, setActiveDomainFilter] = useState('all')
+  const [activeDomainFilter, setActiveDomainFilter] = useState(domainKey)
   const [neighbours, setNeighbours] = useState(false)
   const [selected, setSelected] = useState(null)
   const [hidden, setHidden] = useState(new Set())
@@ -74,7 +74,7 @@ export default function DomainGraph() {
 
   // Load chat conversation, proposals, and HTML graph whenever slug changes
   useEffect(() => {
-    setActiveDomainFilter('all')
+    setActiveDomainFilter(domainKey)
     setSelected(null)
     setSelectedNodeData(null)
     setAiGraph(null)
@@ -371,8 +371,8 @@ export default function DomainGraph() {
                 key={dKey}
                 type="button"
                 className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${isSelected
-                    ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
-                    : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
+                  ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
+                  : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
                   }`}
                 onClick={() => {
                   if (targetSlug && targetSlug !== slug) {
@@ -404,7 +404,7 @@ export default function DomainGraph() {
           <h1 className="text-xl font-bold tracking-tight">{domain?.name || 'Knowledge Graph'}</h1>
           {aiGraph && (
             <span className="rounded-full bg-brand/15 px-2.5 py-0.5 text-xs font-semibold text-brand border border-brand/30">
-              ✨ LLM Generated ({aiGraph.nodes?.length || 0} nodes)
+              LLM Generated ({aiGraph.nodes?.length || 0} nodes)
             </span>
           )}
         </div>
@@ -420,12 +420,12 @@ export default function DomainGraph() {
 
       {/* Search and Filters Bar */}
       <div className="card mt-3 p-3">
-        <div className="flex flex-wrap items-start gap-3">
+        {/* <div className="flex flex-wrap items-start gap-3">
           <div className="relative min-w-[240px] flex-1">
             <Search size={15} className="pointer-events-none absolute left-3 top-3 text-muted" />
             <input
               className="input pl-9 pr-8 text-xs sm:text-sm"
-              placeholder="Search entity, attribute or formula (e.g. arDso, EVA, 3-way match)…"
+              placeholder="Search entity, attribute or formula…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               aria-label="Search the graph"
@@ -484,11 +484,11 @@ export default function DomainGraph() {
             />
             <span className="font-medium text-ink/90">Cross-domain neighbours</span>
           </label>
-        </div>
+        </div> */}
 
         {/* Domain filter chips */}
         <div className="mt-3 flex flex-wrap items-center gap-1.5" aria-label="Sub-domain filters">
-          <span className="h-section mr-1">Show</span>
+          {/* <span className="h-section mr-1">Show</span> */}
           <button
             type="button"
             className={`chip cursor-pointer ${activeDomainFilter === 'all' ? 'chip-on' : 'opacity-70'}`}
@@ -516,6 +516,7 @@ export default function DomainGraph() {
           </button>
         </div>
       </div>
+
 
       {/* Main Grid: Left Graph Canvas | Right Chatbot */}
       <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_440px]">
@@ -560,8 +561,8 @@ export default function DomainGraph() {
                 type="button"
                 onClick={() => setActiveRightTab('chat')}
                 className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${activeRightTab === 'chat'
-                    ? 'bg-brand text-white shadow-2xs'
-                    : 'text-muted hover:text-ink'
+                  ? 'bg-brand text-white shadow-2xs'
+                  : 'text-muted hover:text-ink'
                   }`}
               >
                 <Bot size={14} />
@@ -577,8 +578,8 @@ export default function DomainGraph() {
                 type="button"
                 onClick={() => setActiveRightTab('details')}
                 className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${activeRightTab === 'details'
-                    ? 'bg-brand text-white shadow-2xs'
-                    : 'text-muted hover:text-ink'
+                  ? 'bg-brand text-white shadow-2xs'
+                  : 'text-muted hover:text-ink'
                   }`}
               >
                 <FileText size={14} />

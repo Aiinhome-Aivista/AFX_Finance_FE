@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, BookOpen, FunctionSquare, Link2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, FunctionSquare, Link2, X } from 'lucide-react'
 import { ontology } from '../../api'
 import { Loading, ErrorState } from '../common/States'
 import { ROLE_LABEL, cleanMojibake } from '../../lib/format'
@@ -124,25 +124,6 @@ export default function NodeDetailsPanel({ nodeKey, graphNode, graphNodes, graph
           </Section>
         )}
 
-        {ref?.canon?.joins && <Section title={`Canon joins · ${ref.canon.section}`}><p className="text-[13px] leading-relaxed text-muted">{ref.canon.joins}</p></Section>}
-
-        {(ref?.evidence || ref?.canon || graphNode?.evidence) && (
-          <Section title="Evidence & source references" icon={BookOpen}>
-            {(ref?.evidence || graphNode?.evidence) && <p className="text-[13px] leading-relaxed">{ref?.evidence || graphNode?.evidence}</p>}
-            {ref?.canon && (
-              <p className="mt-2 rounded-lg bg-surface2 p-2 text-xs text-muted">
-                <b className="text-ink">FMCG ONTOLOGY.md {ref.canon.section}</b> — {ref.canon.title}
-                {ref.canon.evidence && <><br />{ref.canon.evidence}</>}
-              </p>
-            )}
-          </Section>
-        )}
-
-        {ref?.domains?.length > 0 && (
-          <Section title="Appears in sub-domains">
-            <div className="flex flex-wrap gap-1.5">{ref.domains.map((d) => <span key={d.slug} className="badge border border-line text-muted">{d.code} · {d.role}</span>)}</div>
-          </Section>
-        )}
         {children}
       </div>
     </div>
