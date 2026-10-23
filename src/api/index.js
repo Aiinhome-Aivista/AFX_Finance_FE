@@ -23,6 +23,7 @@ export const domains = {
   workflow: (slug) => http.get(`/domains/${slug}/workflow`).then(d),
 }
 export const ontology = {
+  overviewGraph: () => http.get('/ontology/overview-graph').then(d),
   flow: (key, domain) => http.get(`/flows/${key}`, { params: domain ? { domain } : {} }).then(d),
   node: (key) => http.get(`/nodes/${key}`).then(d),
   search: (q, domain, scope) => http.get('/search', { params: { q, domain, scope } }).then(d),
