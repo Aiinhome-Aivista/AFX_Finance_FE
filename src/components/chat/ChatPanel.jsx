@@ -7,6 +7,7 @@ import { useToast } from '../../context/ToastContext'
 const KIND_LABEL = {
   question: 'Question',
   ack: 'Acknowledgment',
+  decision: 'Session Decision',
   proposal: 'Change Proposal',
   node_qa: 'Entity Analysis',
   intro: 'Welcome',
@@ -66,6 +67,15 @@ export default function ChatPanel({
     setSnap(r)
     if (r?.graph_updated || r?.graph) onGraphUpdate?.(r)
   })
+
+  const handleDecision = (action) => {
+    run(
+      () => chat.decision(slug, action),
+      (r) => {
+        merge(r)
+      }
+    )
+  }
 
   const send = (e) => {
     e?.preventDefault()
@@ -200,6 +210,10 @@ export default function ChatPanel({
                   ({answeredCount} {answeredCount === 1 ? 'question' : 'questions'} explored)
                 </span>
               </span>
+            ) : activeSnap.awaiting_session_decision ? (
+              <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                Session Check: Continue or Proceed?
+              </span>
             ) : q ? (
               <>
                 <span className="text-ink">Domain Discovery:</span>
@@ -211,7 +225,7 @@ export default function ChatPanel({
                 </span>
               </>
             ) : (
-              <span className="text-ink font-semibold">Graph Copilot Active</span>
+              <span className="text-ink font-semibold">Domain Discovery Active</span>
             )}
           </div>
 
@@ -237,8 +251,9 @@ export default function ChatPanel({
 
       {/* Messages Thread */}
       <div className="scroll-thin flex-1 space-y-3.5 overflow-y-auto p-4" role="log" aria-live="polite">
-        {activeSnap.messages.map((m) => {
+        {activeSnap.messages.map((m, idx) => {
           const isUser = m.role === 'user'
+          const isDecisionMsg = m.kind === 'decision' || m.meta?.awaiting_session_decision
 
           return (
             <div key={m.id} className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}>
@@ -254,9 +269,11 @@ export default function ChatPanel({
               <div
                 className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-2xs ${isUser
                   ? 'bg-brand text-white rounded-tr-sm'
-                  : m.kind === 'question'
-                    ? 'border border-brand/40 bg-brand/5 rounded-tl-sm text-ink'
-                    : 'border border-line/70 bg-surface2/70 text-ink rounded-tl-sm'
+                  : isDecisionMsg
+                    ? 'border-2 border-brand/50 bg-brand/10 text-ink rounded-tl-sm'
+                    : m.kind === 'question'
+                      ? 'border border-brand/40 bg-brand/5 rounded-tl-sm text-ink'
+                      : 'border border-line/70 bg-surface2/70 text-ink rounded-tl-sm'
                   }`}
               >
                 {KIND_LABEL[m.kind] && !isUser && (
@@ -303,6 +320,33 @@ export default function ChatPanel({
                     View specs →
                   </button>
                 )}
+              </div>
+            )}
+
+            {/* Session decision quick banner if awaiting decision */}
+            {activeSnap.awaiting_session_decision && !isComplete && (
+              <div className="flex items-center justify-between gap-2 rounded-xl bg-amber-500/10 border border-amber-500/25 px-3 py-2 text-xs">
+                <span className="font-semibold text-amber-600 dark:text-amber-400">
+                  Ready to proceed, or continue exploring?
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => handleDecision('continue')}
+                    className="rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-ink hover:text-brand transition cursor-pointer disabled:opacity-50"
+                  >
+                    Continue
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => handleDecision('proceed')}
+                    className="rounded-lg bg-brand px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand/90 transition cursor-pointer shadow-2xs disabled:opacity-50"
+                  >
+                    Proceed
+                  </button>
+                </div>
               </div>
             )}
 

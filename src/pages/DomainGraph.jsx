@@ -28,7 +28,7 @@ export default function DomainGraph() {
   const nav = useNavigate()
   const toast = useToast()
   const domainKey = SLUG_TO_DOM[slug] || SLUG_TO_DOM[slug?.replace(/_/g, '-')] || 'all'
-  const [activeDomainFilter, setActiveDomainFilter] = useState(domainKey)
+  const [activeDomainFilter, setActiveDomainFilter] = useState('all')
   const [neighbours, setNeighbours] = useState(false)
   const [selected, setSelected] = useState(null)
   const [hidden, setHidden] = useState(new Set())
@@ -74,7 +74,7 @@ export default function DomainGraph() {
 
   // Load chat conversation, proposals, and HTML graph whenever slug changes
   useEffect(() => {
-    setActiveDomainFilter(domainKey)
+    setActiveDomainFilter('all')
     setSelected(null)
     setSelectedNodeData(null)
     setAiGraph(null)

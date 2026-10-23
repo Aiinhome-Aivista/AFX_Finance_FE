@@ -36,6 +36,7 @@ export const chat = {
   askNode: (slug, node_key, question) => http.post(`/domains/${slug}/conversation/ask-node`, { node_key, question }).then(d),
   focus: (slug, node_key) => http.post(`/domains/${slug}/conversation/focus`, { node_key }).then(d),
   propose: (slug) => http.post(`/domains/${slug}/conversation/propose`).then(d),
+  decision: (slug, action) => http.post(`/domains/${slug}/conversation/decision`, { action }).then(d),
 }
 export const graphs = {
   versions: (slug) => http.get(`/domains/${slug}/versions`).then(d),

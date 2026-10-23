@@ -56,7 +56,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
 
   // Visible set of nodes based on active domain
   const visibleSet = useMemo(() => {
-    if (activeDomain === 'all') return null
+    if (activeDomain === 'all' || !activeDomain) return null
     const s = new Set()
     nodes.forEach((n) => {
       const gKey = String(n.group_key || n.d || '').toLowerCase()
@@ -64,6 +64,8 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
         s.add(n.id)
       }
     })
+    // If filter didn't match any node in this graph, don't dim everything — keep all nodes visible!
+    if (s.size === 0) return null
     return s
   }, [activeDomain, nodes])
 
@@ -588,29 +590,33 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
           </defs>
 
           {/* Central Master-Data Spine Halo & Label */}
-          <circle
-            cx={CX}
-            cy={CY}
-            r={spineMeta.r || 255}
-            fill={spineMeta.c}
-            opacity={isDark ? '0.08' : '0.06'}
-            className="transition-opacity pointer-events-none"
-          />
-          <text
-            x={CX}
-            y={CY + 8}
-            textAnchor="middle"
-            fill={spineMeta.c}
-            opacity="0.6"
-            className="select-none pointer-events-none font-bold"
-            style={{
-              fontFamily: "'Barlow', 'Inter', sans-serif",
-              fontSize: '15px',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            Finance master-data spine
-          </text>
+          {(!propNodes || spineMeta?.hasNodes) && (
+            <>
+              <circle
+                cx={CX}
+                cy={CY}
+                r={spineMeta.r || 255}
+                fill={spineMeta.c}
+                opacity={isDark ? '0.08' : '0.06'}
+                className="transition-opacity pointer-events-none"
+              />
+              <text
+                x={CX}
+                y={CY + 8}
+                textAnchor="middle"
+                fill={spineMeta.c}
+                opacity="0.6"
+                className="select-none pointer-events-none font-bold"
+                style={{
+                  fontFamily: "'Barlow', 'Inter', sans-serif",
+                  fontSize: '15px',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Finance master-data spine
+              </text>
+            </>
+          )}
 
           {/* Satellite Sub-Domain Halos & Labels */}
           {Object.entries(domMetas).map(([d, m]) => {

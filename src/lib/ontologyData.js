@@ -911,6 +911,7 @@ export function computeDynamicLayout(rawNodes, rawEdges, activeDomain = 'all', d
   const spineKey = groupKeys.find((k) => k === 'spine' || k.toLowerCase().includes('spine'))
   const spineMeta = {
     ...DOMMETA.spine,
+    hasNodes: Boolean(spineKey && domNodes[spineKey]?.length > 0),
     n: spineKey ? (domNodes[spineKey][0]?.group_name || 'Finance master-data spine') : 'Finance master-data spine',
     c: DOMMETA.spine?.c || '#4F46E5',
     cx: CX,
