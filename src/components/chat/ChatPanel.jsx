@@ -183,9 +183,8 @@ export default function ChatPanel({
   }
 
   const q = activeSnap.open_question
-  const plannedCount = activeSnap.progress.planned || 10
-  const answeredCount = activeSnap.progress.answered || 0
-  const progressPercent = Math.min(100, Math.round((answeredCount / plannedCount) * 100))
+  const isComplete = Boolean(activeSnap.progress?.plan_complete && !q)
+  const answeredCount = activeSnap.progress?.answered || 0
 
   return (
     <div className="flex h-full flex-col bg-surface/90 text-ink">
@@ -193,11 +192,27 @@ export default function ChatPanel({
       <div className="border-b border-line/70 px-4 py-2.5 bg-surface2/30">
         <div className="flex items-center justify-between text-xs text-muted">
           <div className="flex items-center gap-1.5 font-medium">
-            <Sparkles size={13} className="text-brand" />
-            <span className="text-ink">Progress:</span>
-            <span>
-              {answeredCount}/{plannedCount} questions
-            </span>
+            <Sparkles size={13} className={isComplete ? 'text-emerald-500' : 'text-brand'} />
+            {isComplete ? (
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                Domain Discovery Complete
+                <span className="ml-1 text-muted font-normal text-[11px]">
+                  ({answeredCount} {answeredCount === 1 ? 'question' : 'questions'} explored)
+                </span>
+              </span>
+            ) : q ? (
+              <>
+                <span className="text-ink">Domain Discovery:</span>
+                <span className="text-brand font-semibold">
+                  Question #{answeredCount + 1}
+                </span>
+                <span className="text-muted text-[11px] font-normal">
+                  (Context-driven)
+                </span>
+              </>
+            ) : (
+              <span className="text-ink font-semibold">Graph Copilot Active</span>
+            )}
           </div>
 
           {activeSnap.pending_change_count > 0 && (
@@ -210,8 +225,12 @@ export default function ChatPanel({
         {/* Micro progress bar */}
         <div className="mt-2 h-1.5 w-full rounded-full bg-surface2 overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-brand to-indigo-500 transition-all duration-300"
-            style={{ width: `${progressPercent}%` }}
+            className={`h-full transition-all duration-500 ${
+              isComplete
+                ? 'w-full bg-emerald-500'
+                : 'bg-gradient-to-r from-brand to-indigo-500'
+            }`}
+            style={{ width: isComplete ? '100%' : `${Math.min(95, Math.max(20, (answeredCount + 1) * 20))}%` }}
           />
         </div>
       </div>
@@ -224,23 +243,21 @@ export default function ChatPanel({
           return (
             <div key={m.id} className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}>
               <span
-                className={`grid h-7 w-7 shrink-0 place-items-center rounded-xl text-xs font-semibold shadow-2xs ${
-                  isUser
-                    ? 'bg-brand text-white shadow-brand/20'
-                    : 'bg-surface2 text-brand border border-line'
-                }`}
+                className={`grid h-7 w-7 shrink-0 place-items-center rounded-xl text-xs font-semibold shadow-2xs ${isUser
+                  ? 'bg-brand text-white shadow-brand/20'
+                  : 'bg-surface2 text-brand border border-line'
+                  }`}
               >
                 {isUser ? <User size={14} /> : <Bot size={14} />}
               </span>
 
               <div
-                className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-2xs ${
-                  isUser
-                    ? 'bg-brand text-white rounded-tr-sm'
-                    : m.kind === 'question'
+                className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-2xs ${isUser
+                  ? 'bg-brand text-white rounded-tr-sm'
+                  : m.kind === 'question'
                     ? 'border border-brand/40 bg-brand/5 rounded-tl-sm text-ink'
                     : 'border border-line/70 bg-surface2/70 text-ink rounded-tl-sm'
-                }`}
+                  }`}
               >
                 {KIND_LABEL[m.kind] && !isUser && (
                   <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-brand">
@@ -291,7 +308,7 @@ export default function ChatPanel({
 
             {/* Mode selection chips */}
             <div className="flex flex-wrap items-center gap-1.5">
-              <button
+              {/* <button
                 type="button"
                 className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition cursor-pointer border ${
                   mode === 'chat' || (!q && mode !== 'ask')
@@ -301,35 +318,33 @@ export default function ChatPanel({
                 onClick={() => setMode('chat')}
               >
                 Graph Copilot
-              </button>
+              </button> */}
 
               {q && (
                 <button
                   type="button"
-                  className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition cursor-pointer border ${
-                    mode === 'answer'
-                      ? 'bg-brand text-white border-brand shadow-2xs font-semibold'
-                      : 'border-line bg-surface2 text-muted hover:text-ink'
-                  }`}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition cursor-pointer border ${mode === 'answer'
+                    ? 'bg-brand text-white border-brand shadow-2xs font-semibold'
+                    : 'border-line bg-surface2 text-muted hover:text-ink'
+                    }`}
                   onClick={() => setMode('answer')}
                 >
-                  Answer 
+                  Answer
                 </button>
               )}
 
-              <button
+              {/* <button
                 type="button"
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition cursor-pointer border ${
-                  mode === 'ask'
+                className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition cursor-pointer border ${mode === 'ask'
                     ? 'bg-brand text-white border-brand shadow-2xs font-semibold'
                     : 'border-line bg-surface2 text-muted hover:text-ink'
-                }`}
+                  }`}
                 onClick={() => setMode('ask')}
                 disabled={!askNode}
                 title={askNode ? '' : 'Click an entity on the graph first'}
               >
                 {askNode ? `Ask about “${nodeName || askNode}”` : 'Ask selected node'}
-              </button>
+              </button> */}
 
               {q && (
                 <button
@@ -359,10 +374,10 @@ export default function ChatPanel({
                 }}
                 placeholder={
                   mode === 'ask'
-                    ? `Ask anything about ${nodeName || 'the selected entity'}…`
+                    ? `Ask about ${nodeName || 'this entity'}…`
                     : mode === 'answer' && q
-                    ? 'Type your answer to the question (Press Enter to send)…'
-                    : 'Ask about this Knowledge Graph, its entities, formulas, or connections…'
+                      ? 'Type your answer…'
+                      : 'Ask a question or describe your process…'
                 }
                 disabled={busy}
                 aria-label="Message the assistant"

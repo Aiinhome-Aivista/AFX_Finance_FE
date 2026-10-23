@@ -23,3 +23,19 @@ export function timeAgo(ts) {
 export const bytes = (n) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`)
 
 export const ROLE_LABEL = { core: 'Core entity', shared: 'Shared spine', neighbour: 'Cross-domain neighbour', flow: 'Flow context', client: 'Client-defined' }
+
+export function cleanMojibake(text) {
+  if (!text || typeof text !== 'string') return text || ''
+  return text
+    .replace(/â€“|â€”|â€"|â€\x9d|â€\x9c/g, '—')
+    .replace(/â€˜|â€™/g, "'")
+    .replace(/â€œ/g, '"')
+    .replace(/Ã—/g, '×')
+    .replace(/â†’/g, '→')
+    .replace(/âˆ’/g, '-')
+    .replace(/Ã·/g, '/')
+    .replace(/Â§/g, '§')
+    .replace(/Â/g, '')
+    .trim()
+}
+

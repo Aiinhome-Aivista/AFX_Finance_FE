@@ -12,7 +12,7 @@ import ChatPanel from '../components/chat/ChatPanel'
 import ProposalReview from '../components/chat/ProposalReview'
 import useAsync from '../components/common/useAsync'
 import { chat, domains, graphs, ontology } from '../api'
-import { edgeId } from '../lib/format'
+import { edgeId, cleanMojibake } from '../lib/format'
 import { useToast } from '../context/ToastContext'
 import { DOMAIN_SLUGS, DOMMETA, FLOWS, NODES, ORDER, SLUG_TO_DOM } from '../lib/ontologyData'
 
@@ -139,13 +139,13 @@ export default function DomainGraph() {
         if (data.node) {
           setSelectedNodeData({
             key: data.node.key || data.key,
-            name: data.node.name || data.name,
-            group_name: data.node.group_name || '',
+            name: cleanMojibake(data.node.name || data.name),
+            group_name: cleanMojibake(data.node.group_name || ''),
             color: data.node.color || '#3b82f6',
-            def: data.node.definition || '',
-            definition: data.node.definition || '',
-            attributes: (data.node.attributes || []).map((a) => (typeof a === 'string' ? { name: a } : a)),
-            formulas: (data.node.formulas || []).map((f) => (typeof f === 'string' ? { name: f } : f)),
+            def: cleanMojibake(data.node.definition || ''),
+            definition: cleanMojibake(data.node.definition || ''),
+            attributes: (data.node.attributes || []).map((a) => (typeof a === 'string' ? cleanMojibake(a) : { ...a, name: cleanMojibake(a?.name) })),
+            formulas: (data.node.formulas || []).map((f) => (typeof f === 'string' ? cleanMojibake(f) : { ...f, name: cleanMojibake(f?.name) })),
             role: data.node.role || 'entity',
           })
         }
@@ -194,10 +194,10 @@ export default function DomainGraph() {
     }
     setFlowLoading(true)
     ontology
-      .flow(flowKey)
+      .flow(flowKey, slug)
       .then(setFlowDetail, (e) => toast.error(e.message))
       .finally(() => setFlowLoading(false))
-  }, [flowKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [flowKey, slug]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGenerateGraph = async () => {
     setGenerating(true)
@@ -586,12 +586,6 @@ export default function DomainGraph() {
                 {selected && <span className="h-1.5 w-1.5 rounded-full bg-ok animate-pulse" />}
               </button>
             </div>
-
-            {activeRightTab === 'chat' && snap?.engine && (
-              <span className="text-[11px] text-muted font-medium pr-1">
-                {snap.engine}
-              </span>
-            )}
           </div>
 
           {/* Panel Body */}
@@ -610,11 +604,12 @@ export default function DomainGraph() {
                 onGraphUpdate={(res) => {
                   if (res?.graph) {
                     setAiGraph(res.graph)
-                    if (res.graph.html_url) setHtmlUrl(res.graph.html_url)
+                    if (res.graph.html_url) setHtmlUrl(`${res.graph.html_url}?t=${Date.now()}`)
+                    toast.success('Knowledge Graph automatically updated!')
                   } else {
                     setAiGraph(null)
                   }
-                  Promise.allSettled([g.reload(), wf.reload()]).finally(() => {
+                  Promise.allSettled([g.reload(), wf.reload(), flows.reload(), blocks.reload()]).finally(() => {
                     setUpdatingGraph(false)
                   })
                 }}

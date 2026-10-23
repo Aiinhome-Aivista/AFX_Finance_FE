@@ -57,11 +57,19 @@ export default function FlowCards({ flows, activeKey, onToggle, detail, loading,
                 <div>
                   <div className="flex items-center justify-between gap-2">
                     <b className="text-sm">{f.title}</b>
-                    {f.relevant ? (
-                      <span className="badge bg-brand/10 text-brand">this domain</span>
-                    ) : f.touches_domain ? (
-                      <span className="badge bg-surface2 text-muted">touches</span>
-                    ) : null}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {Boolean(f.customized) && (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-purple-600/15 dark:bg-purple-500/25 px-2 py-0.5 text-[11px] font-bold text-purple-700 dark:text-purple-300 border border-purple-500/40 shadow-2xs">
+                          <span className="h-1.5 w-1.5 rounded-full bg-purple-600 dark:bg-purple-400 animate-pulse" />
+                          AI Tailored
+                        </span>
+                      )}
+                      {f.relevant ? (
+                        <span className="badge bg-brand/10 text-brand">this domain</span>
+                      ) : f.touches_domain ? (
+                        <span className="badge bg-surface2 text-muted">touches</span>
+                      ) : null}
+                    </div>
                   </div>
                   <p className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-muted">{f.narrative}</p>
                 </div>
@@ -146,8 +154,20 @@ export default function FlowCards({ flows, activeKey, onToggle, detail, loading,
                   <li key={s.order}>
                     <button onClick={() => onStepSelect(s.node_key)} className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left hover:bg-surface2 ${selectedKey === s.node_key ? 'border-brand bg-brand/10' : 'border-line'}`}>
                       <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand text-xs font-bold text-brand-ink">{s.order}</span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-medium">{s.name}</span>
+                      <span className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="block text-sm font-medium truncate">{s.name}</span>
+                          {s.change_state === 'modified' && (
+                            <span className="shrink-0 rounded bg-amber-500/15 px-1.5 py-0.2 text-[10px] font-semibold text-amber-500 border border-amber-500/30">
+                              Modified
+                            </span>
+                          )}
+                          {s.change_state === 'added' && (
+                            <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.2 text-[10px] font-semibold text-emerald-500 border border-emerald-500/30">
+                              Added
+                            </span>
+                          )}
+                        </div>
                         <span className="block text-[11px] text-muted">{s.group_name}</span>
                         {selectedKey === s.node_key && <span className="mt-1 block text-xs leading-relaxed text-muted">{s.definition}</span>}
                       </span>

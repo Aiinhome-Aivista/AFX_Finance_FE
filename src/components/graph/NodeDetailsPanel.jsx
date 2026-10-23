@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, BookOpen, FunctionSquare, Link2, X } from 'lucide-react'
 import { ontology } from '../../api'
 import { Loading, ErrorState } from '../common/States'
-import { ROLE_LABEL } from '../../lib/format'
+import { ROLE_LABEL, cleanMojibake } from '../../lib/format'
 
 const Section = ({ title, icon: Icon, children }) => (
   <section className="mt-4">
@@ -33,7 +33,7 @@ export default function NodeDetailsPanel({ nodeKey, graphNode, graphNodes, graph
     return <div className="hidden p-6 text-center text-sm text-muted lg:block">Select an entity in the graph to see its definition, attributes, relationships, joins, formulas and evidence.</div>
   }
 
-  const name = graphNode?.name || ref?.name || nodeKey
+  const name = cleanMojibake(graphNode?.name || ref?.name || nodeKey)
   const color = graphNode?.color || ref?.color || '#94a3b8'
   const custom = mode === 'custom' && graphNode
 
@@ -44,15 +44,17 @@ export default function NodeDetailsPanel({ nodeKey, graphNode, graphNodes, graph
     rels = (graphEdges || []).filter((e) => e.source === nodeKey || e.target === nodeKey).map((e) => {
       const out = e.source === nodeKey
       const o = byKey[out ? e.target : e.source]
-      return { direction: out ? 'out' : 'in', label: e.label, node_key: o?.key, node_name: o?.name, origin: e.origin, change_state: e.change_state }
+      return { direction: out ? 'out' : 'in', label: cleanMojibake(e.label), node_key: o?.key, node_name: cleanMojibake(o?.name), origin: e.origin, change_state: e.change_state }
     })
   } else if (ref) {
-    rels = ref.relationships
+    rels = (ref.relationships || []).map((r) => ({ ...r, label: cleanMojibake(r.label), node_name: cleanMojibake(r.node_name) }))
   }
   const present = new Set((graphNodes || []).map((n) => n.key))
-  const definition = graphNode?.definition || ref?.definition
-  const attributes = graphNode?.attributes || ref?.attributes || []
-  const formulas = graphNode?.formulas?.length ? graphNode.formulas : ref?.formulas || []
+  const definition = cleanMojibake(graphNode?.definition || ref?.definition)
+  const rawAttrs = graphNode?.attributes || ref?.attributes || []
+  const attributes = rawAttrs.map((a) => (typeof a === 'string' ? cleanMojibake(a) : typeof a?.name === 'string' ? { ...a, name: cleanMojibake(a.name) } : a))
+  const rawFormulas = graphNode?.formulas?.length ? graphNode.formulas : ref?.formulas || []
+  const formulas = rawFormulas.map(cleanMojibake)
   const joins = [...new Map(rels.filter((r) => r.node_key).map((r) => [r.node_key, r.node_name])).entries()]
   const role = graphNode?.role
 
@@ -79,7 +81,7 @@ export default function NodeDetailsPanel({ nodeKey, graphNode, graphNodes, graph
         {state.error && <ErrorState error={state.error} className="!p-4" />}
         {definition && <Section title="Definition"><p className="leading-relaxed">{definition}</p></Section>}
 
-        {custom && graphNode.notes && <Section title="Client notes / business rules"><p className="whitespace-pre-wrap rounded-lg bg-surface2 p-2 text-[13px]">{graphNode.notes}</p></Section>}
+        {custom && graphNode.notes && <Section title="Client notes / business rules"><p className="whitespace-pre-wrap rounded-lg bg-surface2 p-2 text-[13px]">{cleanMojibake(graphNode.notes)}</p></Section>}
 
         {attributes.length > 0 && (
           <Section title={`Attributes (${attributes.length})`}>
