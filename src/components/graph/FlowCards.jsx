@@ -1,11 +1,14 @@
 import { Route, X } from 'lucide-react'
 import { Loading } from '../common/States'
 import { useTheme } from '../../context/ThemeContext'
+import { useAuth } from '../../context/AuthContext'
 
 /** Source-defined end-to-end flows. Selecting one highlights its nodes/edges on the graph and lists the ordered steps. */
 export default function FlowCards({ flows, activeKey, onToggle, detail, loading, selectedKey, onStepSelect }) {
   const { theme } = useTheme()
+  const { user } = useAuth()
   const isDark = theme === 'dark'
+  const userName = user?.display_name || user?.name || user?.username || (user?.email ? user.email.split('@')[0] : 'User')
 
   return (
     <section className="mt-6" aria-label="End-to-end Finance flows">
@@ -60,7 +63,7 @@ export default function FlowCards({ flows, activeKey, onToggle, detail, loading,
                       {Boolean(f.customized) && (
                         <span className="inline-flex items-center gap-1 rounded-md bg-purple-600/15 dark:bg-purple-500/25 px-2 py-0.5 text-[11px] font-bold text-purple-700 dark:text-purple-300 border border-purple-500/40 shadow-2xs">
                           <span className="h-1.5 w-1.5 rounded-full bg-purple-600 dark:bg-purple-400 animate-pulse" />
-                          AI Tailored
+                          Tailored by {userName}
                         </span>
                       )}
                       {f.relevant ? (

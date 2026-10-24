@@ -60,7 +60,8 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
     const s = new Set()
     nodes.forEach((n) => {
       const gKey = String(n.group_key || n.d || '').toLowerCase()
-      if (gKey === activeDomain || gKey === 'spine' || n.d === activeDomain || n.d === 'spine') {
+      const isClientNode = n.role === 'client' || n.origin === 'user' || gKey.startsWith('client') || n.origin === 'custom'
+      if (gKey === activeDomain || gKey === 'spine' || n.d === activeDomain || n.d === 'spine' || isClientNode) {
         s.add(n.id)
       }
     })
