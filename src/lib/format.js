@@ -34,7 +34,7 @@ export function cleanMojibake(text) {
     .replace(/â†’/g, '→')
     .replace(/âˆ’/g, '-')
     .replace(/Ã·/g, '/')
-    .replace(/Â§/g, '§')
+    .replace(/Â§|§/g, '')
     .replace(/Â/g, '')
     .trim()
 }

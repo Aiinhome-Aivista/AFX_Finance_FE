@@ -89,8 +89,8 @@ export default function NodeDetailsPanel({ nodeKey, graphNode, graphNodes, graph
           </Section>
         )}
         {ref?.canon_attributes?.length > 0 && (
-          <Section title={`Canonical attributes · ${ref.canon?.section || ''}`}>
-            <div className="flex flex-wrap gap-1.5">{ref.canon_attributes.map((a) => <span key={a} className="rounded-md border border-line px-2 py-0.5 font-mono text-[11px]">{a}</span>)}</div>
+          <Section title="Canonical attributes">
+            <div className="flex flex-wrap gap-1.5">{ref.canon_attributes.map((a) => <span key={a} className="rounded-md border border-line px-2 py-0.5 font-mono text-[11px]">{cleanMojibake(a)}</span>)}</div>
           </Section>
         )}
 

@@ -51,7 +51,7 @@ export const NODES = [
     d: 'spine',
     def: 'Legal entity → business unit → function → cost/profit/investment center → role. Responsibility-center taxonomy (profit / investment / standard-cost / discretionary-expense / revenue) types each node for control purposes; DOA and SOD hang off it.',
     a: ['entityId', 'parent', 'centerType', 'currency', 'doaLevel', 'sharedServiceFlag', 'consolidationScope'],
-    ev: 'Canon §2.0/§2.44/§2.54; consolidation scoping decks.',
+    ev: 'Canon 2.0/2.44/2.54; consolidation scoping decks.',
   },
   {
     id: 'timedim',
@@ -67,7 +67,7 @@ export const NODES = [
     d: 'spine',
     def: 'Transaction, local and group currency with plan/actual/prior-year rate variants — constant-FX reporting (act@planRate, @pyRate) and organic-growth flags depend on it.',
     a: ['currencyCode', 'rateType', 'planRate', 'closingRate', 'averageRate', 'constantFxVariant'],
-    ev: 'Canon §2.41; consolidation currency-translation vocabulary.',
+    ev: 'Canon 2.41; consolidation currency-translation vocabulary.',
   },
   {
     id: 'proddim',
@@ -75,7 +75,7 @@ export const NODES = [
     d: 'spine',
     def: 'Category → brand → MPG → size → SKU hierarchy — the grain of customer×SKU profitability, granularity matrices and cost objects.',
     a: ['sku', 'brand', 'mpg', 'size', 'category', 'statCaseFactor', 'mpcFactor'],
-    ev: 'Canon §2.0; HPC-major granularity matrix.',
+    ev: 'Canon 2.0; HPC-major granularity matrix.',
   },
   {
     id: 'custdim',
@@ -83,7 +83,7 @@ export const NODES = [
     d: 'spine',
     def: 'Customer → key account → channel → route-to-market hierarchy; the other axis of profitability, cost-to-serve and credit exposure.',
     a: ['customerId', 'keyAccount', 'channel', 'rtmModel', 'creditTerms', 'supplyChainModel'],
-    ev: 'Canon §2.0/§2.42/§2.43.',
+    ev: 'Canon 2.0/2.42/2.43.',
   },
   {
     id: 'metricdef',
@@ -91,7 +91,7 @@ export const NODES = [
     d: 'spine',
     def: 'Governed KPI dictionary: every finance metric carries a verbatim formula, grain, source, owning role and RAG thresholds — the rationalization benchmark is 400 → 30 metrics.',
     a: ['metricName', 'formula (verbatim)', 'uom', 'timeGrains[]', 'owningRole', 'ragThresholds', 'leadLagClass', 'nonAggregationRule'],
-    ev: 'Nutrition-group metric lists; canon §2.44 metric rationalization.',
+    ev: 'Nutrition-group metric lists; canon 2.44 metric rationalization.',
   },
   {
     id: 'srcsys',
@@ -99,7 +99,7 @@ export const NODES = [
     d: 'spine',
     def: 'The canonical source landscape finance consumes: ERP GL/COPA, sub-ledgers, TPM, BW/DW, with mapping/ETL bridges, drill-back and audit trail into the EPM layer.',
     a: ['systemClass (ERP·subLedger·TPM·DW)', 'extractPattern', 'mappingBridge', 'drillBack', 'auditTrail'],
-    ev: 'Canon §2.51/§2.58 integration patterns.',
+    ev: 'Canon 2.51/2.58 integration patterns.',
   },
   /* ---- F1 Planning, Budgeting & Forecasting ---- */
   {
@@ -140,7 +140,7 @@ export const NODES = [
     d: 'f1',
     def: 'The evidenced annual rhythm: Q1 AOP actualization · Q2 full-year forecast · Q3 balance-sheet bottom-up · Q4 AOP-level forecast — reforecast cycles (PPR) interleave monthly.',
     a: ['quarterPattern', 'aopMilestones', 'pprSchedule'],
-    ev: 'Canon §2.41 v1.1 extension.',
+    ev: 'Canon 2.41 v1.1 extension.',
   },
   {
     id: 'driverinput',
@@ -148,7 +148,7 @@ export const NODES = [
     d: 'f1',
     def: 'Operational drivers planned first and translated into cost/revenue lines — fuel price, trips, line speed, volume, rate cards — the mechanic that lifts planning from account-level guesswork to causal models.',
     a: ['driverName', 'driverUom', 'mappingToAccount', 'elasticity', 'driverTree'],
-    ev: 'Driver-management forecasting model; canon §2.41.',
+    ev: 'Driver-management forecasting model; canon 2.41.',
   },
   {
     id: 'rollfc',
@@ -181,7 +181,7 @@ export const NODES = [
     d: 'f2',
     def: 'The cross-domain revenue waterfall (gross → invoiced → net) populated by trade terms, promotions and deductions — finance\'s contract with the commercial domains; four instances evidenced across clients.',
     a: ['waterfallStage', 'tradeTermType', 'onOffInvoice', 'accrualBasis'],
-    ev: 'Canon §2.22; tobacco-major & brewer trade programs.',
+    ev: 'Canon 2.22; tobacco-major & brewer trade programs.',
   },
   {
     id: 'retkpi',
@@ -213,7 +213,7 @@ export const NODES = [
     d: 'f2',
     def: 'Multidimensional variance: vs plan / PPR / prior year, at constant FX (act@planRate, @pyRate), organic vs total, with price/volume/mix decomposition feeding commentary.',
     a: ['varianceBasis', 'fxBasis', 'organicSplit', 'pvmDecomposition'],
-    ev: 'Canon §2.41; HPC-major reporting conventions.',
+    ev: 'Canon 2.41; HPC-major reporting conventions.',
   },
   /* ---- F3 Cost & Profitability ---- */
   {
@@ -262,7 +262,7 @@ export const NODES = [
     d: 'f3',
     def: 'The profitability waterfall extended past net margin to trueMargin = net margin less financial elements (inventory-blockage cost, A/R-blockage cost, opportunity costs) — paired with the whale curve to expose the cumulative-profitability inflection, and the 12-component cost-classification matrix.',
     a: ['trueMarginFormula', 'financialElements[]', 'whaleInflection', 'costClassificationMatrix (12×5)'],
-    ev: 'Canon §2.42 v1.1 extension.',
+    ev: 'Canon 2.42 v1.1 extension.',
   },
   {
     id: 'chargeback',
@@ -278,7 +278,7 @@ export const NODES = [
     d: 'f3',
     def: 'Practical-capacity rates expose unallocated (idle) capacity cost instead of burying it in product costs; responsibility-center taxonomy types every org node for what it can be held accountable for.',
     a: ['practicalCapacityRate', 'idleCapacityCost', 'responsibilityCenterType'],
-    ev: 'Canon §2.54; TD-ABC capacity references.',
+    ev: 'Canon 2.54; TD-ABC capacity references.',
   },
   /* ---- F4 Working Capital & Treasury ---- */
   {
@@ -368,7 +368,7 @@ export const NODES = [
     d: 'f5',
     def: 'The close cockpit: task sequencing & dependencies, reconciliation management, journal control, tax provisioning. Benchmarks: close cycle 18 days → 1 week; world-class ≈2 days.',
     a: ['closeCalendar', 'reconciliationMgmt', 'journalControl', 'taxProvisioning', 'closeCycleBenchmark (18d→1wk→2d)'],
-    ev: 'Canon §2.44 benchmarks; close-control vocabulary from suite definitions.',
+    ev: 'Canon 2.44 benchmarks; close-control vocabulary from suite definitions.',
   },
   {
     id: 'statrep',
@@ -482,7 +482,7 @@ export const NODES = [
     d: 'f7',
     def: 'Delegation-of-authority thresholds per org node and segregation-of-duties rules (e.g. invoice processor ≠ vendor-master access ≠ payments) — the control grid every approval-bearing process step must respect.',
     a: ['doaThresholds', 'sodRules (verbatim example)', 'conflictMatrix'],
-    ev: 'Canon §2.56; P2P policy annexures.',
+    ev: 'Canon 2.56; P2P policy annexures.',
   },
   {
     id: 'p2ppolicy',
@@ -498,7 +498,7 @@ export const NODES = [
     d: 'f7',
     def: 'Key-risk-indicator inventory including the 11 verbatim P2P KPIs — Purchase Price Variance, POs-just-below-approval-limit, vendor turnover, duplicate payments and peers — each a named early-warning metric with an owner.',
     a: ['kriName', 'threshold', 'owner', 'p2pKpiSet (11 verbatim)'],
-    ev: 'P2P policy KPI table; canon §2.56.',
+    ev: 'P2P policy KPI table; canon 2.56.',
   },
   {
     id: 'fraudmode',

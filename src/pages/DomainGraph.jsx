@@ -46,17 +46,7 @@ export default function DomainGraph() {
   const [deciding, setDeciding] = useState(false)
   const [activeRightTab, setActiveRightTab] = useState('chat') // 'chat' | 'details'
   const [showAiModal, setShowAiModal] = useState(false)
-  const [aiGraph, setAiGraph] = useState(() => {
-    if (typeof window !== 'undefined' && slug) {
-      try {
-        const cached = localStorage.getItem(`afx_custom_graph_${slug}`)
-        return cached ? JSON.parse(cached) : null
-      } catch {
-        return null
-      }
-    }
-    return null
-  })
+  const [aiGraph, setAiGraph] = useState(null)
   const [aiPrompt, setAiPrompt] = useState('')
   const [generating, setGenerating] = useState(false)
   const [updatingGraph, setUpdatingGraph] = useState(false)
@@ -87,12 +77,13 @@ export default function DomainGraph() {
     setActiveDomainFilter(domainKey)
     setSelected(null)
     setSelectedNodeData(null)
+    setAiGraph(null)
+    g.setData(null)
     try {
-      const cached = localStorage.getItem(`afx_custom_graph_${slug}`)
-      setAiGraph(cached ? JSON.parse(cached) : null)
-    } catch {
-      setAiGraph(null)
-    }
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith('afx_custom_graph_')) localStorage.removeItem(k)
+      })
+    } catch { }
     setFlowKey(null)
     setFlowDetail(null)
     setPicked(null)
@@ -142,22 +133,6 @@ export default function DomainGraph() {
       })
       .catch(() => { })
   }, [slug])
-
-  // Sync aiGraph with backend customized working graph when loaded/refreshed
-  useEffect(() => {
-    if (g.data) {
-      const isCustomized = Boolean(
-        (g.data.version && g.data.version.number > 0) ||
-        g.data.nodes?.some((n) => n.role === 'client' || n.origin === 'user' || n.change_state === 'added')
-      )
-      if (isCustomized) {
-        setAiGraph(g.data)
-        try {
-          localStorage.setItem(`afx_custom_graph_${slug}`, JSON.stringify(g.data))
-        } catch { }
-      }
-    }
-  }, [g.data, slug])
 
   // Bidirectional communication with graph iframe
   useEffect(() => {
@@ -235,9 +210,6 @@ export default function DomainGraph() {
     try {
       const res = await graphs.generateGraph(slug, { prompt: aiPrompt, persist: true })
       setAiGraph(res)
-      try {
-        localStorage.setItem(`afx_custom_graph_${slug}`, JSON.stringify(res))
-      } catch { }
       if (res.html_url) {
         setHtmlUrl(res.html_url)
       } else {
@@ -255,7 +227,17 @@ export default function DomainGraph() {
     }
   }
 
-  const base = aiGraph || g.data
+  const base = useMemo(() => {
+    if (aiGraph) return aiGraph
+    if (g.data && g.data.domain) {
+      const cleanSlug = slug?.replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
+      const gSlug = g.data.domain.slug?.replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
+      if (cleanSlug && gSlug && cleanSlug === gSlug) {
+        return g.data
+      }
+    }
+    return null
+  }, [aiGraph, g.data, slug])
   const groups = useMemo(() => {
     const m = new Map()
     base?.nodes.forEach((n) => m.set(n.group_name, n.color))
@@ -436,11 +418,17 @@ export default function DomainGraph() {
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <h1 className="text-xl font-bold tracking-tight">{domain?.name || 'Knowledge Graph'}</h1>
-          {(aiGraph || (g.data?.version && g.data.version.number > 0) || base?.nodes?.some(n => n.role === 'client' || n.origin === 'user' || n.change_state === 'added')) && (
-            <span className="rounded-full bg-brand/15 px-2.5 py-0.5 text-xs font-semibold text-brand border border-brand/30">
-              AgentForgeX Generated ({base?.nodes?.length || aiGraph?.nodes?.length || 0} nodes)
-            </span>
-          )}
+          {(() => {
+            const hasCustomNodes = base?.nodes?.some(n => n.role === 'client' || n.origin === 'user' || n.change_state === 'added' || n.origin === 'custom')
+            const isGenerated = Boolean(aiGraph || (g.data?.version && g.data.version.number > 0) || hasCustomNodes)
+            const count = base?.nodes?.length || aiGraph?.nodes?.length || g.data?.nodes?.length || 0
+            if (!isGenerated || count === 0) return null
+            return (
+              <span className="rounded-full bg-brand/15 px-2.5 py-0.5 text-xs font-semibold text-brand border border-brand/30">
+                AgentForgeX Generated ({count} {count === 1 ? 'node' : 'nodes'})
+              </span>
+            )
+          })()}
         </div>
 
         {/* <button
@@ -639,16 +627,10 @@ export default function DomainGraph() {
                 onGraphUpdate={(res) => {
                   if (res?.graph) {
                     setAiGraph(res.graph)
-                    try {
-                      localStorage.setItem(`afx_custom_graph_${slug}`, JSON.stringify(res.graph))
-                    } catch { }
                     if (res.graph.html_url) setHtmlUrl(`${res.graph.html_url}?t=${Date.now()}`)
                     toast.success('Knowledge Graph automatically updated!')
                   } else {
                     setAiGraph(null)
-                    try {
-                      localStorage.removeItem(`afx_custom_graph_${slug}`)
-                    } catch { }
                   }
                   Promise.allSettled([g.reload(), wf.reload(), flows.reload(), blocks.reload()]).finally(() => {
                     setUpdatingGraph(false)
