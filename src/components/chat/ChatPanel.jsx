@@ -404,7 +404,7 @@ export default function ChatPanel({
             </div>
 
             {/* Input Form */}
-            <form onSubmit={send} className="relative flex items-end gap-2">
+            <form onSubmit={send} className="relative flex items-stretch gap-2">
               <textarea
                 className="input min-h-[46px] max-h-32 flex-1 resize-none rounded-xl border border-line bg-surface px-3 py-2 text-xs sm:text-[13px] text-ink placeholder:text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand shadow-2xs"
                 rows={2}
@@ -429,29 +429,13 @@ export default function ChatPanel({
 
               <button
                 type="submit"
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand text-white shadow-sm transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 cursor-pointer"
+                className="grid w-11 shrink-0 place-items-center rounded-xl bg-brand text-white shadow-sm transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 cursor-pointer"
                 disabled={busy || !text.trim()}
                 aria-label="Send message"
               >
                 <Send size={15} />
               </button>
             </form>
-
-            {/* Propose changes button */}
-            <button
-              type="button"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-line bg-surface2/60 px-3 py-2 text-xs font-semibold text-ink transition hover:border-brand/40 hover:bg-surface2 hover:text-brand cursor-pointer disabled:opacity-40"
-              onClick={propose}
-              disabled={busy || (activeSnap.pending_change_count === 0 && activeSnap.progress.answered === 0)}
-            >
-              <Sparkles size={14} className="text-brand" />
-              <span>Review proposed graph changes</span>
-              {activeSnap.pending_change_count > 0 && (
-                <span className="rounded-full bg-brand px-1.5 py-0.2 text-[10px] text-white">
-                  {activeSnap.pending_change_count}
-                </span>
-              )}
-            </button>
           </div>
         )}
       </div>
