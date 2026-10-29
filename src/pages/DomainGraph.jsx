@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Bot, FileText, Layers, Network, Search, Sparkles, X } from 'lucide-react'
+import { ArrowLeft, Bot, FileText, History, Layers, Network, Plus, Search, Sparkles, X } from 'lucide-react'
 import Layout from '../components/common/Layout'
 import Stepper from '../components/common/Stepper'
 import { EmptyState, ErrorState, Loading } from '../components/common/States'
@@ -9,6 +9,7 @@ import NodeDetailsPanel from '../components/graph/NodeDetailsPanel'
 import FlowCards from '../components/graph/FlowCards'
 import BlockSelector from '../components/graph/BlockSelector'
 import ChatPanel from '../components/chat/ChatPanel'
+import ChatHistoryPanel from '../components/chat/ChatHistoryPanel'
 import ProposalReview from '../components/chat/ProposalReview'
 import useAsync from '../components/common/useAsync'
 import { chat, domains, graphs, ontology } from '../api'
@@ -44,7 +45,9 @@ export default function DomainGraph() {
   const [snap, setSnap] = useState(null)
   const [proposal, setProposal] = useState(null)
   const [deciding, setDeciding] = useState(false)
-  const [activeRightTab, setActiveRightTab] = useState('chat') // 'chat' | 'details'
+  const [activeRightTab, setActiveRightTab] = useState('chat') // 'chat' | 'details' | 'history'
+  const [versionsList, setVersionsList] = useState([])
+  const [resettingChat, setResettingChat] = useState(false)
   const [showAiModal, setShowAiModal] = useState(false)
   const [aiGraph, setAiGraph] = useState(null)
   const [aiPrompt, setAiPrompt] = useState('')
@@ -132,7 +135,41 @@ export default function DomainGraph() {
         setProposal(p)
       })
       .catch(() => { })
+
+    graphs
+      .versions(slug)
+      .then((res) => {
+        setVersionsList(res?.versions || [])
+      })
+      .catch(() => { })
   }, [slug])
+
+  const handleNewChat = async () => {
+    if (snap?.messages?.length > 1) {
+      const ok = window.confirm('Are you sure you want to start a New Chat? This will reset the current dialogue and start a fresh session.')
+      if (!ok) return
+    }
+    setResettingChat(true)
+    const cleanSlug = slug.replace(/\s+/g, '-').toLowerCase()
+    try {
+      const res = await chat.reset(cleanSlug)
+      setSnap(res)
+      setActiveRightTab('chat')
+      toast.success('Started a fresh new chat session!')
+    } catch (e) {
+      // If the backend on remote server does not yet have reset endpoint, start fresh on client & re-call start
+      try {
+        const res = await chat.start(cleanSlug)
+        setSnap(res)
+        setActiveRightTab('chat')
+        toast.success('New chat session active!')
+      } catch (err) {
+        toast.error(e.message || 'Could not reset chat')
+      }
+    } finally {
+      setResettingChat(false)
+    }
+  }
 
   // Bidirectional communication with graph iframe
   useEffect(() => {
@@ -576,37 +613,71 @@ export default function DomainGraph() {
 
         {/* Right Column: AI Chatbot (with quick toggle for Node Specs) */}
         <div className="card flex h-[68vh] min-h-[460px] flex-col overflow-hidden shadow-card">
-          {/* Header Bar with Toggle */}
-          <div className="flex items-center justify-between border-b border-line bg-surface2/60 px-3.5 py-2.5 select-none">
-            <div className="flex items-center gap-1.5 rounded-xl bg-surface p-1 border border-line/60">
-              <button
-                type="button"
-                onClick={() => setActiveRightTab('chat')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${activeRightTab === 'chat'
-                  ? 'bg-brand text-white shadow-2xs'
-                  : 'text-muted hover:text-ink'
-                  }`}
-              >
-                <Bot size={14} />
-                <span>Chatbot</span>
-                {snap?.messages?.length > 0 && (
-                  <span className="rounded-full bg-white/20 px-1.5 py-0.2 text-[10px] font-bold">
-                    {snap.messages.length}
-                  </span>
-                )}
-              </button>
+          {/* Header Bar with Toggle and New Chat in single aligned row */}
+          <div className="border-b border-line bg-surface2/60 px-2.5 py-2 select-none">
+            <div className="flex items-center justify-between gap-1 rounded-xl bg-surface p-1 border border-line/60">
+              <div className="flex items-center gap-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => setActiveRightTab('chat')}
+                  className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] sm:text-xs font-semibold transition cursor-pointer shrink-0 ${activeRightTab === 'chat'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'text-muted hover:text-ink'
+                    }`}
+                >
+                  <Bot size={13} />
+                  <span>Chatbot</span>
+                  {snap?.messages?.length > 0 && (
+                    <span className="rounded-full bg-white/20 px-1.5 py-0.2 text-[9px] font-bold">
+                      {snap.messages.length}
+                    </span>
+                  )}
+                </button>
 
+                <button
+                  type="button"
+                  onClick={() => setActiveRightTab('details')}
+                  className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] sm:text-xs font-semibold transition cursor-pointer shrink-0 ${activeRightTab === 'details'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'text-muted hover:text-ink'
+                    }`}
+                >
+                  <FileText size={13} />
+                  <span>Entity Specs</span>
+                  {selected && <span className="h-1.5 w-1.5 rounded-full bg-ok animate-pulse" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveRightTab('history')
+                    graphs.versions(slug).then((r) => setVersionsList(r?.versions || [])).catch(() => {})
+                  }}
+                  className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] sm:text-xs font-semibold transition cursor-pointer shrink-0 ${activeRightTab === 'history'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'text-muted hover:text-ink'
+                    }`}
+                >
+                  <History size={13} />
+                  <span>History</span>
+                  {versionsList.length > 0 && (
+                    <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.2 text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
+                      {versionsList.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* New Chat Button */}
               <button
                 type="button"
-                onClick={() => setActiveRightTab('details')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${activeRightTab === 'details'
-                  ? 'bg-brand text-white shadow-2xs'
-                  : 'text-muted hover:text-ink'
-                  }`}
+                onClick={handleNewChat}
+                disabled={resettingChat}
+                title="Start a fresh chat conversation"
+                className="flex items-center gap-1 rounded-lg border border-line/70 bg-surface2/60 hover:bg-brand hover:text-white px-2 py-1 text-[11px] sm:text-xs font-medium text-ink transition shadow-2xs cursor-pointer active:scale-95 disabled:opacity-50 shrink-0"
               >
-                <FileText size={14} />
-                <span>Entity Specs</span>
-                {selected && <span className="h-1.5 w-1.5 rounded-full bg-ok animate-pulse" />}
+                <Plus size={12} className="text-brand group-hover:text-white font-bold" />
+                <span>New Chat</span>
               </button>
             </div>
           </div>
@@ -632,10 +703,27 @@ export default function DomainGraph() {
                   } else {
                     setAiGraph(null)
                   }
-                  Promise.allSettled([g.reload(), wf.reload(), flows.reload(), blocks.reload()]).finally(() => {
+                  Promise.allSettled([
+                    g.reload(),
+                    wf.reload(),
+                    flows.reload(),
+                    blocks.reload(),
+                    graphs.versions(slug).then((r) => setVersionsList(r?.versions || [])),
+                  ]).finally(() => {
                     setUpdatingGraph(false)
                   })
                 }}
+              />
+            ) : activeRightTab === 'history' ? (
+              <ChatHistoryPanel
+                snap={snap}
+                versions={versionsList}
+                domainName={domain?.name}
+                onSelectNode={(nodeKey) => {
+                  select(nodeKey)
+                  setActiveRightTab('details')
+                }}
+                onSwitchToChat={() => setActiveRightTab('chat')}
               />
             ) : (
               <div className="h-full overflow-y-auto p-4 scroll-thin">

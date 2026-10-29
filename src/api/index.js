@@ -31,6 +31,16 @@ export const ontology = {
 export const chat = {
   get: (slug) => http.get(`/domains/${slug}/conversation`).then(d),
   start: (slug) => http.post(`/domains/${slug}/conversation`).then(d),
+  reset: (slug) =>
+    http
+      .post(`/domains/${slug}/conversation/reset`)
+      .catch((err) => {
+        if (err.status === 404) {
+          return http.post(`/domains/${slug}/conversation`, { reset: true })
+        }
+        throw err
+      })
+      .then(d),
   answer: (slug, message) => http.post(`/domains/${slug}/conversation/answer`, { message }).then(d),
   message: (slug, message, node_key) => http.post(`/domains/${slug}/conversation/message`, { message, node_key }).then(d),
   askNode: (slug, node_key, question) => http.post(`/domains/${slug}/conversation/ask-node`, { node_key, question }).then(d),
