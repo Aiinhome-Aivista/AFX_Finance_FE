@@ -23,6 +23,7 @@ export default function Customize() {
   const [askNode, setAskNode] = useState(null)
   const [viewVersion, setViewVersion] = useState(null) // null = working graph
   const [viewMode, setViewMode] = useState('graph') // 'graph' | 'upload'
+  const [parsingProgress, setParsingProgress] = useState(null)
   const [deciding, setDeciding] = useState(false)
 
   const wf = useAsync(() => domains.workflow(slug), [slug])
@@ -120,6 +121,7 @@ export default function Customize() {
             disabledReason={finalized ? 'The ontology is finalised. Re-open it on the finalisation page to continue.' : undefined}
             onNextToUpload={() => setViewMode('upload')}
             isUploadOpen={viewMode === 'upload'}
+            parsingProgress={parsingProgress}
           />
         </div>
         <div className="min-w-0 space-y-3">
@@ -128,6 +130,12 @@ export default function Customize() {
               <TelemetryUploadZone
                 slug={slug}
                 onBackToGraph={() => setViewMode('graph')}
+                onProcessingUpdate={(fileName, stage) =>
+                  setParsingProgress({ fileName, stage, timestamp: Date.now() })
+                }
+                onFileUploaded={() => {
+                  chat.get(slug).then(setSnap).catch(() => {})
+                }}
               />
             </div>
           ) : (

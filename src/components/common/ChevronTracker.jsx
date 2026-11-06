@@ -54,8 +54,8 @@ export default function ChevronTracker() {
       extractedSlug = parts[1]
     }
 
-    // Stage 4: /finance/:slug/finalize or /finance/:slug/telemetry
-    if (path.includes('/finalize') || path.includes('/telemetry')) {
+    // Stage 4: /finance/:slug/finalize or /finance/:slug/telemetry or gap analysis
+    if (path.includes('/finalize') || path.includes('/telemetry') || location.search.includes('gap')) {
       return { currentStep: 4, slug: extractedSlug }
     }
 

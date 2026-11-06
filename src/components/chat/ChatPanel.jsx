@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   ArrowRight,
   Bot,
   CheckCircle2,
   ChevronRight,
   HelpCircle,
+  Lock,
   MessageSquare,
   Send,
   SkipForward,
@@ -25,6 +27,33 @@ const KIND_LABEL = {
   node_qa: 'Entity Analysis',
   intro: 'Welcome',
   system: 'System',
+  telemetry: 'Data Parser Copilot',
+}
+
+function formatCleanContent(text) {
+  if (!text || typeof text !== 'string') return ''
+  return text
+    // Replace raw unicode escape representations if any (e.g. \ud83d)
+    .replace(/\\u[0-9a-fA-F]{4}/g, (match) => {
+      try {
+        return JSON.parse(`"${match}"`)
+      } catch {
+        return ''
+      }
+    })
+    // Remove emojis & symbol sequences
+    .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')
+    // Normalize smart curly quotes, dashes, and bullets
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/•/g, '-')
+    .replace(/[—–]/g, '-')
+    // Strip markdown bold asterisks: **text** -> text
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^[ \t]*\*[ \t]+/gm, '- ')
+    .trim()
 }
 
 export default function ChatPanel({
@@ -42,16 +71,67 @@ export default function ChatPanel({
   onSwitchToDetails,
   onNextToUpload,
   isUploadOpen,
+  parsingProgress,
 }) {
   const toast = useToast()
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [mode, setMode] = useState('answer')
+  const [wittyDialogue, setWittyDialogue] = useState(null)
   const end = useRef(null)
+
+  // Interactive witty bot updates while parsing data (MOM Step 4)
+  useEffect(() => {
+    if (!parsingProgress?.fileName) return
+
+    const { fileName } = parsingProgress
+    setWittyDialogue({
+      text: `Let me read your data and do a deep dive into “${fileName}”...`,
+      sub: 'Scanning document headers & schemas',
+      step: 1,
+    })
+
+    const t1 = setTimeout(() => {
+      setWittyDialogue({
+        text: `Crunching through rows and formulas... I don't even have a coffee break! ☕`,
+        sub: 'Parsing table dimensions and identifiers',
+        step: 2,
+      })
+    }, 2200)
+
+    const t2 = setTimeout(() => {
+      setWittyDialogue({
+        text: `Cross-referencing telemetry columns with your KG1 core nodes and business rules...`,
+        sub: 'Correlating with Finance ontology',
+        step: 3,
+      })
+    }, 4500)
+
+    const t3 = setTimeout(() => {
+      setWittyDialogue({
+        text: `Data parsing complete for “${fileName}”! Synthesizing Gap Analysis (KG2)...`,
+        sub: 'Ready for discrepancy review',
+        step: 4,
+      })
+      // fetch persisted telemetry message from backend
+      chat.get(slug).then(setSnap).catch(() => {})
+    }, 7000)
+
+    const t4 = setTimeout(() => {
+      setWittyDialogue(null)
+    }, 12000)
+
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+      clearTimeout(t3)
+      clearTimeout(t4)
+    }
+  }, [parsingProgress?.timestamp, parsingProgress?.fileName, slug, setSnap])
 
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-  }, [snap?.messages?.length])
+  }, [snap?.messages?.length, wittyDialogue])
 
   useEffect(() => {
     if (askNode) {
@@ -299,16 +379,19 @@ export default function ChatPanel({
         {activeSnap.messages.map((m, idx) => {
           const isUser = m.role === 'user'
           const isDecisionMsg = m.kind === 'decision' || m.meta?.awaiting_session_decision
+          const isTelemetry = m.kind === 'telemetry'
 
           return (
             <div key={m.id} className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}>
               <span
                 className={`grid h-7 w-7 shrink-0 place-items-center rounded-xl text-xs font-semibold shadow-2xs ${isUser
                   ? 'bg-brand text-white shadow-brand/20'
-                  : 'bg-surface2 text-brand border border-line'
+                  : isTelemetry
+                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                    : 'bg-surface2 text-brand border border-line'
                   }`}
               >
-                {isUser ? <User size={14} /> : <Bot size={14} />}
+                {isUser ? <User size={14} /> : isTelemetry ? <Sparkles size={14} className="text-[#10b981]" /> : <Bot size={14} />}
               </span>
 
               <div
@@ -316,22 +399,56 @@ export default function ChatPanel({
                   ? 'bg-brand text-white rounded-tr-sm'
                   : isDecisionMsg
                     ? 'border-2 border-brand/50 bg-brand/10 text-ink rounded-tl-sm'
-                    : m.kind === 'question'
-                      ? 'border border-brand/40 bg-brand/5 rounded-tl-sm text-ink'
-                      : 'border border-line/70 bg-surface2/70 text-ink rounded-tl-sm'
+                    : isTelemetry
+                      ? 'border border-emerald-500/35 bg-emerald-50/70 dark:bg-emerald-950/25 rounded-tl-sm text-ink shadow-xs'
+                      : m.kind === 'question'
+                        ? 'border border-brand/40 bg-brand/5 rounded-tl-sm text-ink'
+                        : 'border border-line/70 bg-surface2/70 text-ink rounded-tl-sm'
                   }`}
               >
                 {KIND_LABEL[m.kind] && !isUser && (
-                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-brand">
+                  <span
+                    className={`mb-1 block text-[10px] font-bold uppercase tracking-wider ${
+                      isTelemetry ? 'text-emerald-700 dark:text-emerald-400' : 'text-brand'
+                    }`}
+                  >
                     {KIND_LABEL[m.kind]}
                     {m.meta?.followup ? ' · Follow-up' : ''}
                   </span>
                 )}
-                <span className="whitespace-pre-wrap">{m.content}</span>
+                <span className="whitespace-pre-wrap">{formatCleanContent(m.content)}</span>
               </div>
             </div>
           )
         })}
+
+        {/* Live Witty Dialogue Stream while parsing data (MOM Step 4) */}
+        {wittyDialogue && (
+          <div className="rounded-2xl border border-emerald-500/35 bg-emerald-50/70 dark:bg-emerald-950/30 p-3.5 text-xs shadow-sm transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5 font-bold text-emerald-800 dark:text-emerald-300">
+                <Sparkles size={14} className="text-[#10b981] animate-spin" />
+                <span>Data Parser Copilot</span>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/25 font-semibold">
+                Deep Dive Step {wittyDialogue.step} of 4
+              </span>
+            </div>
+            <p className="font-medium text-ink leading-relaxed">
+              "{wittyDialogue.text}"
+            </p>
+            <div className="mt-2.5 flex items-center justify-between text-[11px] text-muted">
+              <span className="italic">{wittyDialogue.sub}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10b981] opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#10b981]" />
+                </span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">Crunching</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {busy && (
           <div className="flex items-center gap-2 text-xs text-muted pl-9">
@@ -346,7 +463,18 @@ export default function ChatPanel({
       {/* Bottom Controls & Input */}
       <div className="border-t border-line/70 p-3 bg-surface/95">
         {locked ? (
-          <p className="text-center text-xs text-muted py-2">{disabledReason}</p>
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/30 p-3 text-center text-xs">
+            <div className="flex items-center justify-center gap-1.5 font-bold text-emerald-800 dark:text-emerald-300">
+              <Lock size={13} />
+              <span>Digital Twin Governed</span>
+            </div>
+            <p className="mt-1 text-[11px] text-muted">{disabledReason}</p>
+            <div className="mt-2 flex justify-center">
+              <Link to={`/finance/${slug}/finalize`} className="btn-ghost btn-sm text-[11px] text-ink hover:text-brand cursor-pointer">
+                Review or Re-open Twin →
+              </Link>
+            </div>
+          </div>
         ) : (
           <div className="space-y-2">
             {/* Context chip if a node is selected */}
