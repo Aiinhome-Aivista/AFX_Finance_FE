@@ -1,5 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bot, ChevronRight, HelpCircle, MessageSquare, Send, SkipForward, Sparkles, User, Zap } from 'lucide-react'
+import {
+  ArrowRight,
+  Bot,
+  CheckCircle2,
+  ChevronRight,
+  HelpCircle,
+  MessageSquare,
+  Send,
+  SkipForward,
+  Sparkles,
+  UploadCloud,
+  User,
+  Zap,
+} from 'lucide-react'
 import { Spinner } from '../common/States'
 import { chat } from '../../api'
 import { useToast } from '../../context/ToastContext'
@@ -27,6 +40,8 @@ export default function ChatPanel({
   locked,
   disabledReason,
   onSwitchToDetails,
+  onNextToUpload,
+  isUploadOpen,
 }) {
   const toast = useToast()
   const [text, setText] = useState('')
@@ -202,7 +217,6 @@ export default function ChatPanel({
       <div className="border-b border-line/70 px-4 py-2.5 bg-surface2/30">
         <div className="flex items-center justify-between text-xs text-muted">
           <div className="flex items-center gap-1.5 font-medium">
-            <Sparkles size={13} className={isComplete ? 'text-emerald-500' : 'text-brand'} />
             {isComplete ? (
               <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
                 Domain Discovery Complete
@@ -239,14 +253,45 @@ export default function ChatPanel({
         {/* Micro progress bar */}
         <div className="mt-2 h-1.5 w-full rounded-full bg-surface2 overflow-hidden">
           <div
-            className={`h-full transition-all duration-500 ${
-              isComplete
-                ? 'w-full bg-emerald-500'
-                : 'bg-gradient-to-r from-brand to-indigo-500'
-            }`}
+            className={`h-full transition-all duration-500 ${isComplete
+              ? 'w-full bg-emerald-500'
+              : 'bg-gradient-to-r from-brand to-indigo-500'
+              }`}
             style={{ width: isComplete ? '100%' : `${Math.min(95, Math.max(20, (answeredCount + 1) * 20))}%` }}
           />
         </div>
+
+        {/* Highlighted 'Next: Upload Data' Action Button (MOM Step 3) */}
+        {onNextToUpload && (isComplete || answeredCount >= 1) && (
+          <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/30 px-3 py-2 text-xs">
+            <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-semibold truncate">
+              <CheckCircle2 size={14} className="text-[#10b981] shrink-0" />
+              <span className="truncate">
+                {isComplete ? 'Discovery Complete · KG1 Ready' : 'Nuances Captured · KG1 Ready'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onNextToUpload}
+              className={`btn text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer font-bold shadow-sm transition-all ${isUploadOpen
+                ? 'btn-ghost border-[#10b981] text-[#10b981]'
+                : 'bg-[#10b981] hover:bg-[#059669] text-black shadow-emerald-500/25 hover:scale-105'
+                }`}
+            >
+              {isUploadOpen ? (
+                <>
+                  <span>Viewing Upload</span>
+                  <CheckCircle2 size={13} />
+                </>
+              ) : (
+                <>
+                  <span>Next: Upload Data</span>
+                  <ArrowRight size={13} />
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Messages Thread */}
@@ -347,6 +392,28 @@ export default function ChatPanel({
                     Proceed
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* Discovery Complete / KG1 Milestone Card (MOM Step 3) */}
+            {isComplete && onNextToUpload && !isUploadOpen && (
+              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/20 p-3.5 text-xs space-y-2 shadow-2xs">
+                <div className="flex items-center gap-2 font-bold text-emerald-800 dark:text-emerald-300">
+                  <Sparkles size={15} className="text-[#10b981]" />
+                  <span>KG1 Discovery Complete</span>
+                </div>
+                <p className="text-muted leading-relaxed">
+                  Your initial questionnaire responses have successfully synthesized <strong>KG1</strong>. Ingest your business data files (CSV, Excel, PDF, SQL) to initiate Gap Analysis.
+                </p>
+                <button
+                  type="button"
+                  onClick={onNextToUpload}
+                  className="btn bg-[#10b981] hover:bg-[#059669] text-black font-bold text-xs px-3.5 py-2 rounded-xl shadow-sm shadow-emerald-500/25 flex items-center gap-2 cursor-pointer transition-transform hover:scale-[1.02]"
+                >
+                  <UploadCloud size={14} />
+                  <span>Next: Upload Business Data</span>
+                  <ArrowRight size={14} />
+                </button>
               </div>
             )}
 

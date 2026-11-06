@@ -258,3 +258,22 @@ body {
   caret-color: #111827 !important;
   transition: background-color 5000s ease-in-out 0s;
 }
+
+/* ==========================================================================
+   Chevron Arrow Workflow Tracker (MOM Step 2)
+   Green: #10b981 (Primary), #34d399 (Accent), #6ee7b7 (Hover)
+   Dark:  #0a0a0a (Main Dark), #171717 (Surface), rgba(255,255,255,0.05) (Glass)
+   Cyan:  #22d3ee (Secondary Accent)
+   ========================================================================== */
+.chevron-arrow {
+  clip-path: polygon(0% 0%, calc(100% - 13px) 0%, 100% 50%, calc(100% - 13px) 100%, 0% 100%, 13px 50%);
+  -webkit-clip-path: polygon(0% 0%, calc(100% - 13px) 0%, 100% 50%, calc(100% - 13px) 100%, 0% 100%, 13px 50%);
+}
+
+.scroll-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scroll-none::-webkit-scrollbar {
+  display: none;
+}

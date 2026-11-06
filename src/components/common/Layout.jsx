@@ -1,32 +1,78 @@
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { LogOut, Moon, Network, Sun } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
+import ChevronTracker from './ChevronTracker'
 
 export default function Layout({ children, wide }) {
   const { user, logout } = useAuth()
   const { theme, toggle } = useTheme()
   const nav = useNavigate()
-  const link = ({ isActive }) => `rounded-lg px-3 py-1.5 ${isActive ? 'bg-surface2 font-medium' : 'text-muted hover:text-ink'}`
+
   return (
-    <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-[1800px] items-center gap-3 px-3 sm:px-6">
-          <Link to={user?.selected_app ? '/finance' : '/apps'} className="flex items-center gap-2 font-semibold">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-brand-ink"><Network size={18} /></span>
-            <span className="hidden sm:inline">Finance Knowledge Graph</span>
+    <div className="flex min-h-full flex-col bg-bg text-ink selection:bg-[#10b981] selection:text-black">
+      {/* Persistent Clean White Header with Chevron Progress Tracker (MOM Step 2) */}
+      <header className="sticky top-0 z-50 border-b border-line bg-surface/95 backdrop-blur shadow-xs">
+        <div className="mx-auto flex h-16 max-w-[1850px] items-center justify-between gap-3 px-3 sm:px-6">
+          {/* Brand Logo & Name */}
+          <Link
+            to={user?.selected_app ? '/finance' : '/apps'}
+            className="flex items-center gap-2.5 font-semibold shrink-0 group focus:outline-none"
+          >
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#10b981] text-white shadow-sm shadow-[#10b981]/30 transition-transform group-hover:scale-105">
+              <Network size={20} strokeWidth={2.5} />
+            </span>
+            <div className="hidden lg:flex flex-col">
+              <span className="text-sm font-bold tracking-tight text-ink group-hover:text-emerald-600 transition-colors">
+                AgentForge
+              </span>
+              <span className="text-[10px] uppercase font-mono tracking-widest text-emerald-600 font-semibold">
+                Finance KG
+              </span>
+            </div>
           </Link>
-          
-          <div className="ml-auto flex items-center gap-2">
-            <button className="btn-ghost btn-sm" onClick={toggle} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`} title="Toggle theme">
-              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+
+          {/* Persistent Chevron Arrow Progress Tracker */}
+          <div className="flex-1 flex justify-center max-w-[760px] mx-2">
+            <ChevronTracker />
+          </div>
+
+          {/* User Controls & Actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              className="btn-ghost btn-sm"
+              onClick={toggle}
+              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+              title="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             </button>
-            <span className="hidden max-w-[160px] truncate text-sm text-muted sm:inline" title={user?.email}>{user?.display_name}</span>
-            <button className="btn-ghost btn-sm" onClick={async () => { await logout(); nav('/login') }}><LogOut size={16} /><span className="hidden sm:inline">Sign out</span></button>
+            <span
+              className="hidden max-w-[140px] truncate text-xs text-muted sm:inline px-2.5 py-1 rounded-lg bg-surface2 border border-line"
+              title={user?.email}
+            >
+              {user?.display_name || user?.email}
+            </span>
+            <button
+              className="btn-ghost btn-sm hover:!text-bad hover:!border-bad/40"
+              onClick={async () => {
+                await logout()
+                nav('/login')
+              }}
+              title="Sign out"
+            >
+              <LogOut size={15} />
+              <span className="hidden xl:inline">Sign out</span>
+            </button>
           </div>
         </div>
       </header>
-      <main className={`mx-auto w-full flex-1 px-3 py-5 sm:px-6 ${wide ? 'max-w-[1800px]' : 'max-w-6xl'}`}>{children}</main>
+
+      {/* Main Page Content */}
+      <main className={`mx-auto w-full flex-1 px-3 py-5 sm:px-6 ${wide ? 'max-w-[1850px]' : 'max-w-6xl'}`}>
+        {children}
+      </main>
     </div>
   )
 }
+

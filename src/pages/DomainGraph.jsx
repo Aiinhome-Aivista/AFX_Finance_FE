@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Bot, FileText, Layers, Network, Search, Sparkles, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Bot,
+  CheckCircle2,
+  FileText,
+  Layers,
+  Network,
+  Search,
+  Sparkles,
+  UploadCloud,
+  X,
+} from 'lucide-react'
 import Layout from '../components/common/Layout'
 import Stepper from '../components/common/Stepper'
 import { EmptyState, ErrorState, Loading } from '../components/common/States'
@@ -10,6 +22,7 @@ import FlowCards from '../components/graph/FlowCards'
 import BlockSelector from '../components/graph/BlockSelector'
 import ChatPanel from '../components/chat/ChatPanel'
 import ProposalReview from '../components/chat/ProposalReview'
+import TelemetryUploadZone from '../components/upload/TelemetryUploadZone'
 import useAsync from '../components/common/useAsync'
 import { chat, domains, graphs, ontology } from '../api'
 import { edgeId, cleanMojibake } from '../lib/format'
@@ -45,6 +58,7 @@ export default function DomainGraph() {
   const [proposal, setProposal] = useState(null)
   const [deciding, setDeciding] = useState(false)
   const [activeRightTab, setActiveRightTab] = useState('chat') // 'chat' | 'details'
+  const [leftViewMode, setLeftViewMode] = useState('graph') // 'graph' | 'upload' (MOM Step 3)
   const [showAiModal, setShowAiModal] = useState(false)
   const [aiGraph, setAiGraph] = useState(null)
   const [aiPrompt, setAiPrompt] = useState('')
@@ -508,73 +522,110 @@ export default function DomainGraph() {
           </label>
         </div> */}
 
-        {/* Domain filter chips */}
-        <div className="mt-3 flex flex-wrap items-center gap-1.5" aria-label="Sub-domain filters">
-          {/* <span className="h-section mr-1">Show</span> */}
-          <button
-            type="button"
-            className={`chip cursor-pointer ${activeDomainFilter === 'all' ? 'chip-on' : 'opacity-70'}`}
-            onClick={() => setActiveDomainFilter('all')}
-          >
-            All Domains
-          </button>
-          {domainKey !== 'all' && DOMMETA[domainKey] && (
+        {/* Domain filter chips & 'Next: Upload Data' Action */}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2" aria-label="Sub-domain filters">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
-              className={`chip cursor-pointer ${activeDomainFilter === domainKey ? 'chip-on' : 'opacity-70'}`}
-              onClick={() => setActiveDomainFilter(domainKey)}
+              className={`chip cursor-pointer ${activeDomainFilter === 'all' ? 'chip-on' : 'opacity-70'}`}
+              onClick={() => setActiveDomainFilter('all')}
             >
-              <span className="h-2 w-2 rounded-full shrink-0" style={{ background: DOMMETA[domainKey].c }} />
-              {DOMMETA[domainKey].n}
+              All Domains
             </button>
-          )}
-          <button
-            type="button"
-            className={`chip cursor-pointer ${activeDomainFilter === 'spine' ? 'chip-on' : 'opacity-70'}`}
-            onClick={() => setActiveDomainFilter(activeDomainFilter === 'spine' ? domainKey : 'spine')}
-          >
-            <span className="h-2 w-2 rounded-full shrink-0" style={{ background: DOMMETA.spine.c }} />
-            {DOMMETA.spine.n}
-          </button>
+            {domainKey !== 'all' && DOMMETA[domainKey] && (
+              <button
+                type="button"
+                className={`chip cursor-pointer ${activeDomainFilter === domainKey ? 'chip-on' : 'opacity-70'}`}
+                onClick={() => setActiveDomainFilter(domainKey)}
+              >
+                <span className="h-2 w-2 rounded-full shrink-0" style={{ background: DOMMETA[domainKey].c }} />
+                {DOMMETA[domainKey].n}
+              </button>
+            )}
+            <button
+              type="button"
+              className={`chip cursor-pointer ${activeDomainFilter === 'spine' ? 'chip-on' : 'opacity-70'}`}
+              onClick={() => setActiveDomainFilter(activeDomainFilter === 'spine' ? domainKey : 'spine')}
+            >
+              <span className="h-2 w-2 rounded-full shrink-0" style={{ background: DOMMETA.spine.c }} />
+              {DOMMETA.spine.n}
+            </button>
+          </div>
+
+          {/* Highlighted 'Next: Upload Data' / 'View Graph' Toggle Button (MOM Step 3) */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setLeftViewMode(leftViewMode === 'upload' ? 'graph' : 'upload')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${
+                leftViewMode === 'upload'
+                  ? 'btn-ghost border-[#10b981] text-[#10b981] hover:bg-[#10b981]/10'
+                  : 'bg-[#10b981] hover:bg-[#059669] text-black shadow-emerald-500/20 hover:scale-[1.02]'
+              }`}
+              title={leftViewMode === 'upload' ? 'Switch back to Knowledge Graph' : 'Hide graph and open file upload zone'}
+            >
+              {leftViewMode === 'upload' ? (
+                <>
+                  <Network size={14} />
+                  <span>View Knowledge Graph</span>
+                </>
+              ) : (
+                <>
+                  <UploadCloud size={14} />
+                  <span>Next: Upload Data</span>
+                  <ArrowRight size={13} />
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
 
-      {/* Main Grid: Left Graph Canvas | Right Chatbot */}
+      {/* Main Grid: Left Area (Graph or Upload) | Right Chatbot */}
       <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_440px]">
-        {/* Knowledge Graph Dynamic Canvas */}
-        <div className="card relative h-[68vh] min-h-[460px] overflow-hidden p-0 border border-line">
-          {/* Circular Spinner Loader with pulse icon and status message */}
-          {(generating || g.loading || updatingGraph) && (
-            <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-surface/80 backdrop-blur-md transition-opacity duration-300">
-              <div className="relative flex items-center justify-center">
-                <div className="h-14 w-14 rounded-full border-4 border-brand/20 border-t-brand animate-spin" />
-                <Network className="absolute text-brand animate-pulse" size={20} />
+        {/* Left Column: Toggles between Knowledge Graph Canvas and Drag & Drop Upload Zone (MOM Step 3) */}
+        {leftViewMode === 'upload' ? (
+          <div className="h-[68vh] min-h-[460px]">
+            <TelemetryUploadZone
+              slug={slug}
+              onBackToGraph={() => setLeftViewMode('graph')}
+            />
+          </div>
+        ) : (
+          <div className="card relative h-[68vh] min-h-[460px] overflow-hidden p-0 border border-line isolate">
+            {/* Circular Spinner Loader with pulse icon and status message */}
+            {(generating || g.loading || updatingGraph) && (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-surface/85 backdrop-blur-md transition-opacity duration-300">
+                <div className="relative flex items-center justify-center">
+                  <div className="h-14 w-14 rounded-full border-4 border-brand/20 border-t-brand animate-spin" />
+                  <Network className="absolute text-brand animate-pulse" size={20} />
+                </div>
+                <span className="mt-3 text-xs font-semibold tracking-wide text-ink/80 animate-pulse">
+                  {updatingGraph ? 'Updating Knowledge Graph' : 'Loading Knowledge Graph…'}
+                </span>
               </div>
-              <span className="mt-3 text-xs font-semibold tracking-wide text-ink/80 animate-pulse">
-                {updatingGraph ? 'Updating Knowledge Graph' : 'Loading Knowledge Graph…'}
-              </span>
-            </div>
-          )}
+            )}
 
-          <OntologyGraphCanvas
-            activeDomain={activeDomainFilter}
-            showNeighbours={neighbours}
-            selectedNodeId={selected}
-            onSelectNode={(nodeId) => {
-              select(nodeId)
-              setActiveRightTab('details')
-            }}
-            activeFlowIdx={activeFlowIdx}
-            searchQuery={q}
-            nodes={base?.nodes}
-            edges={base?.edges}
-            domainMeta={domain}
-            className="w-full h-full"
-          />
-        </div>
+            <OntologyGraphCanvas
+              activeDomain={activeDomainFilter}
+              showNeighbours={neighbours}
+              selectedNodeId={selected}
+              onSelectNode={(nodeId) => {
+                select(nodeId)
+                setActiveRightTab('details')
+              }}
+              activeFlowIdx={activeFlowIdx}
+              searchQuery={q}
+              nodes={base?.nodes}
+              edges={base?.edges}
+              domainMeta={domain}
+              className="w-full h-full"
+            />
+          </div>
+        )}
 
-        {/* Right Column: AI Chatbot (with quick toggle for Node Specs) */}
+        {/* Right Column: AI Chatbot (remains visible & docked at all times) */}
         <div className="card flex h-[68vh] min-h-[460px] flex-col overflow-hidden shadow-card">
           {/* Header Bar with Toggle */}
           <div className="flex items-center justify-between border-b border-line bg-surface2/60 px-3.5 py-2.5 select-none">
@@ -624,6 +675,8 @@ export default function DomainGraph() {
                 onProposal={setProposal}
                 onSwitchToDetails={() => setActiveRightTab('details')}
                 onAnsweringChange={setUpdatingGraph}
+                onNextToUpload={() => setLeftViewMode('upload')}
+                isUploadOpen={leftViewMode === 'upload'}
                 onGraphUpdate={(res) => {
                   if (res?.graph) {
                     setAiGraph(res.graph)

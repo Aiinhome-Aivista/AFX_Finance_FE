@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, MessageSquareText, Target } from 'lucide-react'
+import { ArrowLeft, ArrowRight, MessageSquareText, Target, UploadCloud, Network } from 'lucide-react'
 import Layout from '../components/common/Layout'
 import Stepper from '../components/common/Stepper'
 import { ErrorState, Loading } from '../components/common/States'
@@ -8,6 +8,7 @@ import GraphCanvas from '../components/graph/GraphCanvas'
 import NodeDetailsPanel, { DetailsShell } from '../components/graph/NodeDetailsPanel'
 import ChatPanel from '../components/chat/ChatPanel'
 import ProposalReview from '../components/chat/ProposalReview'
+import TelemetryUploadZone from '../components/upload/TelemetryUploadZone'
 import useAsync from '../components/common/useAsync'
 import { chat, domains, graphs } from '../api'
 import { useToast } from '../context/ToastContext'
@@ -21,6 +22,7 @@ export default function Customize() {
   const [selected, setSelected] = useState(null)
   const [askNode, setAskNode] = useState(null)
   const [viewVersion, setViewVersion] = useState(null) // null = working graph
+  const [viewMode, setViewMode] = useState('graph') // 'graph' | 'upload'
   const [deciding, setDeciding] = useState(false)
 
   const wf = useAsync(() => domains.workflow(slug), [slug])
@@ -70,46 +72,98 @@ export default function Customize() {
       <Link to={`/finance/${slug}/graph`} className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft size={14} /> Reference graph</Link>
       <Stepper slug={slug} steps={wf.data.steps} current={4} />
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-        <div><h1 className="text-xl font-semibold">Tell us how your business really works</h1><p className="text-sm text-muted">{dom.data?.name} · answers become proposed changes; you approve them to create KG1, KG2…</p></div>
-        {latest && <Link to={`/finance/${slug}/finalize`} className="btn-ghost">{finalized ? 'View finalisation' : 'Review & finalise'} <ArrowRight size={16} /></Link>}
+        <div>
+          <h1 className="text-xl font-semibold">Tell us how your business really works</h1>
+          <p className="text-sm text-muted">{dom.data?.name} · answers become proposed changes to produce KG1</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setViewMode(viewMode === 'upload' ? 'graph' : 'upload')}
+            className={`btn btn-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all ${
+              viewMode === 'upload'
+                ? 'btn-ghost border-[#10b981] text-[#10b981]'
+                : 'bg-[#10b981] hover:bg-[#059669] text-black shadow-emerald-500/20'
+            }`}
+          >
+            {viewMode === 'upload' ? (
+              <>
+                <Network size={14} />
+                <span>View Knowledge Graph</span>
+              </>
+            ) : (
+              <>
+                <UploadCloud size={14} />
+                <span>Next: Upload Data</span>
+                <ArrowRight size={13} />
+              </>
+            )}
+          </button>
+          {latest && (
+            <Link to={`/finance/${slug}/finalize`} className="btn-ghost btn-sm">
+              {finalized ? 'View finalisation' : 'Review & finalise'} <ArrowRight size={14} />
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="mt-3 grid gap-3 xl:grid-cols-[440px_minmax(0,1fr)]">
         <div className="h-[72vh] min-h-[460px]">
-          <ChatPanel slug={slug} snap={snap} setSnap={setSnap} askNode={askNode} nodeName={g?.nodes.find((n) => n.key === askNode)?.name}
-            onProposal={setProposal} locked={finalized} disabledReason={finalized ? 'The ontology is finalised. Re-open it on the finalisation page to continue.' : undefined} />
+          <ChatPanel
+            slug={slug}
+            snap={snap}
+            setSnap={setSnap}
+            askNode={askNode}
+            nodeName={g?.nodes.find((n) => n.key === askNode)?.name}
+            onProposal={setProposal}
+            locked={finalized}
+            disabledReason={finalized ? 'The ontology is finalised. Re-open it on the finalisation page to continue.' : undefined}
+            onNextToUpload={() => setViewMode('upload')}
+            isUploadOpen={viewMode === 'upload'}
+          />
         </div>
         <div className="min-w-0 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="text-xs text-muted" htmlFor="ver">Showing</label>
-            <select id="ver" className="input !w-auto text-sm" value={viewVersion ?? 'work'} onChange={(e) => setViewVersion(e.target.value === 'work' ? null : Number(e.target.value))}>
-              <option value="work">{latest ? `Current: ${latest.label}` : 'Current: KG0 baseline (selected blocks)'}</option>
-              <option value={0}>KG0 baseline (selected blocks)</option>
-              {vers.data?.versions.map((v) => <option key={v.number} value={v.number}>{v.label} · {v.kind}</option>)}
-            </select>
-            {g && <span className="text-xs text-muted">{counts.added} new · {counts.mod} modified · {g.nodes.length} entities · {g.edges.length} relationships</span>}
-          </div>
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_340px]">
-            <div className="card relative h-[56vh] min-h-[380px] overflow-hidden">
-              {graph.loading && !g && <Loading className="h-full" />}
-              {graph.error && <ErrorState error={graph.error} onRetry={graph.reload} />}
-              {g && <GraphCanvas nodes={g.nodes} edges={g.edges} selectedKey={selected} onSelect={select} minimap={false} />}
+          {viewMode === 'upload' ? (
+            <div className="h-[72vh] min-h-[460px]">
+              <TelemetryUploadZone
+                slug={slug}
+                onBackToGraph={() => setViewMode('graph')}
+              />
             </div>
-            <DetailsShell open={!!selected} onClose={() => setSelected(null)}>
-              <div className="h-full lg:max-h-[56vh] lg:min-h-[380px]">
-                <NodeDetailsPanel nodeKey={selected} graphNode={node} graphNodes={g?.nodes} graphEdges={g?.edges} onSelect={select} onClose={() => setSelected(null)} mode="custom">
-                  {node && !finalized && (
-                    <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-3">
-                      <button className="btn-ghost btn-sm" onClick={() => setAskNode(node.key)}><MessageSquareText size={14} /> Ask the chatbot</button>
-                      <button className="btn-ghost btn-sm" onClick={() => focus(node.key)}><Target size={14} /> Ask questions about this</button>
-                    </div>
-                  )}
-                </NodeDetailsPanel>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="text-xs text-muted" htmlFor="ver">Showing</label>
+                <select id="ver" className="input !w-auto text-sm" value={viewVersion ?? 'work'} onChange={(e) => setViewVersion(e.target.value === 'work' ? null : Number(e.target.value))}>
+                  <option value="work">{latest ? `Current: ${latest.label}` : 'Current: KG0 baseline (selected blocks)'}</option>
+                  <option value={0}>KG0 baseline (selected blocks)</option>
+                  {vers.data?.versions.map((v) => <option key={v.number} value={v.number}>{v.label} · {v.kind}</option>)}
+                </select>
+                {g && <span className="text-xs text-muted">{counts.added} new · {counts.mod} modified · {g.nodes.length} entities · {g.edges.length} relationships</span>}
               </div>
-            </DetailsShell>
-          </div>
-          <p className="text-xs text-muted">Green = added, amber = modified (relative to the previous version). The reference graph KG0 is never changed.</p>
-          {proposal && <ProposalReview proposal={proposal} busy={deciding} onDecide={decide} />}
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_340px]">
+                <div className="card relative h-[56vh] min-h-[380px] overflow-hidden">
+                  {graph.loading && !g && <Loading className="h-full" />}
+                  {graph.error && <ErrorState error={graph.error} onRetry={graph.reload} />}
+                  {g && <GraphCanvas nodes={g.nodes} edges={g.edges} selectedKey={selected} onSelect={select} minimap={false} />}
+                </div>
+                <DetailsShell open={!!selected} onClose={() => setSelected(null)}>
+                  <div className="h-full lg:max-h-[56vh] lg:min-h-[380px]">
+                    <NodeDetailsPanel nodeKey={selected} graphNode={node} graphNodes={g?.nodes} graphEdges={g?.edges} onSelect={select} onClose={() => setSelected(null)} mode="custom">
+                      {node && !finalized && (
+                        <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-3">
+                          <button className="btn-ghost btn-sm" onClick={() => setAskNode(node.key)}><MessageSquareText size={14} /> Ask the chatbot</button>
+                          <button className="btn-ghost btn-sm" onClick={() => focus(node.key)}><Target size={14} /> Ask questions about this</button>
+                        </div>
+                      )}
+                    </NodeDetailsPanel>
+                  </div>
+                </DetailsShell>
+              </div>
+              <p className="text-xs text-muted">Green = added, amber = modified (relative to the previous version). The reference graph KG0 is never changed.</p>
+              {proposal && <ProposalReview proposal={proposal} busy={deciding} onDecide={decide} />}
+            </>
+          )}
         </div>
       </div>
     </Layout>
