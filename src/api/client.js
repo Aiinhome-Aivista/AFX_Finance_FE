@@ -26,8 +26,7 @@ export const userStore = {
   clear: () => localStorage.removeItem(USER_KEY),
 }
 
-const rawBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '')
-const http = axios.create({ baseURL: rawBaseUrl ? `${rawBaseUrl}/api` : '/api', timeout: 60000 })
+const http = axios.create({ baseURL: (import.meta.env.VITE_API_BASE_URL || '') + '/api', timeout: 60000 })
 
 http.interceptors.request.use((cfg) => {
   const t = tokenStore.get()
