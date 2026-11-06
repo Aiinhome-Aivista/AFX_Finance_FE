@@ -102,6 +102,8 @@ export default function DomainGraph() {
   const g = useAsync(() => domains.graph(slug, neighbours), [slug, neighbours])
   const blocks = useAsync(() => domains.blocks(slug), [slug])
   const flows = useAsync(() => domains.flows(slug), [slug])
+  const domainFiles = useAsync(() => filesApi.list(slug), [slug])
+  const hasUploadedFiles = Boolean(domainFiles.data?.files && domainFiles.data.files.length > 0)
 
   // Auto-start workflow if not already started (no redirect to intermediate overview)
   useEffect(() => {
@@ -115,6 +117,10 @@ export default function DomainGraph() {
 
   // Load chat conversation, proposals, and HTML graph whenever slug changes
   useEffect(() => {
+    setIsGapMode(false)
+    setGapData(null)
+    setLeftViewMode('graph')
+    setParsingProgress(null)
     setActiveDomainFilter(domainKey)
     setSelected(null)
     setSelectedNodeData(null)
@@ -581,20 +587,22 @@ export default function DomainGraph() {
 
           {/* Action Buttons: Gap Analysis (MOM Step 5) and Upload Toggle (MOM Step 3) */}
           <div className="flex items-center gap-2">
-            {/* Direct Gap Analysis (KG2) Button */}
-            <button
-              type="button"
-              onClick={handleProceedToGapAnalysis}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${
-                isGapMode && leftViewMode === 'graph'
-                  ? 'bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-red-500/25 ring-2 ring-red-400/40'
-                  : 'btn-ghost border-[#ef4444] text-[#ef4444] hover:bg-[#ef4444]/10'
-              }`}
-              title="Compare uploaded business telemetry against KG1 to highlight discrepancies in RED"
-            >
-              <Sparkles size={14} />
-              <span>KG2 Gap Analysis</span>
-            </button>
+            {/* Show Gap Analysis (KG2) Button ONLY if telemetry files exist for this domain */}
+            {hasUploadedFiles && (
+              <button
+                type="button"
+                onClick={handleProceedToGapAnalysis}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${
+                  isGapMode && leftViewMode === 'graph'
+                    ? 'bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-red-500/25 ring-2 ring-red-400/40'
+                    : 'btn-ghost border-[#ef4444] text-[#ef4444] hover:bg-[#ef4444]/10'
+                }`}
+                title="Compare uploaded business telemetry against KG1 to highlight discrepancies in RED"
+              >
+                <Sparkles size={14} />
+                <span>KG2 Gap Analysis</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -637,6 +645,7 @@ export default function DomainGraph() {
                 setParsingProgress({ fileName, stage, timestamp: Date.now() })
               }
               onFileUploaded={() => {
+                domainFiles.reload()
                 chat.get(slug).then(setSnap).catch(() => {})
               }}
             />
