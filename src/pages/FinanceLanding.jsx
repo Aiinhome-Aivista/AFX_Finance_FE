@@ -215,8 +215,8 @@ export default function FinanceLanding() {
             <span className="tracking-tight">All Domains</span>
           </button>
 
-          {/* 8 Specific Domain Tabs with Colored Dots & Full Title */}
-          {ORDER.map((dKey) => {
+          {/* Specific Domain Tabs (Only show all when 'all' is selected; otherwise show only selected domain) */}
+          {ORDER.filter((dKey) => selectedDomain === 'all' || selectedDomain === dKey).map((dKey) => {
             const meta = DOMMETA[dKey]
             const isSelected = selectedDomain === dKey
 

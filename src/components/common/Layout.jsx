@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { LogOut, Moon, Network, Sun } from 'lucide-react'
+import { BrainCircuit, LogOut, Moon, Sun } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import ChevronTracker from './ChevronTracker'
@@ -19,14 +19,14 @@ export default function Layout({ children, wide }) {
             to={user?.selected_app ? '/finance' : '/apps'}
             className="flex items-center gap-2.5 font-semibold shrink-0 group focus:outline-none"
           >
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#10b981] text-white shadow-sm shadow-[#10b981]/30 transition-transform group-hover:scale-105">
-              <Network size={20} strokeWidth={2.5} />
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#10b981] text-[#0a0a0a] shadow-sm shadow-[#10b981]/30 transition-transform group-hover:scale-105">
+              <BrainCircuit size={22} strokeWidth={2.4} />
             </span>
-            <div className="hidden lg:flex flex-col">
-              <span className="text-sm font-bold tracking-tight text-ink group-hover:text-emerald-600 transition-colors">
-                AgentForge
+            <div className="hidden lg:flex flex-col leading-tight">
+              <span className="text-[17px] font-bold tracking-tight text-ink group-hover:text-emerald-600 transition-colors">
+                AgentForgeX
               </span>
-              <span className="text-[10px] uppercase font-mono tracking-widest text-emerald-600 font-semibold">
+              <span className="text-[13.5px] uppercase font-mono tracking-wider text-emerald-600 font-bold">
                 Finance KG
               </span>
             </div>
