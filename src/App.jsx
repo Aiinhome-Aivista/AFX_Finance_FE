@@ -18,15 +18,15 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<AuthPage mode="login" />} />
       <Route path="/register" element={<AuthPage mode="register" />} />
-      <Route path="/apps" element={<P><AppSelect /></P>} />
+      <Route path="/apps" element={<Navigate to="/finance" replace />} />
       <Route path="/finance" element={<P><FinanceLanding /></P>} />
       <Route path="/finance/:slug" element={<P><DomainGraph /></P>} />
       <Route path="/finance/:slug/graph" element={<P><DomainGraph /></P>} />
       <Route path="/finance/:slug/overview" element={<P><DomainOverview /></P>} />
-      <Route path="/finance/:slug/customize" element={<P app><Customize /></P>} />
-      <Route path="/finance/:slug/finalize" element={<P app><Finalize /></P>} />
-      <Route path="/finance/:slug/telemetry" element={<P app><Telemetry /></P>} />
-      <Route path="*" element={<Navigate to={user ? (user.selected_app ? '/finance' : '/apps') : '/login'} replace />} />
+      <Route path="/finance/:slug/customize" element={<P><DomainGraph /></P>} />
+      <Route path="/finance/:slug/finalize" element={<P><Finalize /></P>} />
+      <Route path="/finance/:slug/telemetry" element={<P><DomainGraph /></P>} />
+      <Route path="*" element={<Navigate to={user ? '/finance' : '/login'} replace />} />
     </Routes>
   )
 }
