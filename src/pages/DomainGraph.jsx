@@ -88,7 +88,7 @@ export default function DomainGraph() {
           setHtmlUrl(`${res.html_url}?t=${Date.now()}`)
         }
         toast.success(`Gap Analysis loaded! ${res.stats?.discrepancies || 0} discrepancies highlighted in RED.`)
-        chat.get(slug).then(setSnap).catch(() => {})
+        chat.get(slug).then(setSnap).catch(() => { })
       }
     } catch (err) {
       toast.error(err.message || 'Could not load gap analysis.')
@@ -609,11 +609,10 @@ export default function DomainGraph() {
               <button
                 type="button"
                 onClick={handleProceedToGapAnalysis}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${
-                  isGapMode && leftViewMode === 'graph'
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${isGapMode && leftViewMode === 'graph'
                     ? 'bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-red-500/25 ring-2 ring-red-400/40'
                     : 'btn-ghost border-[#ef4444] text-[#ef4444] hover:bg-[#ef4444]/10'
-                }`}
+                  }`}
                 title="Compare uploaded business telemetry against KG1 to highlight discrepancies in RED"
               >
                 <Sparkles size={14} />
@@ -639,7 +638,7 @@ export default function DomainGraph() {
               }
               onFileUploaded={() => {
                 domainFiles.reload()
-                chat.get(slug).then(setSnap).catch(() => {})
+                chat.get(slug).then(setSnap).catch(() => { })
               }}
             />
           </div>
@@ -885,7 +884,7 @@ export default function DomainGraph() {
                   rows={3}
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
-                  placeholder="e.g. Model driver-based forecasting for an FMCG enterprise with scenario versions, retail price indexes, and 18-month rolling calendar..."
+                  placeholder="e.g. Model driver-based forecasting for an Finance enterprise with scenario versions, retail price indexes, and 18-month rolling calendar..."
                   disabled={generating}
                 />
               </div>

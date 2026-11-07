@@ -186,7 +186,7 @@ export default function FinanceLanding() {
         <div className="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl" />
 
         <div className="relative z-10 max-w-5xl">
-        
+
 
           {/* Main Title with high-contrast gradient */}
           <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-4xl">
@@ -204,7 +204,7 @@ export default function FinanceLanding() {
             customize your enterprise graph.
           </p>
 
-        
+
         </div>
       </div>
 
@@ -218,11 +218,10 @@ export default function FinanceLanding() {
           <button
             id="tab-all"
             type="button"
-            className={`group relative rounded-xl px-3.5 py-2 text-xs sm:text-[13px] font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${
-              selectedDomain === 'all'
+            className={`group relative rounded-xl px-3.5 py-2 text-xs sm:text-[13px] font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${selectedDomain === 'all'
                 ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01]'
                 : 'border-line bg-surface/90 text-muted hover:text-ink hover:border-brand/40 hover:bg-surface2 shadow-2xs hover:-translate-y-0.5'
-            }`}
+              }`}
             onClick={() => handleDomainSelect('all')}
           >
             <Compass size={15} className={selectedDomain === 'all' ? 'text-white' : 'text-brand'} />
@@ -239,11 +238,10 @@ export default function FinanceLanding() {
                 id={`tab-${dKey}`}
                 key={dKey}
                 type="button"
-                className={`group relative rounded-xl px-3.5 py-2 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${
-                  isSelected
+                className={`group relative rounded-xl px-3.5 py-2 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${isSelected
                     ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
                     : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
-                }`}
+                  }`}
                 onClick={() => handleDomainSelect(dKey)}
                 title={meta.n}
               >
@@ -409,11 +407,10 @@ export default function FinanceLanding() {
                     return (
                       <div
                         key={dKey}
-                        className={`flex items-center justify-between rounded-xl p-2.5 text-xs transition border cursor-pointer ${
-                          isCurrent
+                        className={`flex items-center justify-between rounded-xl p-2.5 text-xs transition border cursor-pointer ${isCurrent
                             ? 'border-brand bg-brand/5 shadow-sm'
                             : 'border-transparent hover:border-line hover:bg-surface2'
-                        }`}
+                          }`}
                         onClick={() => handleDomainSelect(dKey)}
                       >
                         <div className="flex items-center gap-2.5 truncate pr-2">
@@ -596,176 +593,175 @@ export default function FinanceLanding() {
          ========================================================================= */}
       {activeFlows.length > 0 && (
         <details className="mt-5 rounded-2xl border border-line bg-surface shadow-card overflow-hidden group" open>
-        <summary className="cursor-pointer px-5 py-4 text-sm sm:text-base font-bold text-ink flex items-center justify-between select-none hover:bg-surface2 transition">
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-6 w-6 place-items-center rounded-md bg-brand/10 text-brand text-xs font-bold transition-transform group-open:rotate-90">
-              ▸
-            </span>
-            <span className="text-brand">End-to-End Operational Cycles</span>
-            <span className="text-xs text-muted font-normal hidden sm:inline">
-              — Click any cycle to trace and animate its path across the graph
-            </span>
-          </div>
-          {activeFlowIdx >= 0 && (
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                setActiveFlowIdx(-1)
-              }}
-              className="text-xs text-muted hover:text-bad font-medium px-2.5 py-1 rounded-lg border border-line bg-surface hover:bg-bad/5 transition"
-            >
-              Clear active trace
-            </button>
-          )}
-        </summary>
+          <summary className="cursor-pointer px-5 py-4 text-sm sm:text-base font-bold text-ink flex items-center justify-between select-none hover:bg-surface2 transition">
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-6 w-6 place-items-center rounded-md bg-brand/10 text-brand text-xs font-bold transition-transform group-open:rotate-90">
+                ▸
+              </span>
+              <span className="text-brand">End-to-End Operational Cycles</span>
+              <span className="text-xs text-muted font-normal hidden sm:inline">
+                — Click any cycle to trace and animate its path across the graph
+              </span>
+            </div>
+            {activeFlowIdx >= 0 && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  setActiveFlowIdx(-1)
+                }}
+                className="text-xs text-muted hover:text-bad font-medium px-2.5 py-1 rounded-lg border border-line bg-surface hover:bg-bad/5 transition"
+              >
+                Clear active trace
+              </button>
+            )}
+          </summary>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 p-5 pt-3 border-t border-line bg-surface2/30">
-          {activeFlows.map((f, i) => {
-            const isActive = activeFlowIdx === i
-            const isLast = i === activeFlows.length - 1
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 p-5 pt-3 border-t border-line bg-surface2/30">
+            {activeFlows.map((f, i) => {
+              const isActive = activeFlowIdx === i
+              const isLast = i === activeFlows.length - 1
 
-            // Dynamic arrow color: Pure black in light theme, pure white in dark theme, brand when active
-            const arrowColor = isActive
-              ? (isDark ? '#818CF8' : '#4F46E5')
-              : (isDark ? '#FFFFFF' : '#000000')
+              // Dynamic arrow color: Pure black in light theme, pure white in dark theme, brand when active
+              const arrowColor = isActive
+                ? (isDark ? '#818CF8' : '#4F46E5')
+                : (isDark ? '#FFFFFF' : '#000000')
 
-            // Serpentine snake placement on desktop XL:
-            // Row 1 (left to right): Col 1, Col 2, Col 3, Col 4
-            // Row 2 (right to left): Col 4, Col 3, Col 2
-            const SNAKE_GRID_XL = [
-              'xl:col-start-1 xl:row-start-1',
-              'xl:col-start-2 xl:row-start-1',
-              'xl:col-start-3 xl:row-start-1',
-              'xl:col-start-4 xl:row-start-1',
-              'xl:col-start-4 xl:row-start-2',
-              'xl:col-start-3 xl:row-start-2',
-              'xl:col-start-2 xl:row-start-2',
-            ]
+              // Serpentine snake placement on desktop XL:
+              // Row 1 (left to right): Col 1, Col 2, Col 3, Col 4
+              // Row 2 (right to left): Col 4, Col 3, Col 2
+              const SNAKE_GRID_XL = [
+                'xl:col-start-1 xl:row-start-1',
+                'xl:col-start-2 xl:row-start-1',
+                'xl:col-start-3 xl:row-start-1',
+                'xl:col-start-4 xl:row-start-1',
+                'xl:col-start-4 xl:row-start-2',
+                'xl:col-start-3 xl:row-start-2',
+                'xl:col-start-2 xl:row-start-2',
+              ]
 
-            // Serpentine snake placement on tablet MD:
-            const SNAKE_GRID_MD = [
-              'md:col-start-1 md:row-start-1',
-              'md:col-start-2 md:row-start-1',
-              'md:col-start-2 md:row-start-2',
-              'md:col-start-1 md:row-start-2',
-              'md:col-start-1 md:row-start-3',
-              'md:col-start-2 md:row-start-3',
-              'md:col-start-2 md:row-start-4',
-            ]
+              // Serpentine snake placement on tablet MD:
+              const SNAKE_GRID_MD = [
+                'md:col-start-1 md:row-start-1',
+                'md:col-start-2 md:row-start-1',
+                'md:col-start-2 md:row-start-2',
+                'md:col-start-1 md:row-start-2',
+                'md:col-start-1 md:row-start-3',
+                'md:col-start-2 md:row-start-3',
+                'md:col-start-2 md:row-start-4',
+              ]
 
-            return (
-              <div key={f.key || f.t || i} className={`relative flex flex-col ${SNAKE_GRID_XL[i] || ''} ${SNAKE_GRID_MD[i] || ''}`}>
-                <div
-                  onClick={() => handleFlowToggle(i)}
-                  className={`rounded-2xl border p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between h-[178px] ${
-                    isActive
-                      ? 'border-brand ring-2 ring-brand/30 bg-surface shadow-md scale-[1.01]'
-                      : 'border-line bg-surface hover:border-brand/60 hover:shadow-sm'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <b className={`text-xs font-bold truncate pr-2 ${isActive ? 'text-brand' : 'text-ink'}`} title={f.t || f.title}>
-                        {f.t || f.title}
-                      </b>
-                      {isActive ? (
-                        <span className="text-[10px] uppercase font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full border border-brand/20 shrink-0">
-                          Tracing
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-muted font-mono shrink-0">
-                          {(f.ids || f.steps || []).length} steps
-                        </span>
-                      )}
+              return (
+                <div key={f.key || f.t || i} className={`relative flex flex-col ${SNAKE_GRID_XL[i] || ''} ${SNAKE_GRID_MD[i] || ''}`}>
+                  <div
+                    onClick={() => handleFlowToggle(i)}
+                    className={`rounded-2xl border p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between h-[178px] ${isActive
+                        ? 'border-brand ring-2 ring-brand/30 bg-surface shadow-md scale-[1.01]'
+                        : 'border-line bg-surface hover:border-brand/60 hover:shadow-sm'
+                      }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <b className={`text-xs font-bold truncate pr-2 ${isActive ? 'text-brand' : 'text-ink'}`} title={f.t || f.title}>
+                          {f.t || f.title}
+                        </b>
+                        {isActive ? (
+                          <span className="text-[10px] uppercase font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full border border-brand/20 shrink-0">
+                            Tracing
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted font-mono shrink-0">
+                            {(f.ids || f.steps || []).length} steps
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className="font-mono text-[10.5px] text-muted leading-relaxed break-words line-clamp-4 h-[4.25rem] overflow-hidden"
+                        style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 4,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                        title={f.x || f.narrative}
+                      >
+                        {f.x || f.narrative}
+                      </p>
                     </div>
-                    <p
-                      className="font-mono text-[10.5px] text-muted leading-relaxed break-words line-clamp-4 h-[4.25rem] overflow-hidden"
-                      style={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: 4,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                      title={f.x || f.narrative}
-                    >
-                      {f.x || f.narrative}
-                    </p>
+
+                    <div className="mt-3 pt-2.5 border-t border-line/60 flex items-center justify-between text-[11px] shrink-0">
+                      <span className={isActive ? 'font-semibold text-brand' : 'text-muted'}>
+                        {isActive ? 'Click to deactivate' : 'Click to trace path'}
+                      </span>
+                      <ChevronRight size={13} className={isActive ? 'text-brand' : 'text-muted'} />
+                    </div>
                   </div>
 
-                  <div className="mt-3 pt-2.5 border-t border-line/60 flex items-center justify-between text-[11px] shrink-0">
-                    <span className={isActive ? 'font-semibold text-brand' : 'text-muted'}>
-                      {isActive ? 'Click to deactivate' : 'Click to trace path'}
-                    </span>
-                    <ChevronRight size={13} className={isActive ? 'text-brand' : 'text-muted'} />
-                  </div>
+                  {/* Arrow connecting to the next card in serpentine flow */}
+                  {!isLast && (
+                    <>
+                      {/* Desktop XL: 0->1->2->3 (right), 3->4 (down), 4->5->6 (left) */}
+                      <div className="hidden xl:flex">
+                        {(i === 0 || i === 1 || i === 2) && (
+                          <div className="absolute left-full top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
+                            <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                              <path d="M1 6H15M10.5 1.5L15 6L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                        )}
+                        {i === 3 && (
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 flex items-center justify-center pointer-events-none">
+                            <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                              <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                        )}
+                        {(i === 4 || i === 5) && (
+                          <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
+                            <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                              <path d="M17 6H3M7.5 1.5L3 6L7.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Tablet MD: 0->1 (right), 1->2 (down), 2->3 (left), 3->4 (down), 4->5 (right), 5->6 (down) */}
+                      <div className="hidden md:flex xl:hidden">
+                        {(i === 0 || i === 4) && (
+                          <div className="absolute left-full top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
+                            <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                              <path d="M1 6H15M10.5 1.5L15 6L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                        )}
+                        {(i === 1 || i === 3 || i === 5) && (
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 flex items-center justify-center pointer-events-none">
+                            <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                              <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                        )}
+                        {i === 2 && (
+                          <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
+                            <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                              <path d="M17 6H3M7.5 1.5L3 6L7.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Mobile (1 column): all down */}
+                      <div className="flex md:hidden absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 items-center justify-center pointer-events-none">
+                        <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                          <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                    </>
+                  )}
                 </div>
-
-                {/* Arrow connecting to the next card in serpentine flow */}
-                {!isLast && (
-                  <>
-                    {/* Desktop XL: 0->1->2->3 (right), 3->4 (down), 4->5->6 (left) */}
-                    <div className="hidden xl:flex">
-                      {(i === 0 || i === 1 || i === 2) && (
-                        <div className="absolute left-full top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
-                          <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
-                            <path d="M1 6H15M10.5 1.5L15 6L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </div>
-                      )}
-                      {i === 3 && (
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 flex items-center justify-center pointer-events-none">
-                          <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
-                            <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </div>
-                      )}
-                      {(i === 4 || i === 5) && (
-                        <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
-                          <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
-                            <path d="M17 6H3M7.5 1.5L3 6L7.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Tablet MD: 0->1 (right), 1->2 (down), 2->3 (left), 3->4 (down), 4->5 (right), 5->6 (down) */}
-                    <div className="hidden md:flex xl:hidden">
-                      {(i === 0 || i === 4) && (
-                        <div className="absolute left-full top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
-                          <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
-                            <path d="M1 6H15M10.5 1.5L15 6L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </div>
-                      )}
-                      {(i === 1 || i === 3 || i === 5) && (
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 flex items-center justify-center pointer-events-none">
-                          <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
-                            <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </div>
-                      )}
-                      {i === 2 && (
-                        <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
-                          <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
-                            <path d="M17 6H3M7.5 1.5L3 6L7.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Mobile (1 column): all down */}
-                    <div className="flex md:hidden absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 items-center justify-center pointer-events-none">
-                      <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
-                        <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                  </>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </details>
+              )
+            })}
+          </div>
+        </details>
       )}
 
       {/* =========================================================================
@@ -782,10 +778,10 @@ export default function FinanceLanding() {
             </button>
             <div className="flex items-center gap-2.5 text-brand font-bold text-lg mb-2">
               <FileText size={22} />
-              <h2>FMCG Industry Reference Canon — ONTOLOGY.md</h2>
+              <h2>Finance Industry Reference Canon — ONTOLOGY.md</h2>
             </div>
             <p className="text-xs text-muted mb-5 leading-relaxed">
-              The Finance Knowledge Graph platform is built on Domain-07 of the FMCG Industry Canon v1.1. It models the core financial functions, dimensions, formulas, and governance structures required for enterprise financial intelligence.
+              The Finance Knowledge Graph platform is built on Domain-07 of the Finance Industry Canon v1.1. It models the core financial functions, dimensions, formulas, and governance structures required for enterprise financial intelligence.
             </p>
 
             <div className="space-y-3.5 text-xs leading-relaxed text-ink">

@@ -114,7 +114,7 @@ export default function ChatPanel({
         step: 4,
       })
       // fetch persisted telemetry message from backend
-      chat.get(slug).then(setSnap).catch(() => {})
+      chat.get(slug).then(setSnap).catch(() => { })
     }, 7000)
 
     const t4 = setTimeout(() => {
@@ -249,7 +249,7 @@ export default function ChatPanel({
           </h3>
 
           <p className="mt-2 text-xs leading-relaxed text-muted">
-            Explore entity definitions, governance rules, and calculate formulas. Grounded strictly in the FMCG reference ontology.
+            Explore entity definitions, governance rules, and calculate formulas. Grounded strictly in the Finance reference ontology.
           </p>
 
           <div className="mt-6 flex flex-col gap-2 w-full text-left">
@@ -408,9 +408,8 @@ export default function ChatPanel({
               >
                 {KIND_LABEL[m.kind] && !isUser && (
                   <span
-                    className={`mb-1 block text-[10px] font-bold uppercase tracking-wider ${
-                      isTelemetry ? 'text-emerald-700 dark:text-emerald-400' : 'text-brand'
-                    }`}
+                    className={`mb-1 block text-[10px] font-bold uppercase tracking-wider ${isTelemetry ? 'text-emerald-700 dark:text-emerald-400' : 'text-brand'
+                      }`}
                   >
                     {KIND_LABEL[m.kind]}
                     {m.meta?.followup ? ' · Follow-up' : ''}

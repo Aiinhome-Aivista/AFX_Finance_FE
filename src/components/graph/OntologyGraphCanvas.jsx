@@ -4,8 +4,8 @@ import { useTheme } from '../../context/ThemeContext'
 import { Maximize2, Minimize2, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react'
 
 /**
- * High-performance, pixel-perfect SVG visualizer for the FMCG Finance Ontology Graph.
- * Faithfully mirrors FMCG Finance Ontology Graph.html with:
+ * High-performance, pixel-perfect SVG visualizer for the Finance Ontology Graph.
+ * Faithfully mirrors Finance Ontology Graph.html with:
  *  - Central conformed master-data spine ring
  *  - 8 celestial radial sub-domain clusters with colored halos
  *  - Quadratic Bezier curved arrows with typed relationship labels
@@ -251,7 +251,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
       }
     } else {
       if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {})
+        document.exitFullscreen().catch(() => { })
       }
       setIsFullscreen(false)
     }
@@ -279,7 +279,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isFullscreen) {
         if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {})
+          document.exitFullscreen().catch(() => { })
         }
         setIsFullscreen(false)
       }
@@ -409,11 +409,10 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
   return (
     <div
       ref={containerRef}
-      className={`select-none transition-all duration-200 ${
-        isFullscreen
-          ? 'fixed inset-0 z-[9999] h-screen w-screen overflow-hidden rounded-none border-0 shadow-none'
-          : 'relative h-[74vh] min-h-[500px] w-full overflow-hidden rounded-2xl border border-line shadow-card'
-      } ${isPanning ? 'cursor-grabbing' : 'cursor-grab'} ${className}`}
+      className={`select-none transition-all duration-200 ${isFullscreen
+        ? 'fixed inset-0 z-[9999] h-screen w-screen overflow-hidden rounded-none border-0 shadow-none'
+        : 'relative h-[74vh] min-h-[500px] w-full overflow-hidden rounded-2xl border border-line shadow-card'
+        } ${isPanning ? 'cursor-grabbing' : 'cursor-grab'} ${className}`}
       style={{ backgroundColor: themeColors.bg }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -467,11 +466,10 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
             e.stopPropagation()
             toggleFullscreen()
           }}
-          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition cursor-pointer ${
-            isFullscreen
-              ? 'bg-brand text-white shadow-sm'
-              : 'text-ink hover:bg-surface2 hover:text-brand'
-          }`}
+          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition cursor-pointer ${isFullscreen
+            ? 'bg-brand text-white shadow-sm'
+            : 'text-ink hover:bg-surface2 hover:text-brand'
+            }`}
           title={isFullscreen ? 'Exit Full Screen (Esc)' : 'Full Screen'}
         >
           {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
@@ -483,7 +481,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
       {isFullscreen && (
         <div className="absolute left-4 top-4 z-20 flex items-center gap-2.5 rounded-xl border border-line bg-surface/90 px-3.5 py-1.5 backdrop-blur shadow-md pointer-events-auto">
           <span className="h-2 w-2 rounded-full bg-brand animate-pulse" />
-          <span className="font-bold text-xs text-ink tracking-tight">FMCG Finance Ontology Graph</span>
+          <span className="font-bold text-xs text-ink tracking-tight">Finance Ontology Graph</span>
           <span className="text-[11px] text-muted hidden sm:inline">— Press Esc or click Exit to return</span>
         </div>
       )}

@@ -118,7 +118,7 @@ export default function Finalize() {
             )}
           </h1>
           <p className="text-xs text-muted mt-0.5">
-            Step 6: Review, validate and finalize your customized FMCG Finance Digital Twin.
+            Step 6: Review, validate and finalize your customized Finance Digital Twin.
           </p>
         </div>
       </div>
@@ -151,7 +151,7 @@ export default function Finalize() {
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-muted">
                   <span className="inline-block h-2 w-2 rounded-full bg-[#10b981] animate-pulse" />
-                  <span>FMCG Radial Spine Active</span>
+                  <span>Finance Radial Spine Active</span>
                 </div>
               </div>
 
@@ -173,8 +173,8 @@ export default function Finalize() {
                 <div className="flex items-center justify-between pb-2.5 border-b border-line">
                   <h2 className="text-sm font-bold text-ink">Digital Twin Governance</h2>
                   <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${finalized
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300'
-                      : 'bg-[#10b981]/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300'
+                    : 'bg-[#10b981]/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
                     }`}>
                     {finalized ? 'Governed Digital Twin' : 'Ready to Finalize'}
                   </span>
@@ -191,7 +191,7 @@ export default function Finalize() {
                     </div>
                     {d.validation.errors.length === 0 && d.validation.warnings.length === 0 ? (
                       <p className="text-[11px] text-muted leading-relaxed">
-                        Ontology verified against FMCG domain schema and business rules. Ready for enterprise governance.
+                        Ontology verified against Finance domain schema and business rules. Ready for enterprise governance.
                       </p>
                     ) : (
                       <p className="text-[11px] text-warn">{d.validation.warnings.length} warning(s) detected.</p>
