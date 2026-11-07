@@ -19,7 +19,7 @@ export default function Layout({ children, wide }) {
             to={user?.selected_app ? '/finance' : '/apps'}
             className="flex items-center gap-2.5 font-semibold shrink-0 group focus:outline-none"
           >
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#10b981] text-[#0a0a0a] shadow-sm shadow-[#10b981]/30 transition-transform group-hover:scale-105">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#10b981] text-[#141821] shadow-sm shadow-[#10b981]/30 transition-transform group-hover:scale-105">
               <BrainCircuit size={22} strokeWidth={2.4} />
             </span>
             <div className="hidden lg:flex flex-col leading-tight">

@@ -28,26 +28,26 @@
 }
 
 .dark {
-  --bg: 10 10 10;
-  --surface: 20 22 25;
-  --surface2: 28 30 34;
-  --line: 38 42 46;
-  --ink: 248 250 252;
-  --muted: 148 163 184;
-  --brand: 16 185 129;
+  --bg: 45 51 58;            /* #2D333A - Distinct Matte Titanium / Gunmetal Slate Grey */
+  --surface: 34 39 46;       /* #22272E - Elevated Charcoal Panel */
+  --surface2: 55 62 71;      /* #373E47 - Secondary / Hover Surface */
+  --line: 72 80 90;          /* #48505A - Visible Gunmetal Hairline Border */
+  --ink: 255 255 255;        /* #FFFFFF - Pure Crisp White Text (like reference image) */
+  --muted: 173 186 199;      /* #ADBCC7 - Light Silver Readable Subtext */
+  --brand: 16 185 129;       /* #10B981 - Emerald Accent */
   --brand-ink: 255 255 255;
   --ok: 52 211 153;
   --warn: 245 158 11;
   --bad: 248 113 113;
-  --ont-bg: #0A0A0A;
-  --ont-card: #141719;
-  --ont-text: #F8FAFC;
-  --ont-muted: #94A3B8;
-  --ont-border: #262626;
+  --ont-bg: #262C34;         /* Visible Slate Grey Canvas */
+  --ont-card: #363E4A;       /* Elevated Grey Node Cards */
+  --ont-text: #FFFFFF;       /* Pure White Text inside nodes */
+  --ont-muted: #ADBCC7;
+  --ont-border: #556070;     /* Clearly Defined Borders */
   --ont-accent: #10B981;
-  --ont-edge: #475569;
+  --ont-edge: #8E9DB0;       /* High-Visibility Relationship Arrows */
   --ont-chip-bg: #064E3B;
-  --ont-code-bg: #1A1F23;
+  --ont-code-bg: #22272E;
 }
 
 html,
@@ -55,8 +55,18 @@ body,
 #root {
   height: 100%;
   min-height: 100vh;
-  background-color: #0A0A0A;
+  background-color: rgb(var(--bg));
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html.dark body {
+  background: linear-gradient(180deg, #373E47 0%, #252B33 100%) fixed;
   color-scheme: dark;
+}
+
+html:not(.dark) body {
+  background-color: #FFFFFF;
+  color-scheme: light;
 }
 
 body,
@@ -197,12 +207,12 @@ body {
 
 /* Premium AI SaaS Login Styling (AgentForgeX Dark Emerald Theme) */
 .auth-bg-gradient {
-  background-color: #0A0A0A;
+  background-color: #141821;
 }
 
 .auth-card-shadow {
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .auth-btn-gradient {
@@ -222,27 +232,27 @@ body {
 }
 
 .auth-input-field {
-  background-color: #222222 !important;
-  border: 1px solid #2e2e2e;
+  background-color: #293242 !important;
+  border: 1px solid #333E52;
   color: #F9FAFB !important;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .auth-input-field:hover {
-  border-color: #3b3b3b;
+  border-color: #475569;
 }
 
 .auth-input-field:focus,
 .auth-input-field:focus-visible,
 .auth-input-field:active {
-  background-color: #222222 !important;
+  background-color: #293242 !important;
   border-color: #10B981;
   outline: none;
   box-shadow: 0 0 0 1px #10B981;
 }
 
 .auth-input-field::placeholder {
-  color: #737373;
+  color: #94A3B8;
 }
 
 /* Chrome/Safari autofill background override for dark theme */
@@ -250,8 +260,8 @@ body {
 .auth-input-field:-webkit-autofill:hover,
 .auth-input-field:-webkit-autofill:focus,
 .auth-input-field:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px #222222 inset !important;
-  box-shadow: 0 0 0 1000px #222222 inset !important;
+  -webkit-box-shadow: 0 0 0 1000px #293242 inset !important;
+  box-shadow: 0 0 0 1000px #293242 inset !important;
   -webkit-text-fill-color: #F9FAFB !important;
   caret-color: #F9FAFB !important;
   transition: background-color 5000s ease-in-out 0s;
