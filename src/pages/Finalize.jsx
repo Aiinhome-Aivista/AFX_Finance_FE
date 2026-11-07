@@ -92,12 +92,11 @@ export default function Finalize() {
 
   return (
     <Layout wide>
-      <Link to={`/finance/${slug}`} className="mb-3 inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink font-semibold">
-        <ArrowLeft size={14} /> Back to Knowledge Graph & Chatbot
-      </Link>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 mt-1 mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
         <div>
+          <Link to={`/finance/${slug}`} className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink font-semibold mb-1">
+            <ArrowLeft size={14} /> Back to Knowledge Graph & Chatbot
+          </Link>
           <h1 className="text-xl font-bold tracking-tight text-ink flex items-center gap-2">
             <span>Enterprise Digital Twin Finalization</span>
             {finalized && (
@@ -124,11 +123,11 @@ export default function Finalize() {
       {fin.error && <ErrorState error={fin.error} onRetry={fin.reload} />}
 
       {d && (
-        <div className="mt-3 space-y-4">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <div className="mt-2 space-y-4">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] items-stretch">
             {/* Left Column: Pixel-Perfect Ontology Graph Canvas (Same Celestial Radial Style) */}
-            <section className="card overflow-hidden p-0 border border-line isolate">
-              <div className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 select-none">
+            <section className="card overflow-hidden p-0 border border-line isolate flex flex-col">
+              <div className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 select-none shrink-0">
                 <div>
                   <h2 className="text-sm font-bold text-ink flex items-center gap-2">
                     <Sparkles size={16} className="text-[#10b981]" />
@@ -144,7 +143,7 @@ export default function Finalize() {
                 </div>
               </div>
 
-              <div className="h-[54vh] min-h-[400px] relative overflow-hidden bg-surface">
+              <div className="h-[460px] min-h-[420px] w-full relative overflow-hidden bg-surface">
                 <OntologyGraphCanvas
                   nodes={d.graph.nodes}
                   edges={d.graph.edges}
@@ -158,8 +157,8 @@ export default function Finalize() {
 
             {/* Right Column: Digital Twin Governance & Actions */}
             <section className="card p-5 border border-line flex flex-col justify-between shadow-card">
-              <div>
-                <div className="flex items-center justify-between pb-3 border-b border-line">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2.5 border-b border-line">
                   <h2 className="text-sm font-bold text-ink">Digital Twin Governance</h2>
                   <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                     finalized
@@ -170,9 +169,9 @@ export default function Finalize() {
                   </span>
                 </div>
 
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-xl border border-line bg-surface2/50 p-3.5 text-xs">
-                    <div className="flex items-center justify-between text-muted mb-1.5">
+                <div className="space-y-2.5">
+                  <div className="rounded-xl border border-line bg-surface2/50 p-3 text-xs">
+                    <div className="flex items-center justify-between text-muted mb-1">
                       <span className="font-semibold text-ink">Validation Check</span>
                       <span className="font-semibold text-ok flex items-center gap-1">
                         <CheckCircle2 size={13} />
@@ -189,17 +188,17 @@ export default function Finalize() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-center text-xs">
-                    <div className="rounded-xl border border-line bg-surface2/30 p-2.5">
-                      <div className="text-lg font-bold text-ink">{d.graph.nodes.length}</div>
+                    <div className="rounded-xl border border-line bg-surface2/30 p-2">
+                      <div className="text-base font-bold text-ink">{d.graph.nodes.length}</div>
                       <div className="text-[10px] text-muted uppercase font-semibold">Entities</div>
                     </div>
-                    <div className="rounded-xl border border-line bg-surface2/30 p-2.5">
-                      <div className="text-lg font-bold text-ink">{d.graph.edges.length}</div>
+                    <div className="rounded-xl border border-line bg-surface2/30 p-2">
+                      <div className="text-base font-bold text-ink">{d.graph.edges.length}</div>
                       <div className="text-[10px] text-muted uppercase font-semibold">Relationships</div>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-line bg-surface2/30 p-3 text-xs space-y-1 text-muted">
+                  <div className="rounded-xl border border-line bg-surface2/30 p-2.5 text-xs space-y-1 text-muted">
                     <div className="flex justify-between">
                       <span>Ontology Version:</span>
                       <b className="text-ink">{d.version.label}</b>
@@ -216,7 +215,7 @@ export default function Finalize() {
                 </div>
               </div>
 
-              <div className="mt-5 pt-4 border-t border-line">
+              <div className="mt-4 pt-3 border-t border-line">
                 {finalized ? (
                   <div className="space-y-3">
                     <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/80 dark:bg-emerald-950/30 p-3 text-xs">
@@ -228,11 +227,11 @@ export default function Finalize() {
                         This model is locked and governed. It represents your active financial operating architecture.
                       </p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Link to={`/finance/${slug}`} className="btn bg-[#10b981] hover:bg-[#059669] text-black font-bold flex-1 text-xs py-2 rounded-xl text-center shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <Link to={`/finance/${slug}`} className="btn bg-[#10b981] hover:bg-[#059669] text-black font-bold flex-1 text-xs py-2.5 rounded-xl text-center shadow-sm flex items-center justify-center">
                         Explore Digital Twin →
                       </Link>
-                      <button className="btn-ghost text-xs cursor-pointer" onClick={() => setDlg('reopen')}>
+                      <button className="btn-ghost text-xs cursor-pointer py-2.5 px-4 rounded-xl flex items-center justify-center" onClick={() => setDlg('reopen')}>
                         Re-open
                       </button>
                     </div>
@@ -252,7 +251,7 @@ export default function Finalize() {
           </div>
 
           {/* Version Comparison Section */}
-          <section className="card p-4 border border-line">
+          <section className="card p-4 border border-line mt-6 mb-8">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="font-semibold text-sm text-ink">Compare Versions</h2>
               <select className="input !w-auto text-xs" value={range.from} onChange={(e) => setRange({ ...range, from: Number(e.target.value) })} aria-label="From version">
