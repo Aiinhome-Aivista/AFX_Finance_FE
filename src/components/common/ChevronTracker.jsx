@@ -96,9 +96,9 @@ export default function ChevronTracker() {
         if (isCompleted) {
           outerBg = 'bg-[#10b981]'
           innerBg = 'bg-[#10b981]' // Solid Primary Green
-          textColor = 'text-black font-semibold'
-          subColor = 'text-black/80'
-          iconColor = 'text-black'
+          textColor = 'text-white font-bold'
+          subColor = 'text-white/90 font-medium'
+          iconColor = 'text-white'
         } else if (isActive) {
           outerBg = 'bg-gradient-to-r from-[#10b981] via-[#22d3ee] to-[#10b981]' // Green-Cyan gradient outline
           innerBg = 'bg-emerald-50/70 dark:bg-[#171717]' // Subtle tinted emerald on light, dark on dark
@@ -119,7 +119,7 @@ export default function ChevronTracker() {
               {/* Status Indicator Icon */}
               <span className="flex items-center justify-center shrink-0">
                 {isCompleted ? (
-                  <span className="grid h-4 w-4 place-items-center rounded-full bg-black/20 text-black">
+                  <span className="grid h-4 w-4 place-items-center rounded-full bg-white/20 text-white">
                     <Check size={11} strokeWidth={3} />
                   </span>
                 ) : isActive ? (

@@ -229,7 +229,7 @@ export default function Finalize() {
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Link to={`/finance/${slug}`} className="btn bg-[#10b981] hover:bg-[#059669] text-black font-bold flex-1 text-xs py-2 rounded-xl text-center shadow-sm">
+                      <Link to={`/finance/${slug}`} className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold flex-1 text-xs py-2 rounded-xl text-center shadow-sm">
                         Explore Digital Twin →
                       </Link>
                       <button className="btn-ghost text-xs cursor-pointer" onClick={() => setDlg('reopen')}>
@@ -239,7 +239,7 @@ export default function Finalize() {
                   </div>
                 ) : (
                   <button
-                    className="btn bg-[#10b981] hover:bg-[#059669] text-black font-bold w-full py-2.5 text-xs rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold w-full py-2.5 text-xs rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center gap-2"
                     disabled={d.validation.errors.length > 0 || busy}
                     onClick={() => { setAck(false); setDlg('finalize') }}
                   >

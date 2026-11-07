@@ -106,29 +106,80 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
     return matches
   }, [searchQuery, nodes])
 
-  // Center & Fit graph to container (frames active domain cluster if filtered)
+  // Center & Fit graph to container (auto-frames visible elements perfectly)
   const fit = useCallback(() => {
     const el = containerRef.current
     if (!el) return
     const w = el.clientWidth || window.innerWidth || 950
     const h = el.clientHeight || window.innerHeight || 650
 
-    if (activeDomain && activeDomain !== 'all' && domMetas[activeDomain]) {
-      const dm = domMetas[activeDomain]
-      const midX = (dm.cx * 2 + CX) / 3
-      const midY = (dm.cy * 2 + CY) / 3
-      const sc = Math.max(0.55, Math.min(1.15, Math.min(w / 800, h / 720)))
-      const tx = w / 2 - midX * sc
-      const ty = h / 2 - midY * sc
-      setTransform({ scale: sc, tx, ty })
-      return
+    // Collect all visible nodes
+    const visNodes = nodes.filter((n) => (!visibleSet ? true : visibleSet.has(n.id)))
+
+    let minX = Infinity
+    let maxX = -Infinity
+    let minY = Infinity
+    let maxY = -Infinity
+
+    if (visNodes.length > 0) {
+      visNodes.forEach((n) => {
+        const nw = n.w || 140
+        const nh = n.h || 40
+        if (n.x - nw / 2 < minX) minX = n.x - nw / 2
+        if (n.x + nw / 2 > maxX) maxX = n.x + nw / 2
+        if (n.y - nh / 2 < minY) minY = n.y - nh / 2
+        if (n.y + nh / 2 > maxY) maxY = n.y + nh / 2
+      })
     }
 
-    const sc = Math.max(0.25, Math.min(1.6, Math.min((w - 28) / W, (h - 28) / H)))
-    const tx = (w - W * sc) / 2
-    const ty = 14
-    setTransform({ scale: sc, tx, ty })
-  }, [W, H, CX, CY, activeDomain, domMetas])
+    // Include active domain cluster halo in bounding box
+    const targetMeta = domMetas[activeDomain] || (activeDomain === 'spine' ? spineMeta : null)
+    if (activeDomain && activeDomain !== 'all') {
+      if (targetMeta) {
+        minX = Math.min(minX, targetMeta.cx - targetMeta.r)
+        maxX = Math.max(maxX, targetMeta.cx + targetMeta.r)
+        minY = Math.min(minY, targetMeta.cy - targetMeta.r)
+        maxY = Math.max(maxY, targetMeta.cy + targetMeta.r)
+      }
+      // If spine nodes exist or are visible, include spine cluster halo too
+      if (spineMeta && (visibleSet?.has('spine') || visNodes.some((n) => n.d === 'spine' || n.group_key === 'spine'))) {
+        minX = Math.min(minX, spineMeta.cx - spineMeta.r)
+        maxX = Math.max(maxX, spineMeta.cx + spineMeta.r)
+        minY = Math.min(minY, spineMeta.cy - spineMeta.r)
+        maxY = Math.max(maxY, spineMeta.cy + spineMeta.r)
+      }
+    } else {
+      // All domains view: use canvas layout bounds
+      minX = Math.min(minX, 80)
+      maxX = Math.max(maxX, W - 80)
+      minY = Math.min(minY, 80)
+      maxY = Math.max(maxY, H - 80)
+    }
+
+    // Safety fallback if bounds are invalid
+    if (!isFinite(minX) || !isFinite(maxX) || !isFinite(minY) || !isFinite(maxY)) {
+      minX = 0
+      maxX = W
+      minY = 0
+      maxY = H
+    }
+
+    const contentW = Math.max(100, maxX - minX)
+    const contentH = Math.max(100, maxY - minY)
+    const midX = (minX + maxX) / 2
+    const midY = (minY + maxY) / 2
+
+    // Target padding: 40px for clean framing without wasting space
+    const padding = 40
+    const availW = Math.max(200, w - padding * 2)
+    const availH = Math.max(200, h - padding * 2)
+
+    const scale = Math.max(0.3, Math.min(1.05, Math.min(availW / contentW, availH / contentH)))
+    const tx = w / 2 - midX * scale
+    const ty = h / 2 - midY * scale
+
+    setTransform({ scale, tx, ty })
+  }, [W, H, nodes, visibleSet, activeDomain, domMetas, spineMeta])
 
   // Zoom function centered at arbitrary point
   const zoomAt = useCallback((factor, cx, cy) => {

@@ -355,7 +355,7 @@ export default function ChatPanel({
               onClick={onNextToUpload}
               className={`btn text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer font-bold shadow-sm transition-all ${isUploadOpen
                 ? 'btn-ghost border-[#10b981] text-[#10b981]'
-                : 'bg-[#10b981] hover:bg-[#059669] text-black shadow-emerald-500/25 hover:scale-105'
+                : 'bg-[#10b981] hover:bg-[#059669] text-white shadow-emerald-500/25 hover:scale-105'
                 }`}
             >
               {isUploadOpen ? (
@@ -536,7 +536,7 @@ export default function ChatPanel({
                 <button
                   type="button"
                   onClick={onNextToUpload}
-                  className="btn bg-[#10b981] hover:bg-[#059669] text-black font-bold text-xs px-3.5 py-2 rounded-xl shadow-sm shadow-emerald-500/25 flex items-center gap-2 cursor-pointer transition-transform hover:scale-[1.02]"
+                  className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-sm shadow-emerald-500/25 flex items-center gap-2 cursor-pointer transition-transform hover:scale-[1.02]"
                 >
                   <UploadCloud size={14} />
                   <span>Next: Upload Business Data</span>

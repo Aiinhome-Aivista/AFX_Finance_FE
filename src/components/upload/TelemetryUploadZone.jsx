@@ -237,7 +237,7 @@ export default function TelemetryUploadZone({
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="btn bg-[#10b981] text-black font-semibold hover:bg-[#059669] hover:text-white mt-3.5 px-4 py-2 text-xs shadow-sm cursor-pointer transition-all"
+            className="btn bg-[#10b981] text-white font-semibold hover:bg-[#059669] mt-3.5 px-4 py-2 text-xs shadow-sm cursor-pointer transition-all"
           >
             <FileUp size={15} />
             <span>Browse Files</span>

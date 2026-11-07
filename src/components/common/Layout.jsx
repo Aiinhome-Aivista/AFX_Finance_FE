@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { BrainCircuit, LogOut, Moon, Sun } from 'lucide-react'
+import { BrainCircuit, LogOut, Moon, Sun, User } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import ChevronTracker from './ChevronTracker'
@@ -22,11 +22,11 @@ export default function Layout({ children, wide }) {
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#10b981] text-[#0a0a0a] shadow-sm shadow-[#10b981]/30 transition-transform group-hover:scale-105">
               <BrainCircuit size={22} strokeWidth={2.4} />
             </span>
-            <div className="hidden lg:flex flex-col leading-tight">
-              <span className="text-[17px] font-bold tracking-tight text-ink group-hover:text-emerald-600 transition-colors">
+            <div className="hidden sm:flex items-baseline gap-2">
+              <span className="text-[16.5px] font-bold tracking-tight text-ink leading-none">
                 AgentForgeX
               </span>
-              <span className="text-[13.5px] uppercase font-mono tracking-wider text-emerald-600 font-bold">
+              <span className="text-[16.5px] font-bold tracking-tight text-[#10b981] leading-none">
                 Finance KG
               </span>
             </div>
@@ -47,12 +47,15 @@ export default function Layout({ children, wide }) {
             >
               {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             </button>
-            <span
-              className="hidden max-w-[140px] truncate text-xs text-muted sm:inline px-2.5 py-1 rounded-lg bg-surface2 border border-line"
+            <div
+              className="hidden sm:inline-flex items-center gap-1.5 max-w-[160px] px-2.5 py-1 rounded-xl bg-surface2 border border-line text-xs font-semibold text-ink shadow-2xs"
               title={user?.email}
             >
-              {user?.display_name || user?.email}
-            </span>
+              <User size={13} className="shrink-0 text-[#10b981]" />
+              <span className="truncate">
+                {user?.display_name || user?.email}
+              </span>
+            </div>
             <button
               className="btn-ghost btn-sm hover:!text-bad hover:!border-bad/40"
               onClick={async () => {
@@ -60,9 +63,9 @@ export default function Layout({ children, wide }) {
                 nav('/login')
               }}
               title="Sign out"
+              aria-label="Sign out"
             >
-              <LogOut size={15} />
-              <span className="hidden xl:inline">Sign out</span>
+              <LogOut size={16} />
             </button>
           </div>
         </div>
