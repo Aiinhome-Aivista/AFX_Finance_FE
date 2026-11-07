@@ -487,35 +487,23 @@ export default function DomainGraph() {
               </button>
             )
           })}
-        </div>
-      </div>
 
-      {wf.data && <Stepper slug={slug} steps={wf.data.steps} current={3} />}
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <h1 className="text-xl font-bold tracking-tight">{domain?.name || 'Knowledge Graph'}</h1>
+          {/* AgentForgeX Generated Badge directly in 1st line after selected domain */}
           {(() => {
             const hasCustomNodes = base?.nodes?.some(n => n.role === 'client' || n.origin === 'user' || n.change_state === 'added' || n.origin === 'custom')
             const isGenerated = Boolean(aiGraph || (g.data?.version && g.data.version.number > 0) || hasCustomNodes)
             const count = base?.nodes?.length || aiGraph?.nodes?.length || g.data?.nodes?.length || 0
             if (!isGenerated || count === 0) return null
             return (
-              <span className="rounded-full bg-brand/15 px-2.5 py-0.5 text-xs font-semibold text-brand border border-brand/30">
+              <span className="rounded-full bg-brand/15 px-3 py-1 text-xs font-semibold text-brand border border-brand/30 shrink-0">
                 AgentForgeX Generated ({count} {count === 1 ? 'node' : 'nodes'})
               </span>
             )
           })()}
         </div>
-
-        {/* <button
-          onClick={() => setShowAiModal(true)}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand to-indigo-600 px-3.5 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm hover:opacity-95 active:scale-95 transition cursor-pointer"
-        >
-          <Sparkles size={15} />
-          <span>Generate KG with AI</span>
-        </button> */}
       </div>
+
+      {wf.data && <Stepper slug={slug} steps={wf.data.steps} current={3} />}
 
       {/* Search and Filters Bar */}
       <div className="card mt-3 p-3">
@@ -615,10 +603,9 @@ export default function DomainGraph() {
             </button>
           </div>
 
-          {/* Action Buttons: Gap Analysis (MOM Step 5) and Upload Toggle (MOM Step 3) */}
-          <div className="flex items-center gap-2">
-            {/* Show Gap Analysis (KG2) Button ONLY if telemetry files exist for this domain */}
-            {hasUploadedFiles && (
+          {/* Action Buttons: Gap Analysis (MOM Step 5) */}
+          {hasUploadedFiles && (
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleProceedToGapAnalysis}
@@ -632,32 +619,8 @@ export default function DomainGraph() {
                 <Sparkles size={14} />
                 <span>KG2 Gap Analysis</span>
               </button>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setLeftViewMode(leftViewMode === 'upload' ? 'graph' : 'upload')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${
-                leftViewMode === 'upload'
-                  ? 'btn-ghost border-[#10b981] text-[#10b981] hover:bg-[#10b981]/10'
-                  : 'bg-[#10b981] hover:bg-[#059669] text-black shadow-emerald-500/20 hover:scale-[1.02]'
-              }`}
-              title={leftViewMode === 'upload' ? 'Switch back to Knowledge Graph' : 'Hide graph and open file upload zone'}
-            >
-              {leftViewMode === 'upload' ? (
-                <>
-                  <Network size={14} />
-                  <span>View Knowledge Graph</span>
-                </>
-              ) : (
-                <>
-                  <UploadCloud size={14} />
-                  <span>Next: Upload Data</span>
-                  <ArrowRight size={13} />
-                </>
-              )}
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -666,7 +629,7 @@ export default function DomainGraph() {
       <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_440px]">
         {/* Left Column: Toggles between Knowledge Graph Canvas and Drag & Drop Upload Zone (MOM Step 3) */}
         {leftViewMode === 'upload' ? (
-          <div className="h-[68vh] min-h-[460px]">
+          <div className="h-[calc(100vh-90px)] min-h-[500px]">
             <TelemetryUploadZone
               slug={slug}
               onBackToGraph={() => setLeftViewMode('graph')}
@@ -681,7 +644,7 @@ export default function DomainGraph() {
             />
           </div>
         ) : (
-          <div className="card relative h-[68vh] min-h-[460px] overflow-hidden p-0 border border-line isolate">
+          <div className="card relative h-[calc(100vh-90px)] min-h-[500px] overflow-hidden p-0 border border-line isolate">
             {/* Step 5 Gap Analysis Discrepancy Bar */}
             {isGapMode && gapData && (
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-red-500/20 bg-red-50/80 dark:bg-red-950/40 px-3.5 py-2 text-xs">
@@ -708,7 +671,7 @@ export default function DomainGraph() {
                     onClick={() => {
                       nav(`/finance/${slug}/finalize`)
                     }}
-                    className="btn bg-[#10b981] hover:bg-[#059669] text-black font-bold px-3 py-1 text-[11px] rounded-lg shadow-sm cursor-pointer"
+                    className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold px-3 py-1 text-[11px] rounded-lg shadow-sm cursor-pointer"
                   >
                     Next: Finalize Twin →
                   </button>
@@ -748,7 +711,7 @@ export default function DomainGraph() {
         )}
 
         {/* Right Column: AI Chatbot (remains visible & docked at all times) */}
-        <div className="card flex h-[68vh] min-h-[460px] flex-col overflow-hidden shadow-card">
+        <div className="card flex h-[calc(100vh-90px)] min-h-[500px] flex-col overflow-hidden shadow-card">
           {/* Header Bar with Toggle */}
           <div className="flex items-center justify-between border-b border-line bg-surface2/60 px-3.5 py-2.5 select-none">
             <div className="flex items-center gap-1.5 rounded-xl bg-surface p-1 border border-line/60">

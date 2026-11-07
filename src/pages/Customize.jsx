@@ -84,7 +84,7 @@ export default function Customize() {
             className={`btn btn-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all ${
               viewMode === 'upload'
                 ? 'btn-ghost border-[#10b981] text-[#10b981]'
-                : 'bg-[#10b981] hover:bg-[#059669] text-black shadow-emerald-500/20'
+                : 'bg-[#10b981] hover:bg-[#059669] text-white shadow-emerald-500/20'
             }`}
           >
             {viewMode === 'upload' ? (

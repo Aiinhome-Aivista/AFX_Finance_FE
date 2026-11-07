@@ -62,7 +62,7 @@ export default function Finalize() {
     }
   }, [slug, wf.data?.finalized_version_number, updateDomainWorkflow])
 
-  useEffect(() => { if (wf.data?.steps?.[3]?.status === 'completed') fin.reload().catch(() => {}) }, [wf.data]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (wf.data?.steps?.[3]?.status === 'completed') fin.reload().catch(() => { }) }, [wf.data]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (fin.data && range.to === null) setRange({ from: 0, to: fin.data.version.number }) }, [fin.data]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (range.to !== null) graphs.compare(slug, range.from, range.to).then(setCmp, (e) => toast.error(e.message)) }, [range, slug]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -172,11 +172,10 @@ export default function Finalize() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between pb-2.5 border-b border-line">
                   <h2 className="text-sm font-bold text-ink">Digital Twin Governance</h2>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                    finalized
+                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${finalized
                       ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300'
                       : 'bg-[#10b981]/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
-                  }`}>
+                    }`}>
                     {finalized ? 'Governed Digital Twin' : 'Ready to Finalize'}
                   </span>
                 </div>
@@ -239,8 +238,8 @@ export default function Finalize() {
                         This model is locked and governed. It represents your active financial operating architecture.
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Link to={`/finance/${slug}`} className="btn bg-[#10b981] hover:bg-[#059669] text-black font-bold flex-1 text-xs py-2.5 rounded-xl text-center shadow-sm flex items-center justify-center">
+                    <div className="flex flex-wrap gap-2">
+                      <Link to={`/finance/${slug}`} className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold flex-1 text-xs py-2 rounded-xl text-center shadow-sm">
                         Explore Digital Twin →
                       </Link>
                       <button className="btn-ghost text-xs cursor-pointer py-2.5 px-4 rounded-xl flex items-center justify-center" onClick={() => setDlg('reopen')}>
@@ -250,7 +249,7 @@ export default function Finalize() {
                   </div>
                 ) : (
                   <button
-                    className="btn bg-[#10b981] hover:bg-[#059669] text-black font-bold w-full py-2.5 text-xs rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold w-full py-2.5 text-xs rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center gap-2"
                     disabled={d.validation.errors.length > 0 || busy}
                     onClick={() => { setAck(false); setDlg('finalize') }}
                   >
