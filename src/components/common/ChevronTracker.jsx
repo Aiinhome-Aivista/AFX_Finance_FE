@@ -1,160 +1,188 @@
 import { useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Check } from 'lucide-react'
+import { Check, Sparkles } from 'lucide-react'
+import { useWorkflow } from '../../context/WorkflowContext'
 
 /**
- * 4 Workflow Stages according to MOM requirement #2:
- * 1. Industry Identification (AgentForge / Finance)
- * 2. Domain Prompts (Domain selection & prompts)
- * 3. Core Nuances (KG1 Questionnaire & Discovery)
- * 4. Review & Digital Twin (Gap Analysis & Finalization)
+ * 4 Dynamic Workflow Stages according to Option 1:
+ * 1. Domain Prompts (Domain selection & prompts overview: /finance)
+ * 2. Core Nuances (KG1 Interview & Discovery: /finance/:slug)
+ * 3. Business Telemetry (KG2 Gap Analysis & Upload: /finance/:slug?mode=upload)
+ * 4. Review & Digital Twin (Governance & Finalization: /finance/:slug/finalize)
  */
 const STAGES = [
   {
     id: 1,
-    title: 'Industry',
-    subtitle: 'Identification',
-    route: () => '/apps',
+    title: 'Domain',
+    subtitle: 'Prompts & Overview',
+    getRoute: () => '/finance',
   },
   {
     id: 2,
-    title: 'Domain',
-    subtitle: 'Prompts',
-    route: (slug) => (slug ? `/finance/${slug}` : '/finance'),
+    title: 'Core Nuances',
+    subtitle: 'KG1 Discovery',
+    getRoute: (slug) => (slug ? `/finance/${slug}` : '/finance'),
   },
   {
     id: 3,
-    title: 'Core Nuances',
-    subtitle: 'KG1 Discovery',
-    route: (slug) => (slug ? `/finance/${slug}/customize` : '/finance'),
+    title: 'Business Telemetry',
+    subtitle: 'KG2 Gap Analysis',
+    getRoute: (slug) => (slug ? `/finance/${slug}?mode=upload` : '/finance'),
   },
   {
     id: 4,
     title: 'Review',
     subtitle: 'Digital Twin',
-    route: (slug) => (slug ? `/finance/${slug}/finalize` : '/finance'),
+    getRoute: (slug) => (slug ? `/finance/${slug}/finalize` : '/finance'),
   },
 ]
 
 export default function ChevronTracker() {
   const location = useLocation()
   const path = location.pathname
+  const { domainMap } = useWorkflow()
 
-  // Parse current route & slug
-  const { currentStep, slug } = useMemo(() => {
-    // Stage 1: /apps
-    if (path.startsWith('/apps')) {
-      return { currentStep: 1, slug: null }
-    }
-
-    // Extract slug from /finance/:slug/...
+  // Extract slug from /finance/:slug/...
+  const { currentStep, slug, domainInfo, isFinalized } = useMemo(() => {
     const parts = path.split('/').filter(Boolean)
     let extractedSlug = null
     if (parts[0] === 'finance' && parts[1] && !['overview'].includes(parts[1])) {
       extractedSlug = parts[1]
     }
 
-    // Stage 4: /finance/:slug/finalize or /finance/:slug/telemetry or gap analysis
-    if (path.includes('/finalize') || path.includes('/telemetry') || location.search.includes('gap')) {
-      return { currentStep: 4, slug: extractedSlug }
+    const info = (extractedSlug && domainMap[extractedSlug]) || {}
+    const finalized = Boolean(info.isFinalized)
+    const isUploadView =
+      info.viewMode === 'upload' ||
+      info.isGapMode ||
+      location.search.includes('upload') ||
+      location.search.includes('gap')
+    const isFinalizePage = path.includes('/finalize')
+
+    let step = 1
+    if (!extractedSlug || path === '/finance') {
+      step = 1
+    } else if (isFinalizePage) {
+      step = 4
+    } else if (isUploadView) {
+      step = 3
+    } else {
+      step = 2
     }
 
-    // Stage 3: /finance/:slug/customize
-    if (path.includes('/customize')) {
-      return { currentStep: 3, slug: extractedSlug }
+    return {
+      currentStep: step,
+      slug: extractedSlug,
+      domainInfo: info,
+      isFinalized: finalized,
     }
-
-    // Stage 2: /finance or /finance/:slug or /finance/:slug/graph
-    if (path === '/finance' || (parts[0] === 'finance' && parts.length <= 3)) {
-      return { currentStep: 2, slug: extractedSlug }
-    }
-
-    return { currentStep: 1, slug: extractedSlug }
-  }, [path])
+  }, [path, location.search, domainMap])
 
   return (
     <nav
       aria-label="Workflow Stages"
-      className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto py-1 scroll-none max-w-full"
+      className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto py-1 scroll-none max-w-full"
     >
       {STAGES.map((stage) => {
-        const isCompleted = stage.id < currentStep
+        // Dynamic Completion & Lock Calculation:
+        const isDomainSelected = Boolean(slug)
+        const isKG1Ready = Boolean(domainInfo.isKG1Ready || isFinalized)
+        const hasFiles = Boolean(domainInfo.hasFiles || isFinalized)
+
+        let isCompleted = false
+        let isLocked = false
+
+        if (stage.id === 1) {
+          isCompleted = isDomainSelected
+        } else if (stage.id === 2) {
+          isCompleted = isKG1Ready && currentStep > 2
+          isLocked = !isDomainSelected
+        } else if (stage.id === 3) {
+          isCompleted = hasFiles && currentStep > 3
+          isLocked = !isDomainSelected || (!isKG1Ready && !hasFiles)
+        } else if (stage.id === 4) {
+          isCompleted = isFinalized
+          isLocked = !isDomainSelected || (!isKG1Ready && !isFinalized)
+        }
+
         const isActive = stage.id === currentStep
-        const isLocked = stage.id > currentStep
 
-        // Colors tailored to seamlessly blend on white header:
-        // 🟢 Green (Emerald): #10b981 (Primary), #34d399 (Accent), #6ee7b7 (Hover)
-        // ⚪ Clean White / Slate: bg-white / bg-slate-100 (Light) vs Dark fallback
-        // 🔵 Secondary Accent: #22d3ee (Cyan Gradient)
-
-        let outerBg = 'bg-slate-200 dark:bg-white/10' // default border outline
-        let innerBg = 'bg-slate-50 dark:bg-[#171717]' // default surface
-        let textColor = 'text-slate-600 dark:text-neutral-400 font-medium'
+        // Enhanced High-End Styling (preserves exact chevron shape with modern depth):
+        let outerBg = 'bg-slate-200/90 dark:bg-white/10'
+        let innerBg = 'bg-slate-100/90 dark:bg-[#141414]'
+        let titleColor = 'text-slate-600 dark:text-neutral-400 font-semibold'
         let subColor = 'text-slate-400 dark:text-neutral-500'
-        let iconColor = 'text-slate-400 dark:text-neutral-500'
+        let containerShadow = ''
+        let iconMarkup = (
+          <span className="grid h-4 w-4 place-items-center rounded-full bg-slate-200 dark:bg-white/10 text-[10px] text-slate-500 dark:text-neutral-400 font-semibold">
+            {stage.id}
+          </span>
+        )
 
         if (isCompleted) {
-          outerBg = 'bg-[#10b981]'
-          innerBg = 'bg-[#10b981]' // Solid Primary Green
-          textColor = 'text-black font-semibold'
-          subColor = 'text-black/80'
-          iconColor = 'text-black'
+          // ✅ Completed Stage: Rich emerald gradient with crisp white text & border bevel (same across all steps)
+          outerBg = 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600'
+          innerBg = 'bg-gradient-to-r from-[#059669] to-[#047857]'
+          titleColor = 'text-white font-bold'
+          subColor = 'text-emerald-100/90'
+          containerShadow = 'shadow-[0_2px_8px_rgba(5,150,105,0.2)]'
+          iconMarkup = (
+            <span className="grid h-4 w-4 place-items-center rounded-full bg-white/20 text-white border border-white/30 backdrop-blur-sm">
+              <Check size={10} strokeWidth={3} />
+            </span>
+          )
         } else if (isActive) {
-          outerBg = 'bg-gradient-to-r from-[#10b981] via-[#22d3ee] to-[#10b981]' // Green-Cyan gradient outline
-          innerBg = 'bg-emerald-50/70 dark:bg-[#171717]' // Subtle tinted emerald on light, dark on dark
-          textColor = 'text-emerald-800 dark:text-[#34d399] font-bold'
-          subColor = 'text-emerald-600 dark:text-[#6ee7b7]'
-          iconColor = 'text-[#10b981]'
+          // 🟢 Active Stage: Electric Cyan-Emerald gradient outline with elevated card
+          outerBg = 'bg-gradient-to-r from-[#10b981] via-[#22d3ee] to-[#10b981]'
+          innerBg = 'bg-white/95 dark:bg-[#121212] backdrop-blur-md'
+          titleColor = 'text-emerald-800 dark:text-[#34d399] font-extrabold'
+          subColor = 'text-emerald-600 dark:text-[#6ee7b7] font-medium'
+          containerShadow = 'shadow-[0_4px_16px_rgba(16,185,129,0.35)]'
+          iconMarkup = (
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10b981] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#10b981]" />
+            </span>
+          )
         }
+
+        // Subtitle customization if Governed
+        const displaySubtitle =
+          stage.id === 4 && isFinalized ? 'Governed Twin' : stage.subtitle
 
         const content = (
           <div
-            className={`chevron-arrow relative p-[1.5px] transition-all duration-300 ${outerBg} ${
-              isActive ? 'shadow-[0_2px_12px_rgba(16,185,129,0.25)]' : ''
-            }`}
+            className={`chevron-arrow relative p-[1.5px] transition-all duration-300 ${outerBg} ${containerShadow}`}
           >
             <div
-              className={`chevron-arrow ${innerBg} px-4 sm:px-6 py-1.5 sm:py-2 flex items-center gap-2 select-none min-w-[130px] sm:min-w-[160px] h-[38px]`}
+              className={`chevron-arrow ${innerBg} px-4 sm:px-5 py-1.5 flex items-center gap-2 select-none min-w-[128px] sm:min-w-[155px] h-[38px]`}
             >
               {/* Status Indicator Icon */}
               <span className="flex items-center justify-center shrink-0">
-                {isCompleted ? (
-                  <span className="grid h-4 w-4 place-items-center rounded-full bg-black/20 text-black">
-                    <Check size={11} strokeWidth={3} />
-                  </span>
-                ) : isActive ? (
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10b981] opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#10b981]" />
-                  </span>
-                ) : (
-                  <span className={`text-[11px] font-mono ${iconColor}`}>
-                    {stage.id}
-                  </span>
-                )}
+                {iconMarkup}
               </span>
 
               {/* Step Title & Subtitle */}
               <div className="flex flex-col min-w-0 leading-tight">
-                <span className={`text-[11px] sm:text-xs truncate ${textColor}`}>
+                <span className={`text-[11px] sm:text-xs truncate tracking-tight ${titleColor}`}>
                   {stage.title}
                 </span>
                 <span className={`text-[9px] sm:text-[10px] truncate ${subColor}`}>
-                  {stage.subtitle}
+                  {displaySubtitle}
                 </span>
               </div>
             </div>
           </div>
         )
 
-        const targetRoute = stage.route(slug)
+        const targetRoute = stage.getRoute(slug)
 
         if (isLocked) {
           return (
             <div
               key={stage.id}
-              className="cursor-not-allowed opacity-65"
-              title="Complete previous steps to unlock"
+              className="cursor-not-allowed opacity-55"
+              title="Step locked: Complete previous steps first"
             >
               {content}
             </div>
@@ -165,8 +193,8 @@ export default function ChevronTracker() {
           <Link
             key={stage.id}
             to={targetRoute}
-            className="group cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-[#10b981] rounded"
-            title={`${stage.title} - ${stage.subtitle}`}
+            className="group cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-[#10b981] rounded block"
+            title={`${stage.title} - ${displaySubtitle}`}
           >
             {content}
           </Link>

@@ -264,8 +264,8 @@ body {
    Cyan:  #22d3ee (Secondary Accent)
    ========================================================================== */
 .chevron-arrow {
-  clip-path: polygon(0% 0%, calc(100% - 13px) 0%, 100% 50%, calc(100% - 13px) 100%, 0% 100%, 13px 50%);
-  -webkit-clip-path: polygon(0% 0%, calc(100% - 13px) 0%, 100% 50%, calc(100% - 13px) 100%, 0% 100%, 13px 50%);
+  clip-path: polygon(0% 0%, calc(100% - 12px) 0%, 100% 50%, calc(100% - 12px) 100%, 0% 100%, 12px 50%);
+  -webkit-clip-path: polygon(0% 0%, calc(100% - 12px) 0%, 100% 50%, calc(100% - 12px) 100%, 0% 100%, 12px 50%);
 }
 
 .scroll-none {

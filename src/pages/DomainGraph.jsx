@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
@@ -27,6 +27,7 @@ import useAsync from '../components/common/useAsync'
 import { chat, domains, files as filesApi, graphs, ontology } from '../api'
 import { edgeId, cleanMojibake } from '../lib/format'
 import { useToast } from '../context/ToastContext'
+import { useWorkflow } from '../context/WorkflowContext'
 import { DOMAIN_SLUGS, DOMMETA, FLOWS, NODES, ORDER, SLUG_TO_DOM } from '../lib/ontologyData'
 
 const SCOPES = [
@@ -104,6 +105,35 @@ export default function DomainGraph() {
   const flows = useAsync(() => domains.flows(slug), [slug])
   const domainFiles = useAsync(() => filesApi.list(slug), [slug])
   const hasUploadedFiles = Boolean(domainFiles.data?.files && domainFiles.data.files.length > 0)
+  const [searchParams] = useSearchParams()
+  const { updateDomainWorkflow } = useWorkflow()
+
+  const answeredCount = snap?.conversation?.messages?.filter((m) => m.kind === 'answer')?.length || 0
+  const isKG1Ready = Boolean(snap?.stage === 'complete' || answeredCount >= 1 || finalized)
+
+  // Listen to searchParams (e.g. ?mode=upload from ChevronTracker)
+  useEffect(() => {
+    const mode = searchParams.get('mode')
+    if (mode === 'upload') {
+      setLeftViewMode('upload')
+    } else if (mode === 'gap') {
+      setIsGapMode(true)
+      setLeftViewMode('graph')
+    }
+  }, [searchParams])
+
+  // Sync real-time domain workflow progress to ChevronTracker
+  useEffect(() => {
+    if (slug) {
+      updateDomainWorkflow(slug, {
+        isKG1Ready,
+        hasFiles: hasUploadedFiles,
+        isGapMode,
+        isFinalized: finalized,
+        viewMode: leftViewMode,
+      })
+    }
+  }, [slug, isKG1Ready, hasUploadedFiles, isGapMode, finalized, leftViewMode, updateDomainWorkflow])
 
   // Auto-start workflow if not already started (no redirect to intermediate overview)
   useEffect(() => {

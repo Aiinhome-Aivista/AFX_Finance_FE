@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
@@ -22,6 +22,7 @@ import Layout from '../components/common/Layout'
 import { ErrorState, Loading } from '../components/common/States'
 import useAsync from '../components/common/useAsync'
 import { useTheme } from '../context/ThemeContext'
+import { useWorkflow } from '../context/WorkflowContext'
 import { domains, ontology } from '../api'
 import OntologyGraphCanvas from '../components/graph/OntologyGraphCanvas'
 import {
@@ -48,6 +49,19 @@ export default function FinanceLanding() {
   // Fetch full dynamic ontology graph & domain workflow states from backend
   const { data, loading, error, reload } = useAsync(() => ontology.overviewGraph(), [])
   const progress = data?.progress || {}
+  const { updateDomainWorkflow } = useWorkflow()
+
+  useEffect(() => {
+    if (data?.progress) {
+      Object.entries(data.progress).forEach(([domSlug, info]) => {
+        updateDomainWorkflow(domSlug, {
+          isKG1Ready: info.completed >= 3,
+          hasFiles: info.completed >= 4,
+          isFinalized: Boolean(info.finalized),
+        })
+      })
+    }
+  }, [data?.progress, updateDomainWorkflow])
 
   // Dynamic nodes ONLY from backend API (strictly no hardcoded fallback)
   const activeNodes = useMemo(() => {

@@ -10,6 +10,7 @@ import useAsync from '../components/common/useAsync'
 import { domains, graphs } from '../api'
 import { timeAgo } from '../lib/format'
 import { useToast } from '../context/ToastContext'
+import { useWorkflow } from '../context/WorkflowContext'
 
 const Stat = ({ label, v, tone }) => <div className="rounded-xl bg-surface2 p-3 text-center"><div className={`text-xl font-semibold ${tone || ''}`}>{v}</div><div className="text-[11px] text-muted">{label}</div></div>
 
@@ -49,6 +50,17 @@ export default function Finalize() {
   const [ack, setAck] = useState(false)
   const [busy, setBusy] = useState(false)
   const [selectedNode, setSelectedNode] = useState(null)
+  const { updateDomainWorkflow } = useWorkflow()
+
+  useEffect(() => {
+    if (slug) {
+      updateDomainWorkflow(slug, {
+        isKG1Ready: true,
+        hasFiles: true,
+        isFinalized: Boolean(wf.data?.finalized_version_number),
+      })
+    }
+  }, [slug, wf.data?.finalized_version_number, updateDomainWorkflow])
 
   useEffect(() => { if (wf.data?.steps?.[3]?.status === 'completed') fin.reload().catch(() => {}) }, [wf.data]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (fin.data && range.to === null) setRange({ from: 0, to: fin.data.version.number }) }, [fin.data]) // eslint-disable-line react-hooks/exhaustive-deps
