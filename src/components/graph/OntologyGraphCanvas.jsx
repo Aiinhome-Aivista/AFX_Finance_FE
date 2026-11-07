@@ -319,15 +319,15 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
     if (selId) onSelectNode?.(null)
   }
 
-  // Colors tuned exactly to FMCG Finance Ontology Graph.html
+  // Colors tuned to Matte Titanium Grey (Dark) and Clean Paper (Light)
   const themeColors = {
-    bg: isDark ? '#101828' : '#F4F7FC',
-    card: isDark ? '#182338' : '#FFFFFF',
-    text: isDark ? '#AAB6CC' : '#122991',
-    muted: isDark ? '#7E8CA6' : '#4A5878',
-    border: isDark ? '#2A3548' : '#D8DFEA',
-    accent: isDark ? '#6C8FEF' : '#5A8AC3',
-    edge: isDark ? '#4A5C7E' : '#8CA0C0',
+    bg: isDark ? '#262C34' : '#F4F7FC',
+    card: isDark ? '#363E4A' : '#FFFFFF',
+    text: isDark ? '#FFFFFF' : '#122991',
+    muted: isDark ? '#ADBCC7' : '#4A5878',
+    border: isDark ? '#556070' : '#D8DFEA',
+    accent: isDark ? '#10B981' : '#5A8AC3',
+    edge: isDark ? '#8E9DB0' : '#8CA0C0',
   }
 
   // Selected node details for full-screen inspection overlay
@@ -607,7 +607,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
                 cy={CY}
                 r={spineMeta.r || 255}
                 fill={spineMeta.c}
-                opacity={isDark ? '0.08' : '0.06'}
+                opacity={isDark ? '0.12' : '0.06'}
                 className="transition-opacity pointer-events-none"
               />
               <text
@@ -615,7 +615,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
                 y={CY + 8}
                 textAnchor="middle"
                 fill={spineMeta.c}
-                opacity="0.6"
+                opacity={isDark ? '0.85' : '0.6'}
                 className="select-none pointer-events-none font-bold"
                 style={{
                   fontFamily: "'Barlow', 'Inter', sans-serif",
@@ -639,7 +639,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
                   cy={m.cy}
                   r={m.r + 72}
                   fill={m.c}
-                  opacity={isTargetDomain ? (isDark ? '0.15' : '0.11') : (isDark ? '0.065' : '0.055')}
+                  opacity={isTargetDomain ? (isDark ? '0.18' : '0.11') : (isDark ? '0.08' : '0.055')}
                 />
                 <text
                   x={m.cx}

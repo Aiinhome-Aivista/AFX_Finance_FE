@@ -65,16 +65,16 @@ export default function AuthPage({ mode }) {
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-[#0a0a0a] selection:bg-emerald-500 selection:text-black">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-[#141821] selection:bg-emerald-500 selection:text-black">
       {/* Centered Login Card */}
-      <div className="w-full max-w-md rounded-2xl border border-[#262626] bg-[#161616] p-6 sm:p-8 shadow-2xl shadow-black/80">
+      <div className="w-full max-w-md rounded-2xl border border-[#333E52] bg-[#1E2531] p-6 sm:p-8 shadow-2xl shadow-black/40">
         {/* Top Icon: BrainCircuit icon retained inside emerald green badge */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="relative mb-4 flex items-center justify-center">
             <div
               className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#10b981] shadow-sm"
             >
-              <BrainCircuit className="h-6 w-6 text-[#0a0a0a]" strokeWidth={2.4} />
+              <BrainCircuit className="h-6 w-6 text-[#141821]" strokeWidth={2.4} />
             </div>
           </div>
 

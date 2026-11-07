@@ -108,13 +108,13 @@ export default function ChevronTracker() {
         const isActive = stage.id === currentStep
 
         // Enhanced High-End Styling (preserves exact chevron shape with modern depth):
-        let outerBg = 'bg-slate-200/90 dark:bg-white/10'
-        let innerBg = 'bg-slate-100/90 dark:bg-[#141414]'
-        let titleColor = 'text-slate-600 dark:text-neutral-400 font-semibold'
-        let subColor = 'text-slate-400 dark:text-neutral-500'
+        let outerBg = 'bg-slate-200/90 dark:bg-slate-600/70'
+        let innerBg = 'bg-slate-100/90 dark:bg-[#323944]'
+        let titleColor = 'text-slate-600 dark:text-slate-200 font-semibold'
+        let subColor = 'text-slate-400 dark:text-slate-400'
         let containerShadow = ''
         let iconMarkup = (
-          <span className="grid h-4 w-4 place-items-center rounded-full bg-slate-200 dark:bg-white/10 text-[10px] text-slate-500 dark:text-neutral-400 font-semibold">
+          <span className="grid h-4 w-4 place-items-center rounded-full bg-slate-200 dark:bg-slate-700 text-[10px] text-slate-500 dark:text-slate-200 font-semibold">
             {stage.id}
           </span>
         )
@@ -134,7 +134,7 @@ export default function ChevronTracker() {
         } else if (isActive) {
           // 🟢 Active Stage: Electric Cyan-Emerald gradient outline with elevated card
           outerBg = 'bg-gradient-to-r from-[#10b981] via-[#22d3ee] to-[#10b981]'
-          innerBg = 'bg-white/95 dark:bg-[#121212] backdrop-blur-md'
+          innerBg = 'bg-white/95 dark:bg-[#252B33] backdrop-blur-md'
           titleColor = 'text-emerald-800 dark:text-[#34d399] font-extrabold'
           subColor = 'text-emerald-600 dark:text-[#6ee7b7] font-medium'
           containerShadow = 'shadow-[0_4px_16px_rgba(16,185,129,0.35)]'
