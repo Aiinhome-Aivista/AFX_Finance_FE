@@ -66,4 +66,5 @@ export const files = {
     }).then(d)
   },
   generate: (slug) => http.post(`/domains/${slug}/telemetry/generate`).then(d),
+  gapAnalysis: (slug) => http.get(`/domains/${slug}/telemetry/gap-analysis`).then(d),
 }

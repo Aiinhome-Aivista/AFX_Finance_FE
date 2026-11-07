@@ -10,6 +10,7 @@ import {
   Database,
   Table,
   ArrowLeft,
+  ArrowRight,
   X,
   Sparkles,
 } from 'lucide-react'
@@ -24,7 +25,9 @@ const MAX_MB = 25
 export default function TelemetryUploadZone({
   slug,
   onBackToGraph,
+  onProceedToGapAnalysis,
   onFileUploaded,
+  onProcessingUpdate,
 }) {
   const toast = useToast()
   const inputRef = useRef(null)
@@ -34,6 +37,8 @@ export default function TelemetryUploadZone({
   const [loadingFiles, setLoadingFiles] = useState(true)
   const [previewFile, setPreviewFile] = useState(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+
+  const processedCount = fileList.filter((f) => f.status === 'processed').length
 
   // Fetch uploaded files
   const loadFiles = useCallback(async () => {
@@ -83,6 +88,7 @@ export default function TelemetryUploadZone({
       }
 
       setQueue((q) => [...q, { id: tempId, name: file.name, pct: 0 }])
+      onProcessingUpdate?.(file.name, 'start')
 
       try {
         const uploaded = await filesApi.upload(slug, file, (pct) => {
@@ -94,6 +100,7 @@ export default function TelemetryUploadZone({
         setQueue((q) => q.filter((item) => item.id !== tempId))
         toast.success(`Uploaded ${file.name}`)
         onFileUploaded?.(uploaded)
+        onProcessingUpdate?.(file.name, 'parsing')
         loadFiles()
       } catch (err) {
         setQueue((q) =>
@@ -146,20 +153,59 @@ export default function TelemetryUploadZone({
           </div>
         </div>
 
-        {onBackToGraph && (
-          <button
-            type="button"
-            onClick={onBackToGraph}
-            className="btn-ghost btn-sm text-xs flex items-center gap-1.5 cursor-pointer hover:border-[#10b981]"
-          >
-            <ArrowLeft size={13} />
-            <span>View Graph</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onProceedToGapAnalysis && processedCount > 0 && (
+            <button
+              type="button"
+              onClick={onProceedToGapAnalysis}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-sm shadow-red-500/20 hover:scale-[1.02] transition-all cursor-pointer animate-pulse"
+              title="Proceed to Step 5: Gap Analysis Evolution (KG2)"
+            >
+              <Sparkles size={13} />
+              <span>Proceed to Gap Analysis (KG2)</span>
+            </button>
+          )}
+
+          {onBackToGraph && (
+            <button
+              type="button"
+              onClick={onBackToGraph}
+              className="btn-ghost btn-sm text-xs flex items-center gap-1.5 cursor-pointer hover:border-[#10b981]"
+            >
+              <ArrowLeft size={13} />
+              <span>View Graph</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Upload & Files Workspace */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 scroll-thin">
+        {/* Step 5 Gap Analysis Banner (shown once a file is processed) */}
+        {processedCount > 0 && onProceedToGapAnalysis && (
+          <div className="rounded-2xl border border-red-500/30 bg-gradient-to-r from-red-500/10 via-red-500/5 to-transparent p-4 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#ef4444] text-white font-bold">
+                <Sparkles size={18} />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-ink">Step 5 Ready: Gap Analysis Evolution (KG2)</h4>
+                <p className="text-[11px] text-muted">
+                  {processedCount} telemetry file(s) processed. Compare uploaded data against KG1 to highlight discrepancies in <strong className="text-red-500">RED</strong>.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onProceedToGapAnalysis}
+              className="btn bg-[#ef4444] hover:bg-[#dc2626] text-white font-bold px-4 py-2 text-xs rounded-xl shadow-md shadow-red-500/25 hover:scale-[1.02] transition-all cursor-pointer flex items-center gap-2"
+            >
+              <span>View Gap Analysis (KG2)</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+        )}
+
         {/* Drag and Drop Dropzone */}
         <div
           onDragOver={(e) => {

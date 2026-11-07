@@ -24,7 +24,7 @@ import ChatPanel from '../components/chat/ChatPanel'
 import ProposalReview from '../components/chat/ProposalReview'
 import TelemetryUploadZone from '../components/upload/TelemetryUploadZone'
 import useAsync from '../components/common/useAsync'
-import { chat, domains, graphs, ontology } from '../api'
+import { chat, domains, files as filesApi, graphs, ontology } from '../api'
 import { edgeId, cleanMojibake } from '../lib/format'
 import { useToast } from '../context/ToastContext'
 import { DOMAIN_SLUGS, DOMMETA, FLOWS, NODES, ORDER, SLUG_TO_DOM } from '../lib/ontologyData'
@@ -59,6 +59,9 @@ export default function DomainGraph() {
   const [deciding, setDeciding] = useState(false)
   const [activeRightTab, setActiveRightTab] = useState('chat') // 'chat' | 'details'
   const [leftViewMode, setLeftViewMode] = useState('graph') // 'graph' | 'upload' (MOM Step 3)
+  const [parsingProgress, setParsingProgress] = useState(null) // { fileName, stage, timestamp } (MOM Step 4)
+  const [gapData, setGapData] = useState(null) // MOM Step 5 Gap Analysis (KG2)
+  const [isGapMode, setIsGapMode] = useState(false)
   const [showAiModal, setShowAiModal] = useState(false)
   const [aiGraph, setAiGraph] = useState(null)
   const [aiPrompt, setAiPrompt] = useState('')
@@ -70,11 +73,37 @@ export default function DomainGraph() {
   const iframeRef = useRef(null)
   const pending = useRef(null)
 
+  const handleProceedToGapAnalysis = async () => {
+    setUpdatingGraph(true)
+    try {
+      const cleanSlug = slug.replace(/\s+/g, '-').toLowerCase()
+      const res = await filesApi.gapAnalysis(cleanSlug)
+      if (res && res.nodes) {
+        setGapData(res)
+        setIsGapMode(true)
+        setLeftViewMode('graph')
+        setAiGraph(res)
+        if (res.html_url) {
+          setHtmlUrl(`${res.html_url}?t=${Date.now()}`)
+        }
+        toast.success(`Gap Analysis loaded! ${res.stats?.discrepancies || 0} discrepancies highlighted in RED.`)
+        chat.get(slug).then(setSnap).catch(() => {})
+      }
+    } catch (err) {
+      toast.error(err.message || 'Could not load gap analysis.')
+    } finally {
+      setUpdatingGraph(false)
+    }
+  }
+
   const wf = useAsync(() => domains.workflow(slug), [slug])
+  const finalized = Boolean(wf.data?.finalized_version_number || snap?.finalized)
   const dom = useAsync(() => domains.list(), [])
   const g = useAsync(() => domains.graph(slug, neighbours), [slug, neighbours])
   const blocks = useAsync(() => domains.blocks(slug), [slug])
   const flows = useAsync(() => domains.flows(slug), [slug])
+  const domainFiles = useAsync(() => filesApi.list(slug), [slug])
+  const hasUploadedFiles = Boolean(domainFiles.data?.files && domainFiles.data.files.length > 0)
 
   // Auto-start workflow if not already started (no redirect to intermediate overview)
   useEffect(() => {
@@ -88,6 +117,10 @@ export default function DomainGraph() {
 
   // Load chat conversation, proposals, and HTML graph whenever slug changes
   useEffect(() => {
+    setIsGapMode(false)
+    setGapData(null)
+    setLeftViewMode('graph')
+    setParsingProgress(null)
     setActiveDomainFilter(domainKey)
     setSelected(null)
     setSelectedNodeData(null)
@@ -552,8 +585,25 @@ export default function DomainGraph() {
             </button>
           </div>
 
-          {/* Highlighted 'Next: Upload Data' / 'View Graph' Toggle Button (MOM Step 3) */}
+          {/* Action Buttons: Gap Analysis (MOM Step 5) and Upload Toggle (MOM Step 3) */}
           <div className="flex items-center gap-2">
+            {/* Show Gap Analysis (KG2) Button ONLY if telemetry files exist for this domain */}
+            {hasUploadedFiles && (
+              <button
+                type="button"
+                onClick={handleProceedToGapAnalysis}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${
+                  isGapMode && leftViewMode === 'graph'
+                    ? 'bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-red-500/25 ring-2 ring-red-400/40'
+                    : 'btn-ghost border-[#ef4444] text-[#ef4444] hover:bg-[#ef4444]/10'
+                }`}
+                title="Compare uploaded business telemetry against KG1 to highlight discrepancies in RED"
+              >
+                <Sparkles size={14} />
+                <span>KG2 Gap Analysis</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setLeftViewMode(leftViewMode === 'upload' ? 'graph' : 'upload')}
@@ -590,10 +640,52 @@ export default function DomainGraph() {
             <TelemetryUploadZone
               slug={slug}
               onBackToGraph={() => setLeftViewMode('graph')}
+              onProceedToGapAnalysis={handleProceedToGapAnalysis}
+              onProcessingUpdate={(fileName, stage) =>
+                setParsingProgress({ fileName, stage, timestamp: Date.now() })
+              }
+              onFileUploaded={() => {
+                domainFiles.reload()
+                chat.get(slug).then(setSnap).catch(() => {})
+              }}
             />
           </div>
         ) : (
           <div className="card relative h-[68vh] min-h-[460px] overflow-hidden p-0 border border-line isolate">
+            {/* Step 5 Gap Analysis Discrepancy Bar */}
+            {isGapMode && gapData && (
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-red-500/20 bg-red-50/80 dark:bg-red-950/40 px-3.5 py-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-2.5 w-2.5 rounded-full bg-[#ef4444] animate-pulse" />
+                  <span className="font-bold text-ink">KG2 Gap Analysis Evolution:</span>
+                  <span className="rounded-full bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300 px-2 py-0.5 text-[11px] font-bold border border-red-300/40">
+                    {gapData.stats?.discrepancies || 0} Gaps in RED ({gapData.stats?.missing || 0} Missing, {gapData.stats?.new || 0} New)
+                  </span>
+                  <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 px-2 py-0.5 text-[11px] font-medium border border-emerald-300/40">
+                    {gapData.stats?.matched || 0} Matched
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLeftViewMode('upload')}
+                    className="btn-ghost btn-sm text-[11px] px-2.5 py-1 text-ink/80 hover:text-ink cursor-pointer"
+                  >
+                    + Upload More Data
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      nav(`/finance/${slug}/finalize`)
+                    }}
+                    className="btn bg-[#10b981] hover:bg-[#059669] text-black font-bold px-3 py-1 text-[11px] rounded-lg shadow-sm cursor-pointer"
+                  >
+                    Next: Finalize Twin →
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Circular Spinner Loader with pulse icon and status message */}
             {(generating || g.loading || updatingGraph) && (
               <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-surface/85 backdrop-blur-md transition-opacity duration-300">
@@ -677,6 +769,9 @@ export default function DomainGraph() {
                 onAnsweringChange={setUpdatingGraph}
                 onNextToUpload={() => setLeftViewMode('upload')}
                 isUploadOpen={leftViewMode === 'upload'}
+                parsingProgress={parsingProgress}
+                locked={finalized}
+                disabledReason={finalized ? 'This model is finalised and governed as an Enterprise Digital Twin. Re-open it on the review page if you wish to make further changes.' : undefined}
                 onGraphUpdate={(res) => {
                   if (res?.graph) {
                     setAiGraph(res.graph)

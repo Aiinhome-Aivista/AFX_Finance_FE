@@ -560,6 +560,15 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
         </aside>
       )}
 
+      {/* KG2 Gap Analysis Discrepancy Indicator Banner */}
+      {nodes.some((n) => n.gap_status === 'missing' || n.gap_status === 'new' || n.is_discrepancy || n.color === '#ef4444') && (
+        <div className="absolute top-3 left-3 z-20 flex items-center gap-2 rounded-xl border border-red-500/40 bg-surface/95 px-3.5 py-1.5 backdrop-blur-md text-xs shadow-md">
+          <span className="flex h-2.5 w-2.5 rounded-full bg-[#ef4444] animate-pulse" />
+          <span className="font-bold text-[#ef4444]">KG2 Gap Analysis:</span>
+          <span className="text-ink/80 text-[11px]">Discrepancies highlighted in <strong className="text-[#ef4444]">RED</strong></span>
+        </div>
+      )}
+
       {/* SVG Canvas Inner Viewport with Hardware-Accelerated Transform */}
       <div
         className="origin-top-left will-change-transform"
@@ -720,7 +729,8 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
           <g className="nodes-layer">
             {nodes.map((n) => {
               const meta = domMetas[n.d] || DOMMETA[n.d] || DOMMETA.spine
-              const nodeColor = n.color || meta?.c || '#3B82F6'
+              const isDiscrepancy = n.gap_status === 'missing' || n.gap_status === 'new' || n.is_discrepancy || n.gap_color === '#ef4444' || n.color === '#ef4444'
+              const nodeColor = isDiscrepancy ? '#ef4444' : (n.color || meta?.c || '#3B82F6')
               const isSelected = selId === n.id
               const isFound = searchMatches?.has(n.id)
 
@@ -748,7 +758,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
               }
 
               const opacity = isDim ? 0.1 : isNeighbour ? 0.38 : 1
-              const strokeWidth = isSelected ? 3.2 : isFound ? 2.6 : 1.6
+              const strokeWidth = isDiscrepancy ? 2.8 : (isSelected ? 3.2 : isFound ? 2.6 : 1.6)
 
               return (
                 <g
@@ -768,14 +778,18 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
                     rx={9}
                     stroke={isSelected ? themeColors.accent : nodeColor}
                     strokeWidth={strokeWidth}
-                    strokeDasharray={isFound ? '5 3' : undefined}
+                    strokeDasharray={isFound ? '5 3' : (n.gap_status === 'missing' ? '6 3' : undefined)}
                     style={{
-                      fill: themeColors.card,
-                      filter: isSelected
-                        ? `drop-shadow(0 0 10px ${nodeColor}88)`
-                        : isDark
-                          ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.35))'
-                          : 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.12))',
+                      fill: isDiscrepancy
+                        ? (isDark ? 'rgba(239, 68, 68, 0.14)' : '#FEF2F2')
+                        : themeColors.card,
+                      filter: isDiscrepancy
+                        ? 'drop-shadow(0 0 10px rgba(239, 68, 68, 0.55))'
+                        : isSelected
+                          ? `drop-shadow(0 0 10px ${nodeColor}88)`
+                          : isDark
+                            ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.35))'
+                            : 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.12))',
                       transition: 'stroke 0.2s, stroke-width 0.2s',
                     }}
                   />
@@ -783,9 +797,18 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
                   <circle
                     cx={n.x - n.w / 2 + 11}
                     cy={n.y - n.h / 2 + 10}
-                    r={3.4}
+                    r={isDiscrepancy ? 4 : 3.4}
                     fill={nodeColor}
                   />
+                  {/* Discrepancy Badge */}
+                  {isDiscrepancy && (
+                    <g transform={`translate(${n.x + n.w / 2 - 42}, ${n.y - n.h / 2 - 8})`}>
+                      <rect width={42} height={14} rx={3} fill="#ef4444" />
+                      <text x={21} y={10} textAnchor="middle" fill="#ffffff" fontSize="8" fontWeight="bold">
+                        {n.gap_status === 'missing' ? 'MISSING' : 'NEW'}
+                      </text>
+                    </g>
+                  )}
                   {/* Label (1 or 2 lines) */}
                   {n.l2 ? (
                     <>
