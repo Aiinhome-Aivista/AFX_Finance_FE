@@ -424,7 +424,7 @@ export default function DomainGraph() {
             <span className="tracking-tight">All Domains</span>
           </Link>
 
-          {ORDER.map((dKey) => {
+          {ORDER.filter((dKey) => !domainKey || domainKey === dKey).map((dKey) => {
             const meta = DOMMETA[dKey]
             const targetSlug = DOMAIN_SLUGS[dKey]
             const isSelected = domainKey === dKey

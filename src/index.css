@@ -11,7 +11,7 @@
   --line: 226 232 240;
   --ink: 15 23 42;
   --muted: 100 116 139;
-  --brand: 79 70 229;
+  --brand: 16 185 129;
   --brand-ink: 255 255 255;
   --ok: 16 185 129;
   --warn: 217 119 6;
@@ -21,39 +21,42 @@
   --ont-text: #0F172A;
   --ont-muted: #64748B;
   --ont-border: #E2E8F0;
-  --ont-accent: #4F46E5;
+  --ont-accent: #10B981;
   --ont-edge: #94A3B8;
-  --ont-chip-bg: #EEF2FF;
+  --ont-chip-bg: #ECFDF5;
   --ont-code-bg: #F1F5F9;
 }
 
 .dark {
-  --bg: 10 15 26;
-  --surface: 16 23 38;
-  --surface2: 24 35 56;
-  --line: 36 50 78;
+  --bg: 10 10 10;
+  --surface: 20 22 25;
+  --surface2: 28 30 34;
+  --line: 38 42 46;
   --ink: 248 250 252;
   --muted: 148 163 184;
-  --brand: 99 102 241;
-  --brand-ink: 10 15 26;
+  --brand: 16 185 129;
+  --brand-ink: 255 255 255;
   --ok: 52 211 153;
   --warn: 245 158 11;
   --bad: 248 113 113;
-  --ont-bg: #0A0F1A;
-  --ont-card: #101726;
+  --ont-bg: #0A0A0A;
+  --ont-card: #141719;
   --ont-text: #F8FAFC;
   --ont-muted: #94A3B8;
-  --ont-border: #24334E;
-  --ont-accent: #818CF8;
+  --ont-border: #262626;
+  --ont-accent: #10B981;
   --ont-edge: #475569;
-  --ont-chip-bg: #1E293B;
-  --ont-code-bg: #182338;
+  --ont-chip-bg: #064E3B;
+  --ont-code-bg: #1A1F23;
 }
 
 html,
 body,
 #root {
   height: 100%;
+  min-height: 100vh;
+  background-color: #0A0A0A;
+  color-scheme: dark;
 }
 
 body,
@@ -192,70 +195,65 @@ body {
   border-radius: 8px;
 }
 
-/* Premium AI SaaS Login Styling */
+/* Premium AI SaaS Login Styling (AgentForgeX Dark Emerald Theme) */
 .auth-bg-gradient {
-  background: radial-gradient(circle at 15% 20%, rgba(224, 215, 255, 0.45) 0%, transparent 45%),
-    radial-gradient(circle at 85% 80%, rgba(200, 214, 255, 0.4) 0%, transparent 45%),
-    radial-gradient(circle at 50% 50%, rgba(243, 240, 255, 0.6) 0%, transparent 60%),
-    linear-gradient(135deg, #FAF8FF 0%, #F3F1FA 50%, #ECE9F8 100%);
+  background-color: #0A0A0A;
 }
 
 .auth-card-shadow {
-  box-shadow: 0 20px 50px -10px rgba(17, 27, 50, 0.35),
-    0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 0 40px -10px rgba(117, 59, 255, 0.15);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .auth-btn-gradient {
-  background: linear-gradient(135deg, #4565FF 0%, #753BFF 100%);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: #15372C;
+  color: #10B981;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .auth-btn-gradient:hover:not(:disabled) {
-  background: linear-gradient(135deg, #3754F0 0%, #682EEB 100%);
-  box-shadow: 0 8px 24px -4px rgba(117, 59, 255, 0.5),
-    0 0 16px 2px rgba(69, 101, 255, 0.35);
-  transform: translateY(-1px);
+  background-color: #1a4537;
+  color: #34D399;
 }
 
 .auth-btn-gradient:active:not(:disabled) {
+  background-color: #123026;
   transform: translateY(0);
-  box-shadow: 0 4px 12px -2px rgba(117, 59, 255, 0.4);
 }
 
 .auth-input-field {
-  background-color: #FFFFFF !important;
-  border: 1px solid #E2E8F0;
-  color: #111827 !important;
+  background-color: #222222 !important;
+  border: 1px solid #2e2e2e;
+  color: #F9FAFB !important;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .auth-input-field:hover {
-  border-color: #CBD5E1;
+  border-color: #3b3b3b;
 }
 
 .auth-input-field:focus,
 .auth-input-field:focus-visible,
 .auth-input-field:active {
-  background-color: #FFFFFF !important;
-  border-color: #8B5CF6;
+  background-color: #222222 !important;
+  border-color: #10B981;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+  box-shadow: 0 0 0 1px #10B981;
 }
 
 .auth-input-field::placeholder {
-  color: #94A3B8;
+  color: #737373;
 }
 
-/* Chrome/Safari autofill background override to force white background and dark text */
+/* Chrome/Safari autofill background override for dark theme */
 .auth-input-field:-webkit-autofill,
 .auth-input-field:-webkit-autofill:hover,
 .auth-input-field:-webkit-autofill:focus,
 .auth-input-field:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
-  box-shadow: 0 0 0 1000px #FFFFFF inset !important;
-  -webkit-text-fill-color: #111827 !important;
-  caret-color: #111827 !important;
+  -webkit-box-shadow: 0 0 0 1000px #222222 inset !important;
+  box-shadow: 0 0 0 1000px #222222 inset !important;
+  -webkit-text-fill-color: #F9FAFB !important;
+  caret-color: #F9FAFB !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 

@@ -1,8 +1,20 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { Mail, Lock, Eye, EyeOff, BrainCircuit } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, BrainCircuit, ShieldCheck, RotateCw } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { Spinner } from '../components/common/States'
+
+function generateCaptcha() {
+  const ops = ['+', '-', '+']
+  const op = ops[Math.floor(Math.random() * ops.length)]
+  let a = Math.floor(Math.random() * 9) + 1
+  let b = Math.floor(Math.random() * 9) + 1
+  if (op === '-' && a < b) [a, b] = [b, a]
+  let ans = 0
+  if (op === '+') ans = a + b
+  if (op === '-') ans = a - b
+  return { q: `What is ${a} ${op} ${b}?`, answer: String(ans) }
+}
 
 export default function AuthPage({ mode }) {
   const isReg = mode === 'register'
@@ -10,9 +22,16 @@ export default function AuthPage({ mode }) {
   const nav = useNavigate()
   const loc = useLocation()
   const [f, setF] = useState({ email: '', name: '', password: '' })
+  const [captcha, setCaptcha] = useState(() => generateCaptcha())
+  const [captchaInput, setCaptchaInput] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+
+  const refreshCaptcha = () => {
+    setCaptcha(generateCaptcha())
+    setCaptchaInput('')
+  }
 
   if (user) return <Navigate to={user.selected_app ? '/finance' : '/apps'} replace />
 
@@ -25,6 +44,13 @@ export default function AuthPage({ mode }) {
       return setErr('Password needs 8+ characters with a letter and a number.')
     }
     if (!isReg && !f.password) return setErr('Enter your password.')
+    if (!captchaInput.trim()) {
+      return setErr('Please verify you are human.')
+    }
+    if (captchaInput.trim() !== captcha.answer) {
+      refreshCaptcha()
+      return setErr('Incorrect verification answer. Please try again.')
+    }
     setBusy(true)
     try {
       const u = isReg ? await register(f.email, f.name, f.password) : await login(f.email, f.password)
@@ -39,47 +65,38 @@ export default function AuthPage({ mode }) {
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-white selection:bg-purple-500 selection:text-white">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-[#0a0a0a] selection:bg-emerald-500 selection:text-black">
       {/* Centered Login Card */}
-      <div className="w-full max-w-[420px] rounded-2xl border border-slate-200/80 bg-white p-7 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]">
-        {/* Top Icon: Glowing purple-blue AI brain/network icon centered at the top */}
+      <div className="w-full max-w-md rounded-2xl border border-[#262626] bg-[#161616] p-6 sm:p-8 shadow-2xl shadow-black/80">
+        {/* Top Icon: BrainCircuit icon retained inside emerald green badge */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="relative mb-4 flex items-center justify-center">
-            {/* Glowing background blur effect */}
             <div
-              className="absolute -inset-2 rounded-full opacity-60 blur-md"
-              style={{
-                background: 'linear-gradient(135deg, rgba(69, 101, 255, 0.4) 0%, rgba(139, 92, 246, 0.5) 100%)',
-              }}
-              aria-hidden="true"
-            />
-            <div
-              className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-indigo-100 shadow-sm"
-              style={{
-                background: 'linear-gradient(135deg, #1E1B4B 0%, #0F172A 100%)',
-                boxShadow: '0 4px 14px rgba(69, 101, 255, 0.25)',
-              }}
+              className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#10b981] shadow-sm"
             >
-              <BrainCircuit className="h-7 w-7 text-[#A78BFA] drop-shadow-[0_0_8px_rgba(167,139,250,0.6)]" strokeWidth={2.1} />
+              <BrainCircuit className="h-6 w-6 text-[#0a0a0a]" strokeWidth={2.4} />
             </div>
           </div>
 
-          {/* Heading with bold purple gradient text */}
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-800 bg-clip-text text-transparent">
-            Finance Knowledge Graph
+          {/* Heading: 2 lines with 'Sign in' on line 1 and 'AgentForgeX Finance' on line 2 */}
+          <h1 className="text-2xl sm:text-[26px] font-bold tracking-tight text-white leading-tight">
+            <span>Sign in</span>
+            <span className="block mt-1 bg-gradient-to-r from-[#34d399] via-[#2dd4bf] to-[#22d3ee] bg-clip-text text-transparent whitespace-nowrap">
+              AgentForgeX Finance
+            </span>
           </h1>
 
-          {/* Subtitle in muted light gray */}
-          <p className="mt-1 text-xs sm:text-sm text-slate-500">
-            {isReg ? 'Create your account to continue' : 'Sign in to continue'}
+          {/* Subtitle */}
+          <p className="mt-2 text-sm text-neutral-400">
+            {isReg ? 'Create your account to continue' : "Welcome back — let's get you to your workspace."}
           </p>
         </div>
 
         {/* Form Fields */}
-        <form onSubmit={submit} className="space-y-4" noValidate>
+        <form onSubmit={submit} className="space-y-4 sm:space-y-4.5" noValidate>
           {isReg && (
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-700" htmlFor="name">
+              <label className="mb-2 block text-sm font-medium text-neutral-300" htmlFor="name">
                 Full Name
               </label>
               <div className="relative">
@@ -98,17 +115,17 @@ export default function AuthPage({ mode }) {
 
           {/* Email Field */}
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-700" htmlFor="email">
+            <label className="mb-2 block text-sm font-medium text-neutral-300" htmlFor="email">
               Email
             </label>
             <div className="relative flex items-center">
-              <span className="pointer-events-none absolute left-3.5 flex items-center text-slate-400">
+              <span className="pointer-events-none absolute left-3.5 flex items-center text-neutral-500">
                 <Mail className="h-4 w-4" />
               </span>
               <input
                 id="email"
                 type="email"
-                placeholder="user@domain.com"
+                placeholder="name@company.com"
                 className="auth-input-field w-full rounded-xl pl-10 pr-4 py-2.5 text-sm"
                 value={f.email}
                 onChange={set('email')}
@@ -119,17 +136,17 @@ export default function AuthPage({ mode }) {
 
           {/* Password Field */}
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-700" htmlFor="pw">
+            <label className="mb-2 block text-sm font-medium text-neutral-300" htmlFor="pw">
               Password
             </label>
             <div className="relative flex items-center">
-              <span className="pointer-events-none absolute left-3.5 flex items-center text-slate-400">
+              <span className="pointer-events-none absolute left-3.5 flex items-center text-neutral-500">
                 <Lock className="h-4 w-4" />
               </span>
               <input
                 id="pw"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Enter your password"
+                placeholder="••••••••"
                 className="auth-input-field w-full rounded-xl pl-10 pr-11 py-2.5 text-sm"
                 value={f.password}
                 onChange={set('password')}
@@ -138,7 +155,7 @@ export default function AuthPage({ mode }) {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 flex items-center text-slate-400 hover:text-slate-200 transition focus:outline-none"
+                className="absolute right-3.5 flex items-center text-neutral-500 hover:text-neutral-300 transition focus:outline-none"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? (
@@ -150,59 +167,87 @@ export default function AuthPage({ mode }) {
             </div>
           </div>
 
+          {/* Verify You Are Human (Captcha) */}
+          <div className="space-y-2.5 pt-1">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-neutral-400" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                VERIFY YOU ARE HUMAN
+              </span>
+            </div>
+
+            {/* Row 1: Math Question Box (left) + Refresh Button (right) */}
+            <div className="flex items-center gap-2.5">
+              {/* Question Display Box */}
+              <div className="flex-1 min-w-0 h-[42px] rounded-xl bg-[#222222] border border-[#2e2e2e] px-4 flex items-center">
+                <span className="font-mono text-sm text-neutral-200 tracking-wider font-medium select-none">
+                  {captcha.q}
+                </span>
+              </div>
+
+              {/* Refresh Button */}
+              <button
+                type="button"
+                onClick={refreshCaptcha}
+                className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl border border-[#2e2e2e] bg-[#222222] hover:border-neutral-500 text-neutral-400 hover:text-neutral-200 transition focus:outline-none"
+                title="New question"
+                aria-label="New question"
+              >
+                <RotateCw className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Row 2: Full-width Answer Input */}
+            <input
+              id="captcha"
+              type="text"
+              placeholder="Type the answer"
+              className="auth-input-field w-full h-[42px] rounded-xl px-4 text-sm"
+              value={captchaInput}
+              onChange={(e) => setCaptchaInput(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+
           {/* Error Message */}
           {err && (
             <div
               role="alert"
-              className="rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-600 animate-in fade-in duration-200"
+              className="rounded-xl border border-red-500/30 bg-red-950/40 px-3.5 py-2.5 text-xs text-red-400 animate-in fade-in duration-200"
             >
               {err}
             </div>
           )}
 
           {/* Sign In Button */}
-          <div className="pt-1.5">
+          <div className="pt-2">
             <button
               type="submit"
               disabled={busy}
-              className="auth-btn-gradient w-full flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-sm font-semibold text-white cursor-pointer shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="auth-btn-gradient w-full flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-sm font-semibold cursor-pointer shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {busy ? (
                 <Spinner />
               ) : (
-                <span>{isReg ? 'Create account →' : 'Sign in →'}</span>
+                <span>{isReg ? 'Create Account' : 'Sign In'}</span>
               )}
             </button>
           </div>
         </form>
 
         {/* Bottom Section */}
-        <p className="mt-5 text-center text-xs text-slate-500">
-          {isReg ? (
-            <>
-              Already registered?{' '}
-              <Link
-                to="/login"
-                className="font-semibold text-[#753BFF] hover:text-[#5B21B6] transition underline-offset-2 hover:underline ml-1"
-              >
-                Sign in
-              </Link>
-            </>
-          ) : (
-            <>
-              New here?{' '}
-              <Link
-                to="/register"
-                className="font-semibold text-[#753BFF] hover:text-[#5B21B6] transition underline-offset-2 hover:underline ml-1"
-              >
-                Create an account
-              </Link>
-            </>
-          )}
-        </p>
+        {isReg && (
+          <p className="mt-5 text-center text-xs text-neutral-400">
+            Already registered?{' '}
+            <Link
+              to="/login"
+              className="font-semibold text-[#10b981] hover:text-[#34d399] transition underline-offset-2 hover:underline ml-1"
+            >
+              Sign in
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   )
 }
-
-
