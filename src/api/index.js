@@ -53,18 +53,28 @@ export const graphs = {
   experience: (slug) => http.get(`/domains/${slug}/experience`).then(d),
 }
 export const files = {
-  list: (slug) => http.get(`/domains/${slug}/files`).then(d),
+  list: (slug) => {
+    const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
+    return http.get(`/domains/${clean}/files`).then(d)
+  },
   get: (id) => http.get(`/files/${id}`).then(d),
   remove: (id) => http.delete(`/files/${id}`).then(d),
   upload: (slug, file, onProgress) => {
+    const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
     const fd = new FormData()
     fd.append('file', file)
-    return http.post(`/domains/${slug}/files`, fd, {
+    return http.post(`/domains/${clean}/files`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 5 * 60 * 1000,
       onUploadProgress: (e) => onProgress && e.total && onProgress(Math.round((e.loaded / e.total) * 100)),
     }).then(d)
   },
-  generate: (slug) => http.post(`/domains/${slug}/telemetry/generate`).then(d),
-  gapAnalysis: (slug) => http.get(`/domains/${slug}/telemetry/gap-analysis`).then(d),
+  generate: (slug) => {
+    const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
+    return http.post(`/domains/${clean}/telemetry/generate`).then(d)
+  },
+  gapAnalysis: (slug) => {
+    const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
+    return http.get(`/domains/${clean}/telemetry/gap-analysis`).then(d)
+  },
 }

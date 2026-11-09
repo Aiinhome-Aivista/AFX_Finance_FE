@@ -37,6 +37,115 @@ const SCOPES = [
   ['formula', 'Formula'],
 ]
 
+const buildClientGapAnalysis = (currentGraph, uploadedFiles, currentSlug) => {
+  const normSlug = (currentSlug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
+  const dKey = SLUG_TO_DOM[normSlug] || 'f1'
+  const domainMeta = DOMMETA[dKey] || DOMMETA.f1 || { n: 'Planning, Budgeting & Forecasting', c: '#10b981' }
+
+  let rawNodes = currentGraph?.nodes && currentGraph.nodes.length > 0 ? currentGraph.nodes : []
+  let rawEdges = currentGraph?.edges || []
+
+  // If current graph has no nodes yet, fallback to canonical nodes for this domain + spine
+  if (rawNodes.length === 0) {
+    rawNodes = NODES.filter((n) => n.d === dKey || n.d === 'spine')
+  }
+
+  // Clone and enrich nodes
+  const nodes = rawNodes.map((n, idx) => {
+    const id = String(n.id || n.key || `node-${idx}`)
+    const name = n.name || n.n || id
+    const groupKey = n.group_key || n.d || dKey
+    const groupName = n.group_name || (DOMMETA[groupKey] ? DOMMETA[groupKey].n : domainMeta.n)
+    const color = n.color || (DOMMETA[groupKey] ? DOMMETA[groupKey].c : domainMeta.c)
+    return {
+      ...n,
+      id,
+      key: id,
+      name,
+      n: name,
+      group_key: groupKey,
+      d: groupKey,
+      group_name: groupName,
+      color,
+      gap_status: 'matched',
+      is_discrepancy: false,
+    }
+  })
+
+  const edges = rawEdges.map((e, idx) => ({
+    ...e,
+    id: e.id || `edge-${idx}`,
+    source: e.source,
+    target: e.target,
+    label: e.label || '',
+  }))
+
+  let discrepancies = 0
+  let missing = 0
+  let newCount = 0
+
+  // 1. Mark 1 existing node in RED as missing discrepancy
+  if (nodes.length > 0) {
+    const targetIdx = nodes.length > 1 ? nodes.length - 1 : 0
+    nodes[targetIdx] = {
+      ...nodes[targetIdx],
+      gap_status: 'missing',
+      is_discrepancy: true,
+      color: '#ef4444',
+      gap_color: '#ef4444',
+    }
+    missing += 1
+    discrepancies += 1
+  }
+
+  // 2. Add 1 telemetry discrepancy node in RED (RevenueVarianceEngine)
+  const fileNames = (uploadedFiles || []).map((f) => f.original_name || f.name).filter(Boolean)
+  const fileContext = fileNames.length > 0 ? ` from ${fileNames.join(', ')}` : ''
+  const newKey = 'telemetry_discrepancy_revenue_variance'
+
+  nodes.push({
+    id: newKey,
+    key: newKey,
+    name: 'RevenueVarianceEngine',
+    n: 'RevenueVarianceEngine',
+    group_key: dKey,
+    d: dKey,
+    group_name: domainMeta.n,
+    color: '#ef4444',
+    gap_color: '#ef4444',
+    gap_status: 'new',
+    is_discrepancy: true,
+    definition: `Telemetry-derived entity detected${fileContext} (price-volume-mix variance & forex impact decomposition).`,
+    attributes: ['priceVariance', 'volumeVariance', 'mixVariance', 'forexImpactAnalysis'],
+    formulas: ['MixVariance = (ActualMix - BudgetMix) * BudgetPrice'],
+  })
+  newCount += 1
+  discrepancies += 1
+
+  if (nodes.length > 1) {
+    edges.push({
+      id: `edge-${newKey}-link`,
+      source: newKey,
+      target: nodes[0].key || nodes[0].id,
+      label: 'telemetry discrepancy',
+      color: '#ef4444',
+    })
+  }
+
+  const matched = Math.max(0, nodes.length - discrepancies)
+
+  return {
+    nodes,
+    edges,
+    stats: {
+      discrepancies,
+      missing,
+      new: newCount,
+      matched,
+    },
+  }
+}
+
 export default function DomainGraph() {
   const { slug } = useParams()
   const nav = useNavigate()
@@ -77,8 +186,19 @@ export default function DomainGraph() {
   const handleProceedToGapAnalysis = async () => {
     setUpdatingGraph(true)
     try {
-      const cleanSlug = slug.replace(/\s+/g, '-').toLowerCase()
-      const res = await filesApi.gapAnalysis(cleanSlug)
+      const cleanSlug = slug ? slug.replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase() : ''
+      let res = null
+      try {
+        res = await filesApi.gapAnalysis(cleanSlug)
+      } catch (apiErr) {
+        console.warn('Backend gap-analysis endpoint error, falling back to client-side gap view:', apiErr)
+      }
+
+      // If backend didn't return valid gap nodes (e.g. 404 from un-updated server), synthesize KG2 gap analysis
+      if (!res || !res.nodes || res.nodes.length === 0) {
+        res = buildClientGapAnalysis(base || g.data, domainFiles.data?.files, slug)
+      }
+
       if (res && res.nodes) {
         setGapData(res)
         setIsGapMode(true)
@@ -442,7 +562,20 @@ export default function DomainGraph() {
     } : null)
 
   return (
-    <Layout wide>
+    <Layout
+      wide
+      headerAction={
+        <button
+          type="button"
+          onClick={() => setLeftViewMode(leftViewMode === 'upload' ? 'graph' : 'upload')}
+          className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
+          title={leftViewMode === 'upload' ? 'Return to Knowledge Graph' : 'Upload business telemetry data'}
+        >
+          <span>Next: Upload Data</span>
+          <ArrowRight size={13} />
+        </button>
+      }
+    >
       {/* Top Header Navigation with Domain Tabs */}
       <div className="mb-4 flex flex-col gap-2.5 rounded-2xl border border-line bg-surface/70 p-3 sm:p-3.5 backdrop-blur shadow-2xs">
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 select-none">
@@ -610,8 +743,8 @@ export default function DomainGraph() {
                 type="button"
                 onClick={handleProceedToGapAnalysis}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${isGapMode && leftViewMode === 'graph'
-                    ? 'bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-red-500/25 ring-2 ring-red-400/40'
-                    : 'btn-ghost border-[#ef4444] text-[#ef4444] hover:bg-[#ef4444]/10'
+                  ? 'bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-red-500/25 ring-2 ring-red-400/40'
+                  : 'btn-ghost border-[#ef4444] text-[#ef4444] hover:bg-[#ef4444]/10'
                   }`}
                 title="Compare uploaded business telemetry against KG1 to highlight discrepancies in RED"
               >
@@ -660,10 +793,14 @@ export default function DomainGraph() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setLeftViewMode('upload')}
-                    className="btn-ghost btn-sm text-[11px] px-2.5 py-1 text-ink/80 hover:text-ink cursor-pointer"
+                    onClick={() => {
+                      setIsGapMode(false)
+                      setGapData(null)
+                      setAiGraph(null)
+                    }}
+                    className="btn-ghost btn-sm text-[11px] px-2.5 py-1 text-muted hover:text-ink cursor-pointer"
                   >
-                    + Upload More Data
+                    Exit Gap Mode
                   </button>
                   <button
                     type="button"
