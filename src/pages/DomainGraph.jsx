@@ -768,16 +768,14 @@ export default function DomainGraph() {
                     key={opt.id}
                     type="button"
                     onClick={() => setActiveDomainFilter(opt.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                      isActive
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${isActive
                         ? 'bg-surface text-ink shadow-xs font-semibold ring-1 ring-line'
                         : 'text-muted hover:text-ink hover:bg-surface/50'
-                    }`}
+                      }`}
                   >
                     <span
-                      className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        isActive ? 'bg-brand/20 text-brand' : 'bg-line text-muted'
-                      }`}
+                      className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${isActive ? 'bg-brand/20 text-brand' : 'bg-line text-muted'
+                        }`}
                     >
                       {idx + 1}
                     </span>

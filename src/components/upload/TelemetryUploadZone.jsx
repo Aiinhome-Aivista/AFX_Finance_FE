@@ -180,11 +180,10 @@ export default function TelemetryUploadZone({
             setDrag(false)
             handleUpload(e.dataTransfer.files)
           }}
-          className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-7 text-center transition-all ${
-            drag
+          className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-7 text-center transition-all ${drag
               ? 'border-[#10b981] bg-[#10b981]/5 scale-[0.99]'
               : 'border-line hover:border-[#10b981]/60 bg-surface2/30'
-          }`}
+            }`}
         >
           <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#10b981]/10 text-[#10b981] mb-2.5">
             <UploadCloud size={24} />
