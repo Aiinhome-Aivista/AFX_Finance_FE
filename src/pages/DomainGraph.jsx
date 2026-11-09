@@ -604,14 +604,25 @@ export default function DomainGraph() {
   return (
     <Layout
       wide
+      // headerAction={
+      //   <button
+      //     type="button"
+      //     onClick={() => setLeftViewMode(leftViewMode === 'upload' ? 'graph' : 'upload')}
+      //     className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
+      //     title={leftViewMode === 'upload' ? 'Return to Knowledge Graph' : 'Upload business telemetry data'}
+      //   >
+      //     <span>Next: Upload Data</span>
+      //     <ArrowRight size={13} />
+      //   </button>
+      // }
       headerAction={
         <button
           type="button"
-          onClick={() => setLeftViewMode(leftViewMode === 'upload' ? 'graph' : 'upload')}
+          onClick={() => nav(`/finance/${slug}/finalize`)}
           className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
-          title={leftViewMode === 'upload' ? 'Return to Knowledge Graph' : 'Upload business telemetry data'}
+          title="Proceed to Review & Finalize Twin"
         >
-          <span>Next: Upload Data</span>
+          <span>Next: Finalize Twin</span>
           <ArrowRight size={13} />
         </button>
       }
