@@ -5,6 +5,8 @@ import {
   ArrowRight,
   Bot,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   Layers,
   Network,
@@ -561,6 +563,44 @@ export default function DomainGraph() {
       role: 'reference',
     } : null)
 
+  const viewOptions = useMemo(() => {
+    const list = [
+      { id: 'all', label: 'All Domains', short: 'All', color: '#64748B' },
+    ]
+    if (domainKey !== 'all' && DOMMETA[domainKey]) {
+      list.push({
+        id: domainKey,
+        label: DOMMETA[domainKey]?.n || 'Selected Domain',
+        short: DOMMETA[domainKey]?.short || 'Domain',
+        color: DOMMETA[domainKey]?.c || '#10b981',
+      })
+    }
+    list.push({
+      id: 'spine',
+      label: DOMMETA.spine.n,
+      short: DOMMETA.spine.short || 'Spine',
+      color: DOMMETA.spine.c,
+    })
+    return list
+  }, [domainKey])
+
+  const currentViewIdx = useMemo(() => {
+    const idx = viewOptions.findIndex((v) => v.id === activeDomainFilter)
+    return idx === -1 ? 0 : idx
+  }, [viewOptions, activeDomainFilter])
+
+  const handlePrevView = () => {
+    if (currentViewIdx > 0) {
+      setActiveDomainFilter(viewOptions[currentViewIdx - 1].id)
+    }
+  }
+
+  const handleNextView = () => {
+    if (currentViewIdx < viewOptions.length - 1) {
+      setActiveDomainFilter(viewOptions[currentViewIdx + 1].id)
+    }
+  }
+
   return (
     <Layout
       wide
@@ -706,33 +746,60 @@ export default function DomainGraph() {
           </label>
         </div> */}
 
-        {/* Domain filter chips & 'Next: Upload Data' Action */}
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2" aria-label="Sub-domain filters">
-          <div className="flex flex-wrap items-center gap-1.5">
+        {/* Domain view pagination & 'Next: Upload Data' Action */}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2" aria-label="Sub-domain view pagination">
+          <div className="flex items-center gap-1.5 bg-surface2/60 border border-line rounded-xl p-1 shadow-xs">
             <button
               type="button"
-              className={`chip cursor-pointer ${activeDomainFilter === 'all' ? 'chip-on' : 'opacity-70'}`}
-              onClick={() => setActiveDomainFilter('all')}
+              onClick={handlePrevView}
+              disabled={currentViewIdx === 0}
+              className="p-1.5 rounded-lg hover:bg-surface text-ink/70 hover:text-ink transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Previous view"
+              aria-label="Previous view"
             >
-              All Domains
+              <ChevronLeft size={16} />
             </button>
-            {domainKey !== 'all' && DOMMETA[domainKey] && (
-              <button
-                type="button"
-                className={`chip cursor-pointer ${activeDomainFilter === domainKey ? 'chip-on' : 'opacity-70'}`}
-                onClick={() => setActiveDomainFilter(domainKey)}
-              >
-                <span className="h-2 w-2 rounded-full shrink-0" style={{ background: DOMMETA[domainKey].c }} />
-                {DOMMETA[domainKey].n}
-              </button>
-            )}
+
+            <div className="flex items-center gap-1">
+              {viewOptions.map((opt, idx) => {
+                const isActive = idx === currentViewIdx
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setActiveDomainFilter(opt.id)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${isActive
+                        ? 'bg-surface text-ink shadow-xs font-semibold ring-1 ring-line'
+                        : 'text-muted hover:text-ink hover:bg-surface/50'
+                      }`}
+                  >
+                    <span
+                      className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${isActive ? 'bg-brand/20 text-brand' : 'bg-line text-muted'
+                        }`}
+                    >
+                      {idx + 1}
+                    </span>
+                    {opt.color && (
+                      <span
+                        className="h-2 w-2 rounded-full shrink-0"
+                        style={{ background: opt.color }}
+                      />
+                    )}
+                    <span>{opt.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+
             <button
               type="button"
-              className={`chip cursor-pointer ${activeDomainFilter === 'spine' ? 'chip-on' : 'opacity-70'}`}
-              onClick={() => setActiveDomainFilter(activeDomainFilter === 'spine' ? domainKey : 'spine')}
+              onClick={handleNextView}
+              disabled={currentViewIdx === viewOptions.length - 1}
+              className="p-1.5 rounded-lg hover:bg-surface text-ink/70 hover:text-ink transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Next view"
+              aria-label="Next view"
             >
-              <span className="h-2 w-2 rounded-full shrink-0" style={{ background: DOMMETA.spine.c }} />
-              {DOMMETA.spine.n}
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>
