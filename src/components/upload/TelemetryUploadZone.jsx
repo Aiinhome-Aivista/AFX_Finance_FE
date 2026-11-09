@@ -181,8 +181,8 @@ export default function TelemetryUploadZone({
             handleUpload(e.dataTransfer.files)
           }}
           className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-7 text-center transition-all ${drag
-              ? 'border-[#10b981] bg-[#10b981]/5 scale-[0.99]'
-              : 'border-line hover:border-[#10b981]/60 bg-surface2/30'
+            ? 'border-[#10b981] bg-[#10b981]/5 scale-[0.99]'
+            : 'border-line hover:border-[#10b981]/60 bg-surface2/30'
             }`}
         >
           <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#10b981]/10 text-[#10b981] mb-2.5">
@@ -261,9 +261,8 @@ export default function TelemetryUploadZone({
               type="button"
               onClick={onProceedToGapAnalysis}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-white shadow-md shadow-emerald-500/25 hover:scale-[1.02] transition-all cursor-pointer"
-              title="Proceed to Gap Analysis"
+              title="Proceed to Step 5: Gap Analysis Evolution"
             >
-              <Sparkles size={14} />
               <span>Proceed to Gap Analysis</span>
             </button>
           </div>

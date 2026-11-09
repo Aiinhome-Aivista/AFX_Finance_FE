@@ -769,7 +769,7 @@ export default function FinanceLanding() {
                   <span>Structured 6-Step Implementation Lifecycle</span>
                 </b>
                 <p className="text-muted mt-1.5">
-                  Each sub-domain progresses from a read-only industry template (KG0) to an interactive client nuance refinement (KG1), finalization, and multi-format telemetry data ingestion (KG2).
+                  Each sub-domain progresses from a read-only industry template to an interactive nuance refinement, finalization, and multi-format telemetry data ingestion.
                 </p>
               </div>
             </div>
