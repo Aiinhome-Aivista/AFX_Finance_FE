@@ -69,7 +69,20 @@ export default function Customize() {
   if (!ready) return <Navigate to={`/finance/${slug}/graph`} replace />
 
   return (
-    <Layout wide>
+    <Layout
+      wide
+      headerAction={
+        <button
+          type="button"
+          onClick={() => setViewMode(viewMode === 'upload' ? 'graph' : 'upload')}
+          className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
+          title="Upload business telemetry data"
+        >
+          <span>Next: Upload Data</span>
+          <ArrowRight size={13} />
+        </button>
+      }
+    >
       <Link to={`/finance/${slug}/graph`} className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft size={14} /> Reference graph</Link>
       <Stepper slug={slug} steps={wf.data.steps} current={4} />
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
