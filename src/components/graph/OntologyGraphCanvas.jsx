@@ -609,14 +609,6 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
         </aside>
       )}
 
-      {/* KG2 Gap Analysis Discrepancy Indicator Banner */}
-      {nodes.some((n) => n.gap_status === 'missing' || n.gap_status === 'new' || n.is_discrepancy || n.color === '#ef4444') && (
-        <div className="absolute top-3 left-3 z-20 flex items-center gap-2 rounded-xl border border-red-500/40 bg-surface/95 px-3.5 py-1.5 backdrop-blur-md text-xs shadow-md">
-          <span className="flex h-2.5 w-2.5 rounded-full bg-[#ef4444] animate-pulse" />
-          <span className="font-bold text-[#ef4444]">KG2 Gap Analysis:</span>
-          <span className="text-ink/80 text-[11px]">Discrepancies highlighted in <strong className="text-[#ef4444]">RED</strong></span>
-        </div>
-      )}
 
       {/* SVG Canvas Inner Viewport with Hardware-Accelerated Transform */}
       <div

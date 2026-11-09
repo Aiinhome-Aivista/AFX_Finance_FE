@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, Loading } from '../components/common/States'
 import OntologyGraphCanvas from '../components/graph/OntologyGraphCanvas'
 import useAsync from '../components/common/useAsync'
 import { domains, graphs } from '../api'
+import { DOMMETA, SLUG_TO_DOM } from '../lib/ontologyData'
 import { timeAgo } from '../lib/format'
 import { useToast } from '../context/ToastContext'
 import { useWorkflow } from '../context/WorkflowContext'
@@ -178,6 +179,17 @@ export default function Finalize() {
   const toast = useToast()
   const wf = useAsync(() => domains.workflow(slug), [slug])
   const fin = useAsync(() => graphs.finalization(slug), [slug], { immediate: false })
+
+  const cleanSlug = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
+  const domainKey = SLUG_TO_DOM[cleanSlug]
+  const domainMeta = domainKey ? DOMMETA[domainKey] : null
+  const domainName =
+    wf.data?.domain?.name ||
+    (domainMeta?.n ? domainMeta.n.replace(/^F\d+\s+/, '') : null) ||
+    cleanSlug
+      .split('-')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ')
   const [range, setRange] = useState({ from: 0, to: null })
   const [cmp, setCmp] = useState(null)
   const [dlg, setDlg] = useState(null)
@@ -277,15 +289,11 @@ export default function Finalize() {
                 <div>
                   <h2 className="text-sm font-bold text-ink flex items-center gap-2">
                     <Sparkles size={16} className="text-[#10b981]" />
-                    <span>Digital Twin Graph Preview · {d.version.label}</span>
+                    <span>Digital Twin Graph Preview · Current "{domainName}" Template</span>
                   </h2>
                   <p className="text-[11px] text-muted">
                     {d.graph.nodes.length} entities · {d.graph.edges.length} relationships
                   </p>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-muted">
-                  <span className="inline-block h-2 w-2 rounded-full bg-[#10b981] animate-pulse" />
-                  <span>Finance Radial Spine Active</span>
                 </div>
               </div>
 
@@ -344,17 +352,13 @@ export default function Finalize() {
                   </div>
 
                   <div className="rounded-xl border border-line bg-surface2/30 p-2.5 text-xs space-y-1 text-muted">
-                    <div className="flex justify-between">
-                      <span>Ontology Version:</span>
-                      <b className="text-ink">{d.version.label}</b>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="shrink-0">Ontology Version:</span>
+                      <b className="text-ink text-right">{domainName}</b>
                     </div>
                     <div className="flex justify-between">
                       <span>Domain:</span>
-                      <b className="text-ink">{wf.data?.domain?.name || 'Finance'}</b>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Status:</span>
-                      <b className={finalized ? 'text-ok' : 'text-brand'}>{finalized ? 'Governed' : 'Draft / Candidate'}</b>
+                      <b className="text-ink">Finance</b>
                     </div>
                   </div>
                 </div>
@@ -399,14 +403,13 @@ export default function Finalize() {
           <section className="card p-4 border border-line mt-6 mb-8">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="font-semibold text-sm text-ink">Compare Versions</h2>
-              <select className="input !w-auto text-xs" value={range.from} onChange={(e) => setRange({ ...range, from: Number(e.target.value) })} aria-label="From version">
-                <option value={0}>KG0 reference (selected blocks)</option>
-                {d.versions.map((v) => <option key={v.number} value={v.number}>{v.label}</option>)}
-              </select>
+              <span className="inline-flex items-center rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-2xs">
+                Model "{domainName}" Template
+              </span>
               <ArrowRight size={14} className="text-muted" />
-              <select className="input !w-auto text-xs" value={range.to ?? ''} onChange={(e) => setRange({ ...range, to: Number(e.target.value) })} aria-label="To version">
-                {d.versions.map((v) => <option key={v.number} value={v.number}>{v.label}</option>)}
-              </select>
+              <span className="inline-flex items-center rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-2xs">
+                Current "{domainName}" Template
+              </span>
             </div>
             {cmp ? (
               <>
@@ -463,7 +466,7 @@ export default function Finalize() {
         onConfirm={doFinalize}
       >
         <p className="text-xs leading-relaxed text-ink">
-          This locks <strong>{d?.version.label}</strong> as your official Enterprise Digital Twin. All discovered entities, business rules, and dimensions will be permanently governed for financial modeling.
+          This locks <strong>Current "{domainName}" Template</strong> as your official Enterprise Digital Twin. All discovered entities, business rules, and dimensions will be permanently governed for financial modeling.
         </p>
         {d?.validation.warnings.length > 0 && (
           <label className="mt-3 flex items-start gap-2 text-xs text-ink">

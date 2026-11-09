@@ -20,13 +20,13 @@ const STAGES = [
   {
     id: 2,
     title: 'Core Nuances',
-    subtitle: 'KG1 Discovery',
+    subtitle: 'Discovery',
     getRoute: (slug) => (slug ? `/finance/${slug}` : '/finance'),
   },
   {
     id: 3,
     title: 'Business Telemetry',
-    subtitle: 'KG2 Gap Analysis',
+    subtitle: 'Gap Analysis',
     getRoute: (slug) => (slug ? `/finance/${slug}?mode=upload` : '/finance'),
   },
   {
