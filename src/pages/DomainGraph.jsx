@@ -617,197 +617,91 @@ export default function DomainGraph() {
       }
     >
       {/* Top Header Navigation with Domain Tabs */}
-      <div className="mb-4 flex flex-col gap-2.5 rounded-2xl border border-line bg-surface/70 p-3 sm:p-3.5 backdrop-blur shadow-2xs">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 select-none">
-          <Link
-            to="/finance"
-            className="group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] font-semibold transition-all duration-200 cursor-pointer flex items-center gap-1.5 shrink-0 border border-line bg-surface/90 text-muted hover:text-ink hover:border-brand/40 hover:bg-surface2 shadow-2xs hover:-translate-y-0.5"
-          >
-            <ArrowLeft size={14} className="text-brand" />
-            <span className="tracking-tight">All Domains</span>
-          </Link>
-
-          {ORDER.filter((dKey) => !domainKey || domainKey === dKey).map((dKey) => {
-            const meta = DOMMETA[dKey]
-            const targetSlug = DOMAIN_SLUGS[dKey]
-            const isSelected = domainKey === dKey
-
-            return (
-              <button
-                key={dKey}
-                type="button"
-                className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${isSelected
-                  ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
-                  : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
-                  }`}
-                onClick={() => {
-                  if (targetSlug && targetSlug !== slug) {
-                    nav(`/finance/${targetSlug}`)
-                  }
-                }}
-                title={meta.n}
-              >
-                <span
-                  className="h-2 w-2 rounded-full shrink-0 transition-transform group-hover:scale-125"
-                  style={{
-                    backgroundColor: isSelected ? '#FFFFFF' : meta.c,
-                    boxShadow: isSelected ? '0 0 8px rgba(255,255,255,0.8)' : undefined,
-                  }}
-                />
-                <span className="font-semibold text-xs sm:text-[13px] tracking-tight whitespace-nowrap">
-                  {meta.n}
-                </span>
-              </button>
-            )
-          })}
-
-          {/* AgentForgeX Generated Badge directly in 1st line after selected domain */}
-          {(() => {
-            const hasCustomNodes = base?.nodes?.some(n => n.role === 'client' || n.origin === 'user' || n.change_state === 'added' || n.origin === 'custom')
-            const isGenerated = Boolean(aiGraph || (g.data?.version && g.data.version.number > 0) || hasCustomNodes)
-            const count = base?.nodes?.length || aiGraph?.nodes?.length || g.data?.nodes?.length || 0
-            if (!isGenerated || count === 0) return null
-            return (
-              <span className="rounded-full bg-brand/15 px-3 py-1 text-xs font-semibold text-brand border border-brand/30 shrink-0">
-                AgentForgeX Generated ({count} {count === 1 ? 'node' : 'nodes'})
-              </span>
-            )
-          })()}
-        </div>
-      </div>
-
-      {wf.data && <Stepper slug={slug} steps={wf.data.steps} current={3} />}
-
-      {/* Search and Filters Bar */}
-      <div className="card mt-3 p-3">
-        {/* <div className="flex flex-wrap items-start gap-3">
-          <div className="relative min-w-[240px] flex-1">
-            <Search size={15} className="pointer-events-none absolute left-3 top-3 text-muted" />
-            <input
-              className="input pl-9 pr-8 text-xs sm:text-sm"
-              placeholder="Search entity, attribute or formula…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              aria-label="Search the graph"
-            />
-            {q && (
-              <button
-                className="absolute right-2 top-2.5 text-muted hover:text-ink cursor-pointer"
-                onClick={() => setQ('')}
-                aria-label="Clear search"
-              >
-                <X size={16} />
-              </button>
-            )}
-            {results && (
-              <ul className="scroll-thin absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded-xl border border-line bg-surface p-1 shadow-card">
-                {results.length === 0 && <li className="p-3 text-xs sm:text-sm text-muted">No matches in this sub-domain.</li>}
-                {results.map((r) => (
-                  <li key={r.key}>
-                    <button
-                      className="w-full rounded-lg p-2 text-left hover:bg-surface2 cursor-pointer"
-                      onClick={() => {
-                        select(r.key)
-                        setResults(null)
-                      }}
-                    >
-                      <span className="block text-xs sm:text-sm font-semibold">{r.name}</span>
-                      <span className="block truncate text-[11px] text-muted">
-                        {r.hits.map((h) => `${h.field}: ${h.text}`).join(' · ')}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <select
-            className="input !w-auto text-xs sm:text-sm"
-            value={scope}
-            onChange={(e) => setScope(e.target.value)}
-            aria-label="Search scope"
-          >
-            {SCOPES.map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
-
-          <label className="flex cursor-pointer items-center gap-2 py-2 text-xs sm:text-sm select-none">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-[rgb(var(--brand))]"
-              checked={neighbours}
-              onChange={(e) => setNeighbours(e.target.checked)}
-            />
-            <span className="font-medium text-ink/90">Cross-domain neighbours</span>
-          </label>
-        </div> */}
-
-        {/* Domain view pagination & 'Next: Upload Data' Action */}
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2" aria-label="Sub-domain view pagination">
-          <div className="flex items-center gap-1.5 bg-surface2/60 border border-line rounded-xl p-1 shadow-xs">
-            <button
-              type="button"
-              onClick={handlePrevView}
-              disabled={currentViewIdx === 0}
-              className="p-1.5 rounded-lg hover:bg-surface text-ink/70 hover:text-ink transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Previous view"
-              aria-label="Previous view"
+      <div className="mb-4 rounded-2xl border border-line bg-surface/70 p-3 sm:p-3.5 backdrop-blur shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 select-none">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            <Link
+              to="/finance"
+              className="group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] font-semibold transition-all duration-200 cursor-pointer flex items-center gap-1.5 shrink-0 border border-line bg-surface/90 text-muted hover:text-ink hover:border-brand/40 hover:bg-surface2 shadow-2xs hover:-translate-y-0.5"
             >
-              <ChevronLeft size={16} />
-            </button>
+              <ArrowLeft size={14} className="text-brand" />
+              <span className="tracking-tight">All Domains</span>
+            </Link>
 
-            <div className="flex items-center gap-1">
-              {viewOptions.map((opt, idx) => {
-                const isActive = idx === currentViewIdx
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setActiveDomainFilter(opt.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-surface text-ink shadow-xs font-semibold ring-1 ring-line'
-                        : 'text-muted hover:text-ink hover:bg-surface/50'
+            {ORDER.filter((dKey) => !domainKey || domainKey === dKey).map((dKey) => {
+              const meta = DOMMETA[dKey]
+              const targetSlug = DOMAIN_SLUGS[dKey]
+              const isSelected = activeDomainFilter === dKey
+
+              return (
+                <button
+                  key={dKey}
+                  type="button"
+                  className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${isSelected
+                    ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
+                    : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
                     }`}
-                  >
-                    <span
-                      className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        isActive ? 'bg-brand/20 text-brand' : 'bg-line text-muted'
-                      }`}
-                    >
-                      {idx + 1}
-                    </span>
-                    {opt.color && (
-                      <span
-                        className="h-2 w-2 rounded-full shrink-0"
-                        style={{ background: opt.color }}
-                      />
-                    )}
-                    <span>{opt.label}</span>
-                  </button>
-                )
-              })}
-            </div>
+                  onClick={() => {
+                    setActiveDomainFilter(dKey)
+                    if (targetSlug && targetSlug !== slug) {
+                      nav(`/finance/${targetSlug}`)
+                    }
+                  }}
+                  title={meta.n}
+                >
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0 transition-transform group-hover:scale-125"
+                    style={{
+                      backgroundColor: isSelected ? '#FFFFFF' : meta.c,
+                      boxShadow: isSelected ? '0 0 8px rgba(255,255,255,0.8)' : undefined,
+                    }}
+                  />
+                  <span className="font-semibold text-xs sm:text-[13px] tracking-tight whitespace-nowrap">
+                    {meta.n}
+                  </span>
+                </button>
+              )
+            })}
 
+            {/* Finance master-data spine button */}
             <button
               type="button"
-              onClick={handleNextView}
-              disabled={currentViewIdx === viewOptions.length - 1}
-              className="p-1.5 rounded-lg hover:bg-surface text-ink/70 hover:text-ink transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Next view"
-              aria-label="Next view"
+              onClick={() => setActiveDomainFilter('spine')}
+              className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${activeDomainFilter === 'spine'
+                ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
+                : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
+                }`}
+              title="Finance master-data spine"
             >
-              <ChevronRight size={16} />
+              <span
+                className="h-2 w-2 rounded-full shrink-0 transition-transform group-hover:scale-125"
+                style={{
+                  backgroundColor: activeDomainFilter === 'spine' ? '#FFFFFF' : '#38BDF8',
+                  boxShadow: activeDomainFilter === 'spine' ? '0 0 8px rgba(255,255,255,0.8)' : undefined,
+                }}
+              />
+              <span className="font-semibold text-xs sm:text-[13px] tracking-tight whitespace-nowrap">
+                Finance master-data spine
+              </span>
             </button>
+
+            {/* AgentForgeX Generated Badge directly in 1st line after selected domain */}
+            {(() => {
+              const hasCustomNodes = base?.nodes?.some(n => n.role === 'client' || n.origin === 'user' || n.change_state === 'added' || n.origin === 'custom')
+              const isGenerated = Boolean(aiGraph || (g.data?.version && g.data.version.number > 0) || hasCustomNodes)
+              const count = base?.nodes?.length || aiGraph?.nodes?.length || g.data?.nodes?.length || 0
+              if (!isGenerated || count === 0) return null
+              return (
+                <span className="rounded-full bg-brand/15 px-3 py-1 text-xs font-semibold text-brand border border-brand/30 shrink-0">
+                  AgentForgeX Generated ({count} {count === 1 ? 'node' : 'nodes'})
+                </span>
+              )
+            })()}
           </div>
 
-          {/* Action Buttons: Gap Analysis (MOM Step 5) */}
+          {/* Action Buttons: Gap Analysis directly in top header */}
           {hasUploadedFiles && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={handleProceedToGapAnalysis}
@@ -824,6 +718,8 @@ export default function DomainGraph() {
           )}
         </div>
       </div>
+
+      {wf.data && <Stepper slug={slug} steps={wf.data.steps} current={3} />}
 
 
       {/* Main Grid: Left Area (Graph or Upload) | Right Chatbot */}
