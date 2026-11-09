@@ -225,6 +225,7 @@ export default function DomainGraph() {
   const g = useAsync(() => domains.graph(slug, neighbours), [slug, neighbours])
   const blocks = useAsync(() => domains.blocks(slug), [slug])
   const flows = useAsync(() => domains.flows(slug), [slug])
+<<<<<<< HEAD
   const domainFiles = useAsync(() => filesApi.list(slug), [slug])
   const hasUploadedFiles = Boolean(domainFiles.data?.files && domainFiles.data.files.length > 0)
   const [searchParams] = useSearchParams()
@@ -256,6 +257,8 @@ export default function DomainGraph() {
       })
     }
   }, [slug, isKG1Ready, hasUploadedFiles, isGapMode, finalized, leftViewMode, updateDomainWorkflow])
+=======
+>>>>>>> parent of 6b5ba67 (KG2 Gap Analysis Btn Update logic)
 
   // Auto-start workflow if not already started (no redirect to intermediate overview)
   useEffect(() => {
@@ -269,10 +272,6 @@ export default function DomainGraph() {
 
   // Load chat conversation, proposals, and HTML graph whenever slug changes
   useEffect(() => {
-    setIsGapMode(false)
-    setGapData(null)
-    setLeftViewMode('graph')
-    setParsingProgress(null)
     setActiveDomainFilter(domainKey)
     setSelected(null)
     setSelectedNodeData(null)
@@ -803,6 +802,7 @@ export default function DomainGraph() {
             </button>
           </div>
 
+<<<<<<< HEAD
           {/* Action Buttons: Gap Analysis (MOM Step 5) */}
           {hasUploadedFiles && (
             <div className="flex items-center gap-2">
@@ -820,6 +820,49 @@ export default function DomainGraph() {
               </button>
             </div>
           )}
+=======
+          {/* Action Buttons: Gap Analysis (MOM Step 5) and Upload Toggle (MOM Step 3) */}
+          <div className="flex items-center gap-2">
+            {/* Direct Gap Analysis (KG2) Button */}
+            <button
+              type="button"
+              onClick={handleProceedToGapAnalysis}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${
+                isGapMode && leftViewMode === 'graph'
+                  ? 'bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-red-500/25 ring-2 ring-red-400/40'
+                  : 'btn-ghost border-[#ef4444] text-[#ef4444] hover:bg-[#ef4444]/10'
+              }`}
+              title="Compare uploaded business telemetry against KG1 to highlight discrepancies in RED"
+            >
+              <Sparkles size={14} />
+              <span>KG2 Gap Analysis</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setLeftViewMode(leftViewMode === 'upload' ? 'graph' : 'upload')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${
+                leftViewMode === 'upload'
+                  ? 'btn-ghost border-[#10b981] text-[#10b981] hover:bg-[#10b981]/10'
+                  : 'bg-[#10b981] hover:bg-[#059669] text-black shadow-emerald-500/20 hover:scale-[1.02]'
+              }`}
+              title={leftViewMode === 'upload' ? 'Switch back to Knowledge Graph' : 'Hide graph and open file upload zone'}
+            >
+              {leftViewMode === 'upload' ? (
+                <>
+                  <Network size={14} />
+                  <span>View Knowledge Graph</span>
+                </>
+              ) : (
+                <>
+                  <UploadCloud size={14} />
+                  <span>Next: Upload Data</span>
+                  <ArrowRight size={13} />
+                </>
+              )}
+            </button>
+          </div>
+>>>>>>> parent of 6b5ba67 (KG2 Gap Analysis Btn Update logic)
         </div>
       </div>
 
@@ -837,8 +880,12 @@ export default function DomainGraph() {
                 setParsingProgress({ fileName, stage, timestamp: Date.now() })
               }
               onFileUploaded={() => {
+<<<<<<< HEAD
                 domainFiles.reload()
                 chat.get(slug).then(setSnap).catch(() => { })
+=======
+                chat.get(slug).then(setSnap).catch(() => {})
+>>>>>>> parent of 6b5ba67 (KG2 Gap Analysis Btn Update logic)
               }}
             />
           </div>
