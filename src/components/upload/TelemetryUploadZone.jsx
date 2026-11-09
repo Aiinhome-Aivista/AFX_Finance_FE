@@ -11,7 +11,6 @@ import {
   Table,
   ArrowLeft,
   X,
-  Sparkles,
 } from 'lucide-react'
 import { Spinner, Loading, EmptyState } from '../common/States'
 import { files as filesApi } from '../../api'
@@ -147,7 +146,7 @@ export default function TelemetryUploadZone({
           <div>
             <h2 className="text-sm font-bold text-ink">Upload Business Data</h2>
             <p className="text-[11px] text-muted">
-              Map real-world enterprise telemetry onto your Knowledge Graph (KG1)
+              Map real-world enterprise telemetry onto your Knowledge Graph
             </p>
           </div>
         </div>
@@ -255,17 +254,16 @@ export default function TelemetryUploadZone({
           </div>
         )}
 
-        {/* Action Button: Proceed to Gap Analysis (KG2) - Placed below upload section, centered */}
+        {/* Action Button: Proceed to Gap Analysis - Placed below upload section, centered */}
         {onProceedToGapAnalysis && processedCount > 0 && (
           <div className="flex justify-center py-1">
             <button
               type="button"
               onClick={onProceedToGapAnalysis}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-white shadow-md shadow-emerald-500/25 hover:scale-[1.02] transition-all cursor-pointer"
-              title="Proceed to Step 5: Gap Analysis Evolution (KG2)"
+              title="Proceed to Step 5: Gap Analysis Evolution"
             >
-              <Sparkles size={14} />
-              <span>Proceed to Gap Analysis (KG2)</span>
+              <span>Proceed to Gap Analysis</span>
             </button>
           </div>
         )}

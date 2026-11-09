@@ -53,6 +53,16 @@ function formatCleanContent(text) {
     .replace(/\*(.*?)\*/g, '$1')
     .replace(/`([^`]+)`/g, '$1')
     .replace(/^[ \t]*\*[ \t]+/gm, '- ')
+    // Replace technical terms KG1 / KG2 / KG0 with user-friendly domain terminology
+    .replace(/\bGap Analysis \(KG2 Evolution\) Complete\b/gi, 'Gap Analysis Complete')
+    .replace(/\(KG2 Evolution\)/gi, '')
+    .replace(/\(KG2\)/gi, '')
+    .replace(/\bwith KG1\b/gi, 'with your core domain model')
+    .replace(/\bacross (\d+) KG1 entities\b/gi, 'across $1 entities')
+    .replace(/\bKG1 entities\b/gi, 'entities')
+    .replace(/\bKG1\b/g, 'Domain Model')
+    .replace(/\bKG2\b/g, 'Telemetry Analysis')
+    .replace(/\bKG0\b/g, 'Reference Model')
     .trim()
 }
 
@@ -101,7 +111,7 @@ export default function ChatPanel({
 
     const t2 = setTimeout(() => {
       setWittyDialogue({
-        text: `Cross-referencing telemetry columns with your KG1 core nodes and business rules...`,
+        text: `Cross-referencing telemetry columns with your core business model and rules...`,
         sub: 'Correlating with Finance ontology',
         step: 3,
       })
@@ -109,7 +119,7 @@ export default function ChatPanel({
 
     const t3 = setTimeout(() => {
       setWittyDialogue({
-        text: `Data parsing complete for “${fileName}”! Synthesizing Gap Analysis (KG2)...`,
+        text: `Data parsing complete for “${fileName}”! Synthesizing Gap Analysis...`,
         sub: 'Ready for discrepancy review',
         step: 4,
       })
@@ -341,13 +351,38 @@ export default function ChatPanel({
           />
         </div>
 
-        {/* Status indicator: Nuances Captured / Discovery Complete */}
+        {/* Status indicator with 'Next: Upload Data' Action Button (MOM Step 3) */}
         {(isComplete || answeredCount >= 1) && (
-          <div className="mt-2.5 flex items-center gap-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/30 px-3 py-1.5 text-xs text-emerald-800 dark:text-emerald-300 font-semibold truncate">
-            <CheckCircle2 size={14} className="text-[#10b981] shrink-0" />
-            <span className="truncate">
-              {isComplete ? 'Discovery Complete · KG1 Ready' : 'Nuances Captured · KG1 Ready'}
-            </span>
+          <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/30 px-3 py-2 text-xs">
+            <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-semibold truncate">
+              <CheckCircle2 size={14} className="text-[#10b981] shrink-0" />
+              <span className="truncate">
+                {isComplete ? 'Discovery Complete · Model Ready' : 'Nuances Captured · Model Ready'}
+              </span>
+            </div>
+            {onNextToUpload && (
+              <button
+                type="button"
+                onClick={onNextToUpload}
+                className={`btn text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer font-bold shadow-sm transition-all ${
+                  isUploadOpen
+                    ? 'btn-ghost border-[#10b981] text-[#10b981]'
+                    : 'bg-[#10b981] hover:bg-[#059669] text-white shadow-emerald-500/25 hover:scale-105'
+                }`}
+              >
+                {isUploadOpen ? (
+                  <>
+                    <span>Viewing Upload</span>
+                    <CheckCircle2 size={13} />
+                  </>
+                ) : (
+                  <>
+                    <span>Next: Upload Data</span>
+                    <ArrowRight size={13} />
+                  </>
+                )}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -505,10 +540,10 @@ export default function ChatPanel({
               <div className="rounded-2xl border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/20 p-3.5 text-xs space-y-2 shadow-2xs">
                 <div className="flex items-center gap-2 font-bold text-emerald-800 dark:text-emerald-300">
                   <Sparkles size={15} className="text-[#10b981]" />
-                  <span>KG1 Discovery Complete</span>
+                  <span>Domain Discovery Complete</span>
                 </div>
                 <p className="text-muted leading-relaxed">
-                  Your initial questionnaire responses have successfully synthesized <strong>KG1</strong>. Ingest your business data files (CSV, Excel, PDF, SQL) to initiate Gap Analysis.
+                  Your initial questionnaire responses have successfully synthesized your <strong>Domain Knowledge Model</strong>. Ingest your business data files (CSV, Excel, PDF, SQL) to initiate Gap Analysis.
                 </p>
                 <button
                   type="button"

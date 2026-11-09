@@ -48,9 +48,9 @@ export default function DomainOverview() {
       <div className="card mb-4 p-5 sm:p-6" style={{ borderTop: `4px solid ${d.color}` }}>
         <h1 className="mt-2 text-2xl font-semibold">{d.name}</h1>
         <p className="mt-2 max-w-3xl text-sm text-muted">{d.scope}</p>
-        <p className="mt-3 text-xs text-muted">Reference graph (KG0): {d.counts.core} core entities · {d.counts.shared} shared master-data entities · {d.counts.neighbour} cross-domain neighbours</p>
+        <p className="mt-3 text-xs text-muted">Reference graph: {d.counts.core} core entities · {d.counts.shared} shared master-data entities · {d.counts.neighbour} cross-domain neighbours</p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <button className="btn-primary" onClick={start} disabled={busy}>{busy && <Spinner />}{wf.started ? 'Continue to reference graph' : 'Select this domain & generate KG0'} <ArrowRight size={16} /></button>
+          <button className="btn-primary" onClick={start} disabled={busy}>{busy && <Spinner />}{wf.started ? 'Continue to reference graph' : 'Select this domain & view reference graph'} <ArrowRight size={16} /></button>
         </div>
       </div>
       <Stepper slug={slug} steps={wf.steps} current={wf.started ? wf.current_step : 2} />

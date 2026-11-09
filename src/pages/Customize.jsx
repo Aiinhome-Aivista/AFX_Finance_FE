@@ -69,26 +69,13 @@ export default function Customize() {
   if (!ready) return <Navigate to={`/finance/${slug}/graph`} replace />
 
   return (
-    <Layout
-      wide
-      headerAction={
-        <button
-          type="button"
-          onClick={() => setViewMode(viewMode === 'upload' ? 'graph' : 'upload')}
-          className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
-          title="Upload business telemetry data"
-        >
-          <span>Next: Upload Data</span>
-          <ArrowRight size={13} />
-        </button>
-      }
-    >
+    <Layout wide>
       <Link to={`/finance/${slug}/graph`} className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft size={14} /> Reference graph</Link>
       <Stepper slug={slug} steps={wf.data.steps} current={4} />
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold">Tell us how your business really works</h1>
-          <p className="text-sm text-muted">{dom.data?.name} · answers become proposed changes to produce KG1</p>
+          <p className="text-sm text-muted">{dom.data?.name} · answers become proposed changes to produce your domain model</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -156,8 +143,8 @@ export default function Customize() {
               <div className="flex flex-wrap items-center gap-2">
                 <label className="text-xs text-muted" htmlFor="ver">Showing</label>
                 <select id="ver" className="input !w-auto text-sm" value={viewVersion ?? 'work'} onChange={(e) => setViewVersion(e.target.value === 'work' ? null : Number(e.target.value))}>
-                  <option value="work">{latest ? `Current: ${latest.label}` : 'Current: KG0 baseline (selected blocks)'}</option>
-                  <option value={0}>KG0 baseline (selected blocks)</option>
+                  <option value="work">{latest ? `Current: ${latest.label}` : 'Current: Reference baseline (selected blocks)'}</option>
+                  <option value={0}>Reference baseline (selected blocks)</option>
                   {vers.data?.versions.map((v) => <option key={v.number} value={v.number}>{v.label} · {v.kind}</option>)}
                 </select>
                 {g && <span className="text-xs text-muted">{counts.added} new · {counts.mod} modified · {g.nodes.length} entities · {g.edges.length} relationships</span>}
@@ -181,7 +168,7 @@ export default function Customize() {
                   </div>
                 </DetailsShell>
               </div>
-              <p className="text-xs text-muted">Green = added, amber = modified (relative to the previous version). The reference graph KG0 is never changed.</p>
+              <p className="text-xs text-muted">Green = added, amber = modified (relative to the previous version). The reference graph is never changed.</p>
               {proposal && <ProposalReview proposal={proposal} busy={deciding} onDecide={decide} />}
             </>
           )}
