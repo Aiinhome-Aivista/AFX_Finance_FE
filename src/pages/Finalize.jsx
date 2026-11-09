@@ -137,7 +137,7 @@ export default function Finalize() {
 
       {!hasKg1 && (
         <div className="card mt-3">
-          <EmptyState title="Nothing to finalise yet" hint="Answer the chatbot's questions and approve at least one set of changes to create KG1.">
+          <EmptyState title="Nothing to finalise yet" hint="Answer the chatbot's questions and approve at least one set of changes to generate your digital twin model.">
             <Link className="btn-primary mt-2" to={`/finance/${slug}`}>Go to the chatbot</Link>
           </EmptyState>
         </div>
@@ -226,6 +226,10 @@ export default function Finalize() {
                       <span>Domain:</span>
                       <b className="text-ink">Finance</b>
                     </div>
+                    <div className="flex justify-between">
+                      <span>Status:</span>
+                      <b className="text-[#10b981] font-bold">Governed</b>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -236,7 +240,7 @@ export default function Finalize() {
                     <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/80 dark:bg-emerald-950/30 p-3 text-xs">
                       <div className="flex items-center gap-2 font-bold text-emerald-800 dark:text-emerald-300">
                         <Lock size={14} />
-                        <span>Governed Enterprise Digital Twin · KG{wf.data.finalized_version_number}</span>
+                        <span>Governed Enterprise Digital Twin</span>
                       </div>
                       <p className="mt-1 text-[11px] text-muted">
                         This model is locked and governed. It represents your active financial operating architecture.
@@ -272,7 +276,7 @@ export default function Finalize() {
               <span className="inline-flex items-center rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-2xs">
                 Model "{domainName}" Template
               </span>
-              <ArrowRight size={14} className="text-muted" />
+              <span className="text-xs font-semibold text-muted px-0.5">vs</span>
               <span className="inline-flex items-center rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-2xs">
                 Current "{domainName}" Template
               </span>
