@@ -48,6 +48,14 @@ function formatCleanContent(text) {
     .replace(/[‘’]/g, "'")
     .replace(/•/g, '-')
     .replace(/[—–]/g, '-')
+    // Clean KG technical terms from existing stored conversation history
+    .replace(/\bKG1 entities\b/gi, 'baseline entities')
+    .replace(/\bKG1 core nodes\b/gi, 'baseline core nodes')
+    .replace(/\(KG2 Evolution\)/gi, '')
+    .replace(/\(KG2\)/gi, '')
+    .replace(/\bwith KG1\b/gi, 'with the baseline model')
+    .replace(/\bKG1\b/g, 'Baseline')
+    .replace(/\bKG2\b/g, 'Gap Analysis')
     // Strip markdown bold asterisks: **text** -> text
     .replace(/\*\*(.*?)\*\*/g, '$1')
     .replace(/\*(.*?)\*/g, '$1')
@@ -101,7 +109,7 @@ export default function ChatPanel({
 
     const t2 = setTimeout(() => {
       setWittyDialogue({
-        text: `Cross-referencing telemetry columns with your KG1 core nodes and business rules...`,
+        text: `Cross-referencing telemetry columns with your baseline core nodes and business rules...`,
         sub: 'Correlating with Finance ontology',
         step: 3,
       })
@@ -109,7 +117,7 @@ export default function ChatPanel({
 
     const t3 = setTimeout(() => {
       setWittyDialogue({
-        text: `Data parsing complete for “${fileName}”! Synthesizing Gap Analysis (KG2)...`,
+        text: `Data parsing complete for “${fileName}”! Synthesizing Gap Analysis...`,
         sub: 'Ready for discrepancy review',
         step: 4,
       })
@@ -346,7 +354,7 @@ export default function ChatPanel({
           <div className="mt-2.5 flex items-center gap-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/30 px-3 py-1.5 text-xs text-emerald-800 dark:text-emerald-300 font-semibold truncate">
             <CheckCircle2 size={14} className="text-[#10b981] shrink-0" />
             <span className="truncate">
-              {isComplete ? 'Discovery Complete · KG1 Ready' : 'Nuances Captured · KG1 Ready'}
+              {isComplete ? 'Discovery Complete · Baseline Ready' : 'Nuances Captured · Baseline Ready'}
             </span>
           </div>
         )}
@@ -500,15 +508,15 @@ export default function ChatPanel({
               </div>
             )}
 
-            {/* Discovery Complete / KG1 Milestone Card (MOM Step 3) */}
+            {/* Discovery Complete / Baseline Milestone Card (MOM Step 3) */}
             {isComplete && onNextToUpload && !isUploadOpen && (
               <div className="rounded-2xl border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/20 p-3.5 text-xs space-y-2 shadow-2xs">
                 <div className="flex items-center gap-2 font-bold text-emerald-800 dark:text-emerald-300">
                   <Sparkles size={15} className="text-[#10b981]" />
-                  <span>KG1 Discovery Complete</span>
+                  <span>Discovery Complete · Baseline Ready</span>
                 </div>
                 <p className="text-muted leading-relaxed">
-                  Your initial questionnaire responses have successfully synthesized <strong>KG1</strong>. Ingest your business data files (CSV, Excel, PDF, SQL) to initiate Gap Analysis.
+                  Your initial questionnaire responses have successfully synthesized your <strong>Baseline Domain Model</strong>. Ingest your business data files (CSV, Excel, PDF, SQL) to initiate Gap Analysis.
                 </p>
                 <button
                   type="button"

@@ -851,7 +851,7 @@ export default function DomainGraph() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-red-500/20 bg-red-50/80 dark:bg-red-950/40 px-3.5 py-2 text-xs">
                 <div className="flex items-center gap-2">
                   <span className="flex h-2.5 w-2.5 rounded-full bg-[#ef4444] animate-pulse" />
-                  <span className="font-bold text-ink">KG2 Gap Analysis Evolution:</span>
+                  <span className="font-bold text-ink">Telemetry Gap Analysis:</span>
                   <span className="rounded-full bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300 px-2 py-0.5 text-[11px] font-bold border border-red-300/40">
                     {gapData.stats?.discrepancies || 0} Gaps in RED ({gapData.stats?.missing || 0} Missing, {gapData.stats?.new || 0} New)
                   </span>

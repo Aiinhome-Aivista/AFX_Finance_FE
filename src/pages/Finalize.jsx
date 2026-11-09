@@ -226,6 +226,10 @@ export default function Finalize() {
                       <span>Domain:</span>
                       <b className="text-ink">Finance</b>
                     </div>
+                    <div className="flex justify-between">
+                      <span>Status:</span>
+                      <b className={finalized ? 'text-ok' : 'text-brand'}>{finalized ? 'Governed' : 'Draft / Candidate'}</b>
+                    </div>
                   </div>
                 </div>
               </div>
