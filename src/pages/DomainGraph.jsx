@@ -567,11 +567,11 @@ export default function DomainGraph() {
       headerAction={
         <button
           type="button"
-          onClick={() => setLeftViewMode(leftViewMode === 'upload' ? 'graph' : 'upload')}
+          onClick={() => nav(`/finance/${slug}/finalize`)}
           className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
-          title={leftViewMode === 'upload' ? 'Return to Knowledge Graph' : 'Upload business telemetry data'}
+          title="Proceed to Review & Finalize Twin"
         >
-          <span>Next: Upload Data</span>
+          <span>Next: Finalize Twin</span>
           <ArrowRight size={13} />
         </button>
       }
@@ -735,24 +735,6 @@ export default function DomainGraph() {
               {DOMMETA.spine.n}
             </button>
           </div>
-
-          {/* Action Buttons: Gap Analysis (MOM Step 5) */}
-          {hasUploadedFiles && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleProceedToGapAnalysis}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${isGapMode && leftViewMode === 'graph'
-                  ? 'bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-red-500/25 ring-2 ring-red-400/40'
-                  : 'btn-ghost border-[#ef4444] text-[#ef4444] hover:bg-[#ef4444]/10'
-                  }`}
-                title="Compare uploaded business telemetry against KG1 to highlight discrepancies in RED"
-              >
-                <Sparkles size={14} />
-                <span>KG2 Gap Analysis</span>
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -801,15 +783,6 @@ export default function DomainGraph() {
                     className="btn-ghost btn-sm text-[11px] px-2.5 py-1 text-muted hover:text-ink cursor-pointer"
                   >
                     Exit Gap Mode
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      nav(`/finance/${slug}/finalize`)
-                    }}
-                    className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold px-3 py-1 text-[11px] rounded-lg shadow-sm cursor-pointer"
-                  >
-                    Next: Finalize Twin →
                   </button>
                 </div>
               </div>

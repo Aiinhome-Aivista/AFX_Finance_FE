@@ -10,7 +10,6 @@ import {
   Layers,
   Network,
   RotateCcw,
-  Search,
   Sparkles,
   Workflow,
   X,
@@ -258,47 +257,6 @@ export default function FinanceLanding() {
               </button>
             )
           })}
-        </div>
-
-        {/* Toolbar: Search, Neighbour Toggle & View Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-          <div className="text-xs text-muted flex items-center gap-2">
-            <span className="inline-block h-2 w-2 rounded-full bg-brand" />
-            <span className="font-medium text-ink/80">8 Finance Sub-Domains + Conformed Master-Data Spine</span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 ml-auto">
-            {/* Search Input */}
-            <div className="relative">
-              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-              <input
-                type="search"
-                placeholder="Find entity, formula or attribute…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-60 sm:w-72 rounded-xl border border-line bg-surface pl-9 pr-8 text-xs text-ink placeholder:text-muted focus:border-brand focus:outline-none shadow-sm"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
-                >
-                  <X size={13} />
-                </button>
-              )}
-            </div>
-
-            {/* Cross-domain neighbours toggle */}
-            <label className="flex items-center gap-2 text-xs text-muted cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={showNeighbours}
-                onChange={(e) => setShowNeighbours(e.target.checked)}
-                className="rounded border-line text-brand focus:ring-brand h-4 w-4"
-              />
-              <span className="font-medium">Show cross-domain links</span>
-            </label>
-          </div>
         </div>
       </div>
 

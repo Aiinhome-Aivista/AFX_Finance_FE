@@ -11,7 +11,6 @@ import {
   Table,
   ArrowLeft,
   X,
-  Sparkles,
 } from 'lucide-react'
 import { Spinner, Loading, EmptyState } from '../common/States'
 import { files as filesApi } from '../../api'
@@ -264,7 +263,6 @@ export default function TelemetryUploadZone({
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-white shadow-md shadow-emerald-500/25 hover:scale-[1.02] transition-all cursor-pointer"
               title="Proceed to Step 5: Gap Analysis Evolution (KG2)"
             >
-              <Sparkles size={14} />
               <span>Proceed to Gap Analysis (KG2)</span>
             </button>
           </div>
