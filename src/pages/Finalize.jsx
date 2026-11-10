@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, CheckCircle2, History, Lock, X } from 'lucide-react'
 import Layout from '../components/common/Layout'
 import Stepper from '../components/common/Stepper'
@@ -569,6 +569,7 @@ function DiffLists({ d, domainName = 'Finance', slug = '' }) {
 
 export default function Finalize() {
   const { slug } = useParams()
+  const navigate = useNavigate()
   const toast = useToast()
   const wf = useAsync(() => domains.workflow(slug), [slug])
   const fin = useAsync(() => graphs.finalization(slug), [slug], { immediate: false })
@@ -671,9 +672,15 @@ export default function Finalize() {
     setBusy(true)
     try {
       await graphs.reopen(slug)
-      toast.success('Ontology re-opened for editing.')
+      toast.success('Ontology unlocked! Your uploaded files are safely preserved.')
       setDlg(null)
+      updateDomainWorkflow(slug, {
+        isFinalized: false,
+        isGapMode: false,
+        viewMode: 'chat',
+      })
       await Promise.all([wf.reload(), fin.reload()])
+      navigate(`/finance/${slug}`)
     } catch (e) {
       toast.error(e.message)
       setDlg(null)
@@ -973,7 +980,7 @@ export default function Finalize() {
       <ConfirmDialog
         open={dlg === 'finalize'}
         title="Finalise Enterprise Digital Twin?"
-        confirmLabel="Finalise as Digital Twin 🌟"
+        confirmLabel="Finalise as Digital Twin"
         busy={busy}
         onCancel={() => setDlg(null)}
         onConfirm={doFinalize}
@@ -991,14 +998,14 @@ export default function Finalize() {
 
       <ConfirmDialog
         open={dlg === 'reopen'}
-        title="Re-open the ontology?"
-        confirmLabel="Re-open"
+        title="Re-open Ontology for Editing?"
+        confirmLabel="Confirm Re-open"
         busy={busy}
         onCancel={() => setDlg(null)}
         onConfirm={doReopen}
       >
-        <p className="text-xs text-ink">
-          Possible only while no telemetry has been uploaded. Uploads will be locked again until you re-finalise.
+        <p className="text-xs text-ink leading-relaxed">
+          Re-opening unlocks this ontology for chatbot customization. Your uploaded business telemetry files will be safely preserved so you can re-run gap analysis after refining your model.
         </p>
       </ConfirmDialog>
     </Layout>
