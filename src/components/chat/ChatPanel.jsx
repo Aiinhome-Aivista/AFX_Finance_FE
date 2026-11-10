@@ -27,7 +27,7 @@ const KIND_LABEL = {
   node_qa: 'Entity Analysis',
   intro: 'Welcome',
   system: 'System',
-  telemetry: 'Data Parser Copilot',
+  telemetry: 'Finance Data Assistant',
 }
 
 function formatCleanContent(text) {
@@ -364,11 +364,10 @@ export default function ChatPanel({
               <button
                 type="button"
                 onClick={onNextToUpload}
-                className={`btn text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer font-bold shadow-sm transition-all ${
-                  isUploadOpen
-                    ? 'btn-ghost border-[#10b981] text-[#10b981]'
-                    : 'bg-[#10b981] hover:bg-[#059669] text-white shadow-emerald-500/25 hover:scale-105'
-                }`}
+                className={`btn text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer font-bold shadow-sm transition-all ${isUploadOpen
+                  ? 'btn-ghost border-[#10b981] text-[#10b981]'
+                  : 'bg-[#10b981] hover:bg-[#059669] text-white shadow-emerald-500/25 hover:scale-105'
+                  }`}
               >
                 {isUploadOpen ? (
                   <>
@@ -440,7 +439,7 @@ export default function ChatPanel({
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-1.5 font-bold text-emerald-800 dark:text-emerald-300">
                 <Sparkles size={14} className="text-[#10b981] animate-spin" />
-                <span>Data Parser Copilot</span>
+                <span>Finance Data Assistant</span>
               </div>
               <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/25 font-semibold">
                 Deep Dive Step {wittyDialogue.step} of 4
