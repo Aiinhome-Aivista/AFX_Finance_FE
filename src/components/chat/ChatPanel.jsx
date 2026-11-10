@@ -111,7 +111,7 @@ export default function ChatPanel({
 
     const t1 = setTimeout(() => {
       setWittyDialogue({
-        text: `Crunching through rows and formulas... I don't even have a coffee break! ☕`,
+        text: `Crunching through rows and formulas... I don't even have a coffee break!`,
         sub: 'Parsing table dimensions and identifiers',
         step: 2,
       })

@@ -18,7 +18,7 @@ const Stat = ({ label, v, tone }) => <div className="rounded-xl bg-surface2 p-3 
 function getBusinessInsight(nodeName, attrsAdded = [], renamedFrom = '') {
   const nameLower = (nodeName || '').toLowerCase()
   const attrs = attrsAdded.join(' ').toLowerCase()
-  
+
   if (attrs.includes('zbb') || nameLower.includes('budget') || attrs.includes('variancethreshold')) {
     return {
       tag: 'Cost Control & Variance Governance',
@@ -83,7 +83,7 @@ function DiffLists({ d }) {
               {d.nodes_removed.map((n) => (
                 <li key={n.key} className="rounded-xl border border-bad/30 bg-bad/5 p-2.5 text-bad">
                   <b>{n.name}</b>
-                  <div className="text-[11px] text-bad/80 mt-0.5">⚠️ Missing in current model: Ensure statutory compliance is maintained.</div>
+                  <div className="text-[11px] text-bad/80 mt-0.5">Missing in current model: Ensure statutory compliance is maintained.</div>
                 </li>
               ))}
             </ul>
@@ -396,7 +396,7 @@ export default function Finalize() {
                     onClick={() => { setAck(false); setDlg('finalize') }}
                   >
                     <Sparkles size={15} />
-                    <span>Finalise as Digital Twin 🌟</span>
+                    <span>Finalise as Digital Twin</span>
                   </button>
                 )}
               </div>
@@ -464,7 +464,7 @@ export default function Finalize() {
       <ConfirmDialog
         open={dlg === 'finalize'}
         title="Finalise Enterprise Digital Twin?"
-        confirmLabel="Finalise as Digital Twin 🌟"
+        confirmLabel="Finalise as Digital Twin"
         busy={busy}
         onCancel={() => setDlg(null)}
         onConfirm={doFinalize}
