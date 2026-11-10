@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, History, Lock, Sparkles, XCircle } from 'lucide-react'
 import Layout from '../components/common/Layout'
@@ -15,10 +15,64 @@ import { useWorkflow } from '../context/WorkflowContext'
 
 const Stat = ({ label, v, tone }) => <div className="rounded-xl bg-surface2 p-3 text-center"><div className={`text-xl font-semibold ${tone || ''}`}>{v}</div><div className="text-[11px] text-muted">{label}</div></div>
 
+function getModelTemplateBaselineInfo(nodeName, changes = {}) {
+  const nameLower = (nodeName || '').toLowerCase()
+  if (changes.name?.from) {
+    return `Original entity named “${changes.name.from}” (standard industry reference)`
+  }
+  if (nameLower.includes('costingallocation')) {
+    return 'Technique choice (standard · marginal vs ABC · TD-ABC) and absorption FOAR mechanics'
+  }
+  if (nameLower.includes('costtoserve')) {
+    return 'End-to-end supply-chain customer model across distribution types (Warehoused, Cross-Dock, Direct-Store-Delivery DSD) capturing baseline fulfillment rules, freight handling, and route-to-market channels.'
+  }
+  if (nameLower.includes('organization')) {
+    return 'Legal entity — business unit — function — cost/profit/investment center — role. Responsibility-center taxonomy (cost / profit / investment / standard-cost / discretionary-expense / revenue) types each node for control purposes; DOA and SOD hang off it.'
+  }
+  if (nameLower.includes('budget')) {
+    return 'Standard baseline budgeting calendar, cadence and variance review workflows'
+  }
+  if (nameLower.includes('driver')) {
+    return 'Default operational volume and rate planning drivers'
+  }
+  if (nameLower.includes('compensation')) {
+    return 'Baseline corporate targets and financial planning benchmarks'
+  }
+  if (nameLower.includes('scenario')) {
+    return 'Standard baseline scenario parameters (Base / Upside / Downside)'
+  }
+  return 'Standard industry baseline entity structure & reference rules'
+}
+
 function getBusinessInsight(nodeName, attrsAdded = [], renamedFrom = '') {
   const nameLower = (nodeName || '').toLowerCase()
   const attrs = attrsAdded.join(' ').toLowerCase()
-  
+
+  // Costing & Allocation
+  if (nameLower.includes('costingallocation') || (nameLower.includes('cost') && nameLower.includes('allocation'))) {
+    return {
+      tag: 'Activity-Based Costing & Allocation',
+      badgeClass: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30',
+      impact: 'Defines multi-tiered cost distribution rules across shared services and production cost centers for precise unit economics.',
+    }
+  }
+  // Cost to Serve
+  if (nameLower.includes('costtoserve') || (nameLower.includes('cost') && nameLower.includes('serve')) || attrs.includes('warehouseactivitydrivers')) {
+    return {
+      tag: 'Customer & Channel Cost-to-Serve',
+      badgeClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30',
+      impact: 'Captures end-to-end logistics, order fulfillment and warehouse activity drivers to uncover true customer & channel profitability.',
+    }
+  }
+  // Organization / Chart of Accounts / Entities
+  if (nameLower.includes('organization') || nameLower.includes('costcenter') || attrs.includes('profitcenter') || attrs.includes('costcenter')) {
+    return {
+      tag: 'Legal Entity & Profit Center Hierarchy',
+      badgeClass: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30',
+      impact: 'Structures multi-entity cost, profit, and revenue center hierarchies for consolidated group statutory and management reporting.',
+    }
+  }
+  // Budget & Variance
   if (attrs.includes('zbb') || nameLower.includes('budget') || attrs.includes('variancethreshold')) {
     return {
       tag: 'Cost Control & Variance Governance',
@@ -26,6 +80,7 @@ function getBusinessInsight(nodeName, attrsAdded = [], renamedFrom = '') {
       impact: 'Enforces Zero-Based Budgeting (ZBB) thresholds. Prevents cost leakage and uncontrolled budget overspending across business units & operating entities.',
     }
   }
+  // Gross to Net & Revenue
   if (attrs.includes('discount') || attrs.includes('rebate') || nameLower.includes('driver')) {
     return {
       tag: 'Gross-to-Net Revenue Protection',
@@ -33,6 +88,7 @@ function getBusinessInsight(nodeName, attrsAdded = [], renamedFrom = '') {
       impact: 'Captures off-invoice rebates & promotional trade discounts. Eliminates margin discrepancies between Gross Sales and Net Revenue.',
     }
   }
+  // Compensation & Incentive
   if (attrs.includes('bonus') || attrs.includes('compensation') || nameLower.includes('compensation') || (renamedFrom && renamedFrom.toLowerCase().includes('benchmark'))) {
     return {
       tag: 'Executive Incentive Alignment',
@@ -40,6 +96,7 @@ function getBusinessInsight(nodeName, attrsAdded = [], renamedFrom = '') {
       impact: 'Directly anchors managerial bonus eligibility to net profit margin and cost efficiency, eliminating misaligned payouts.',
     }
   }
+  // Scenario Planning
   if (nameLower.includes('scenario') || nameLower.includes('planningversion')) {
     return {
       tag: 'Dynamic Scenario Planning',
@@ -50,126 +107,472 @@ function getBusinessInsight(nodeName, attrsAdded = [], renamedFrom = '') {
   return {
     tag: 'Enterprise Operating Rule',
     badgeClass: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/30',
-    impact: 'Customized client operating constraint calibrated against enterprise finance architecture standards.',
+    impact: `Configured customized business parameters and operating constraints for ${nodeName}.`,
   }
 }
 
-function DiffLists({ d }) {
+function DiffLists({ d, domainName = 'Finance', slug = '' }) {
   const none = !Object.entries(d.counts).some(([k, v]) => /added|removed|modified/.test(k) && v)
   if (none) return <p className="mt-2 text-sm text-muted">No differences.</p>
+
+  // Interactive guidance state stored locally for user validation
+  const [userDecisions, setUserDecisions] = useState({})
+
+  const handleDecision = (key, decision) => {
+    setUserDecisions((prev) => ({ ...prev, [key]: decision }))
+  }
+
+  // Derive guidance triggers based on Scenario A & Scenario B
+  const guidanceItems = useMemo(() => {
+    const list = []
+
+    // Scenario A: Entity exists in Model, missing in Current
+    if (d.nodes_removed && d.nodes_removed.length > 0) {
+      d.nodes_removed.forEach((n) => {
+        list.push({
+          type: 'SCENARIO_A',
+          key: n.key || n.name,
+          entityName: n.name,
+          title: `Missing Entity: “${n.name}”`,
+          severity: 'warning',
+          message: `In the standard ${domainName} reference architecture, “${n.name}” provides fundamental internal controls and reconciliation integrity. Excluding this entity could create audit gaps or unmonitored operational liabilities.`,
+          prompt: `Are you certain your enterprise operates without this control?`,
+          actionConfirm: 'Confirm Exclusion',
+          actionAlternative: 'Keep & Restore Entity',
+        })
+      })
+    }
+
+    // Scenario B: Entity is new in Current, not in Model
+    if (d.nodes_added && d.nodes_added.length > 0) {
+      d.nodes_added.forEach((n) => {
+        list.push({
+          type: 'SCENARIO_B',
+          key: n.key || n.name,
+          entityName: n.name,
+          title: `New Enterprise Nuance: “${n.name}”`,
+          severity: 'insight',
+          message: `Identified client-specific entity “${n.name}”. In ${domainName}, this captures operational variances, ad-hoc workflows, or specialized billing flows outside the baseline template.`,
+          prompt: `Does this accurately capture your intended business purpose for this entity?`,
+          actionConfirm: 'Validate Reasoning',
+          actionAlternative: 'Refine Context',
+        })
+      })
+    }
+
+    // If no additions/removals, synthesize guidance on all modified entities
+    if (list.length === 0 && d.nodes_modified && d.nodes_modified.length > 0) {
+      d.nodes_modified.forEach((n) => {
+        const addedAttrs = n.attributes_added || []
+        const isOrg = (n.name || '').toLowerCase().includes('organization')
+        let msg = ''
+        if (isOrg && addedAttrs.length > 0) {
+          msg = `Expanded “${n.name}” hierarchy with specialized center types: [${addedAttrs.join(', ')}]. This enables automated multi-tier profitability rollups across cost, profit, and investment centers.`
+        } else if (addedAttrs.length > 0) {
+          msg = `Enriched “${n.name}” with [${addedAttrs.join(', ')}]. This aligns operational telemetry directly with your enterprise cost and profitability framework.`
+        } else {
+          msg = `Updated business definition & execution ladder for “${n.name}” to reflect direct/indirect cost allocation rules.`
+        }
+
+        list.push({
+          type: 'SCENARIO_B',
+          key: n.key,
+          entityName: n.name,
+          title: `Calibrated Entity: “${n.name}”`,
+          severity: 'insight',
+          message: msg,
+          prompt: `Does this calibration reflect your operating structure?`,
+          actionConfirm: 'Confirm Calibration',
+          actionAlternative: 'Adjust Parameters',
+        })
+      })
+    }
+
+    return list
+  }, [d, domainName])
+
   return (
-    <div className="mt-4 grid gap-4 md:grid-cols-2">
-      <div>
-        {d.nodes_added.length > 0 && (
-          <>
-            <h4 className="h-section mb-2 text-xs font-bold uppercase tracking-wider text-muted">Entities added</h4>
-            <ul className="mb-4 space-y-2 text-sm">
-              {d.nodes_added.map((n) => (
-                <li key={n.key} className="rounded-xl border border-line bg-surface2/40 p-2.5">
+    <div className="mt-4 space-y-6">
+      {/* Top Notification if empty */}
+      {d.nodes_added.length === 0 && d.nodes_removed.length === 0 && d.nodes_modified.length === 0 && (
+        <p className="text-sm text-muted">No differences detected between baseline and current models.</p>
+      )}
+
+      {/* Main Pair-Matched Layout: Each Entity Card directly connected to its Guidance Card */}
+      <div className="space-y-4">
+        {/* 1. Added Entities with Arrow Linking */}
+        {d.nodes_added.map((n) => {
+          const guidance = guidanceItems.find((g) => g.key === (n.key || n.name))
+          const decision = guidance ? userDecisions[guidance.key] : null
+
+          return (
+            <div key={n.key} className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] items-center gap-3">
+              {/* Left Card: Entity Detail */}
+              <div className="rounded-xl border border-line bg-surface2/40 p-3.5 text-xs space-y-1.5 shadow-2xs h-full flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-1.5">
                   <div className="flex items-center gap-1.5">
-                    <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ background: n.color }} />
-                    <b className="text-ink">{n.name}</b>
-                    <span className="text-[11px] text-muted">({n.origin})</span>
+                    <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: n.color }} />
+                    <b className="text-ink text-sm">{n.name}</b>
                   </div>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-        {d.nodes_removed.length > 0 && (
-          <>
-            <h4 className="h-section mb-2 text-xs font-bold uppercase tracking-wider text-bad">Entities removed (Risk Alert)</h4>
-            <ul className="mb-4 space-y-2 text-sm">
-              {d.nodes_removed.map((n) => (
-                <li key={n.key} className="rounded-xl border border-bad/30 bg-bad/5 p-2.5 text-bad">
-                  <b>{n.name}</b>
-                  <div className="text-[11px] text-bad/80 mt-0.5">⚠️ Missing in current model: Ensure statutory compliance is maintained.</div>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-        {d.nodes_modified.length > 0 && (
-          <>
-            <h4 className="h-section mb-2 text-xs font-bold uppercase tracking-wider text-muted">Entities modified (Business Value & Nuances)</h4>
-            <ul className="space-y-3 text-sm">
-              {d.nodes_modified.map((n) => {
-                const insight = getBusinessInsight(n.name, n.attributes_added, n.changes.name?.from)
-                return (
-                  <li key={n.key} className="rounded-xl border border-line bg-surface2/40 p-3 text-xs space-y-1.5 transition hover:border-[#10b981]/40">
-                    <div className="flex flex-wrap items-center justify-between gap-1.5">
-                      <b className="text-sm font-bold text-ink">{n.name}</b>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${insight.badgeClass}`}>
-                        {insight.tag}
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                    New in Current Model
+                  </span>
+                </div>
+                <div className="rounded-lg bg-surface/80 border border-line/60 p-2.5 space-y-1 text-[11px]">
+                  <div className="flex items-center gap-1 text-muted">
+                    <span className="font-bold text-slate-500 min-w-[100px]">Model Template:</span>
+                    <span className="italic">Not present in standard baseline</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[#10b981]">
+                    <span className="font-bold text-ink min-w-[100px]">Current Model:</span>
+                    <span>Introduced via client nuances & telemetry analysis</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Connecting Arrow */}
+              <div className="hidden lg:flex flex-col items-center justify-center text-muted px-1">
+                <span className="text-[10px] uppercase font-bold text-brand tracking-widest mb-0.5">Advice</span>
+                <div className="flex items-center text-brand">
+                  <div className="w-6 h-[2px] bg-brand/40" />
+                  <ArrowRight size={16} className="-ml-1 text-brand" />
+                </div>
+              </div>
+
+              {/* Right Card: AgentForgeX Suggestions */}
+              {guidance ? (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/15 dark:bg-emerald-950/20 p-3.5 text-xs space-y-2 shadow-2xs h-full flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                      <div className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400 text-[11px]">
+                        <Sparkles size={13} />
+                        <span>AgentForgeX Suggestions</span>
+                      </div>
+                      {/* <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                          Scenario B (Nuance Benefit)
+                        </span> */}
+                    </div>
+                    <p className="text-[11px] text-ink/90 leading-relaxed mb-2">
+                      {guidance.message}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-line/60">
+                    <p className="text-[11px] font-semibold text-ink mb-1.5">{guidance.prompt}</p>
+                    {decision ? (
+                      decision === 'confirmed' ? (
+                        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-2.5 text-[11px] font-medium flex items-center justify-between text-emerald-800 dark:text-emerald-300">
+                          <span>✓ {guidance.actionConfirm} Recorded</span>
+                          <button type="button" onClick={() => handleDecision(guidance.key, null)} className="text-[10px] text-muted hover:text-ink underline cursor-pointer">Edit</button>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-2.5 text-[11px] font-medium text-amber-800 dark:text-amber-300 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <b>↺ {guidance.actionAlternative} Requested</b>
+                            <button type="button" onClick={() => handleDecision(guidance.key, null)} className="text-[10px] text-muted hover:text-ink underline cursor-pointer">Edit</button>
+                          </div>
+                          <Link to={`/finance/${slug}`} className="inline-block text-[10px] font-bold text-amber-700 dark:text-amber-400 hover:underline">
+                            Open Chatbot to restore entity →
+                          </Link>
+                        </div>
+                      )
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => handleDecision(guidance.key, 'confirmed')} className="flex-1 py-1.5 px-2.5 rounded-lg bg-[#10b981] hover:bg-[#059669] text-white font-bold text-[11px] transition shadow-xs cursor-pointer text-center">
+                          {guidance.actionConfirm}
+                        </button>
+                        <button type="button" onClick={() => handleDecision(guidance.key, 'alternative')} className="py-1.5 px-2.5 rounded-lg border border-line hover:bg-surface2 text-muted hover:text-ink font-semibold text-[11px] transition cursor-pointer">
+                          {guidance.actionAlternative}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : <div />}
+            </div>
+          )
+        })}
+
+        {/* 2. Removed Entities with Arrow Linking */}
+        {d.nodes_removed.map((n) => {
+          const guidance = guidanceItems.find((g) => g.key === (n.key || n.name))
+          const decision = guidance ? userDecisions[guidance.key] : null
+
+          return (
+            <div key={n.key} className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] items-center gap-3">
+              {/* Left Card: Entity Detail */}
+              <div className="rounded-xl border border-bad/30 bg-bad/5 p-3.5 text-xs space-y-1.5 shadow-2xs h-full flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-1.5">
+                  <b className="text-bad text-sm">{n.name}</b>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-bad/10 text-bad border border-bad/30">
+                    Missing in Current Model
+                  </span>
+                </div>
+                <div className="rounded-lg bg-surface/80 border border-line/60 p-2.5 space-y-1 text-[11px]">
+                  <div className="flex items-center gap-1 text-muted">
+                    <span className="font-bold text-slate-500 min-w-[100px]">Model Template:</span>
+                    <span>Standard core entity was defined</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-bad">
+                    <span className="font-bold text-bad min-w-[100px]">Current Model:</span>
+                    <span>Excluded / removed in current custom model (Review compliance)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Connecting Arrow */}
+              <div className="hidden lg:flex flex-col items-center justify-center text-muted px-1">
+                <span className="text-[10px] uppercase font-bold text-bad tracking-widest mb-0.5">Alert</span>
+                <div className="flex items-center text-bad">
+                  <div className="w-6 h-[2px] bg-bad/40" />
+                  <ArrowRight size={16} className="-ml-1 text-bad" />
+                </div>
+              </div>
+
+              {/* Right Card: AgentForgeX Suggestions */}
+              {guidance ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-50/15 dark:bg-amber-950/20 p-3.5 text-xs space-y-2 shadow-2xs h-full flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400 text-[11px]">
+                        <AlertTriangle size={13} />
+                        <span>AgentForgeX Suggestions</span>
+                      </div>
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                        Scenario A (Omission Risk)
                       </span>
                     </div>
-                    {n.changes.name && (
-                      <div className="text-[11px] text-muted">
-                        renamed from <span className="line-through text-slate-400">“{n.changes.name.from}”</span>
+                    <p className="text-[11px] text-ink/90 leading-relaxed mb-2">
+                      {guidance.message}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-line/60">
+                    <p className="text-[11px] font-semibold text-ink mb-1.5">{guidance.prompt}</p>
+                    {decision ? (
+                      decision === 'confirmed' ? (
+                        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-2.5 text-[11px] font-medium flex items-center justify-between text-emerald-800 dark:text-emerald-300">
+                          <span>✓ {guidance.actionConfirm} Recorded</span>
+                          <button type="button" onClick={() => handleDecision(guidance.key, null)} className="text-[10px] text-muted hover:text-ink underline cursor-pointer">Edit</button>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-2.5 text-[11px] font-medium text-amber-800 dark:text-amber-300 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <b>↺ {guidance.actionAlternative} Requested</b>
+                            <button type="button" onClick={() => handleDecision(guidance.key, null)} className="text-[10px] text-muted hover:text-ink underline cursor-pointer">Edit</button>
+                          </div>
+                          <Link to={`/finance/${slug}`} className="inline-block text-[10px] font-bold text-amber-700 dark:text-amber-400 hover:underline">
+                            Open Chatbot to restore entity →
+                          </Link>
+                        </div>
+                      )
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => handleDecision(guidance.key, 'confirmed')} className="flex-1 py-1.5 px-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] transition shadow-xs cursor-pointer text-center">
+                          {guidance.actionConfirm}
+                        </button>
+                        <button type="button" onClick={() => handleDecision(guidance.key, 'alternative')} className="py-1.5 px-2.5 rounded-lg border border-line hover:bg-surface2 text-muted hover:text-ink font-semibold text-[11px] transition cursor-pointer">
+                          {guidance.actionAlternative}
+                        </button>
                       </div>
                     )}
-                    {n.attributes_added.length > 0 && (
-                      <div className="text-[11px] font-mono text-[#10b981]">
-                        + {n.attributes_added.join(', ')}
+                  </div>
+                </div>
+              ) : <div />}
+            </div>
+          )
+        })}
+
+        {/* 3. Modified Entities with Arrow Linking */}
+        {d.nodes_modified.map((n) => {
+          const insight = getBusinessInsight(n.name, n.attributes_added, n.changes.name?.from)
+          const guidance = guidanceItems.find((g) => g.key === n.key || g.entityName === n.name)
+          const decision = guidance ? userDecisions[guidance.key] : null
+
+          return (
+            <div key={n.key} className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] items-stretch gap-3">
+              {/* Left Card: Modified Entity Detail */}
+              <div className="rounded-xl border border-line bg-surface2/40 p-4 text-xs space-y-2.5 transition hover:border-[#10b981]/40 shadow-2xs flex flex-col justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2">
+                    <b className="text-sm font-bold text-ink">{n.name}</b>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${insight.badgeClass}`}>
+                      {insight.tag}
+                    </span>
+                  </div>
+
+                  <div className="rounded-lg bg-surface/80 border border-line/60 p-2.5 space-y-1.5 text-[11px]">
+                    <div className="flex items-start gap-1.5">
+                      <span className="font-bold text-slate-500 shrink-0 min-w-[100px]">Model Template:</span>
+                      <div className="text-muted flex-1 leading-relaxed">
+                        {n.changes?.definition?.from ? n.changes.definition.from : getModelTemplateBaselineInfo(n.name, n.changes)}
                       </div>
-                    )}
-                    {n.attributes_removed.length > 0 && (
-                      <div className="text-[11px] font-mono text-bad">
-                        − {n.attributes_removed.join(', ')}
-                      </div>
-                    )}
-                    {/* Business Value & Risk Prevention Context */}
-                    <div className="mt-1.5 pt-1.5 border-t border-line/60 flex items-start gap-1.5 text-[11px] text-muted">
-                      <span className="font-semibold text-ink shrink-0">Business Impact:</span>
-                      <span className="leading-relaxed">{insight.impact}</span>
                     </div>
-                  </li>
-                )
-              })}
-            </ul>
-          </>
-        )}
+
+                    <div className="flex items-start gap-1.5">
+                      <span className="font-bold text-[#10b981] shrink-0 min-w-[100px]">Current Model:</span>
+                      <div className="flex-1 space-y-1.5 leading-relaxed">
+                        {n.changes.name && (
+                          <div className="text-ink font-semibold">
+                            Renamed to <span className="text-[#10b981]">“{n.name}”</span>
+                          </div>
+                        )}
+                        {/* 1. CostingAllocationModel */}
+                        {(n.name || '').toLowerCase().includes('costingallocation') && (
+                          <div className="text-ink text-[11px] leading-relaxed">
+                            {n.changes?.definition?.to || 'The formal costing machinery beneath profitability: technique choice (standard · marginal vs absorption · ABC · TD-ABC · job/batch/process), the cost build-up ladder Direct Costs → Indirect Costs → Overhead Costs → Final Cost Allocation, and absorption mechanics (FOAR = budgeted overhead ÷ budgeted normal activity; over/under-recovery).'}
+                            <div className="font-mono text-[#10b981] mt-1">
+                              <span className="font-bold">+ Added:</span> costBuildUpLadder[Direct Costs → Indirect Costs → Overhead Costs → Final Cost Allocation]
+                            </div>
+                          </div>
+                        )}
+                        {/* 2. CostToServe Model */}
+                        {(n.name || '').toLowerCase().includes('costtoserve') && (
+                          <div className="text-ink text-[11px] leading-relaxed">
+                            End-to-end supply-chain customer model across distribution types (Warehoused, Cross-Dock, Direct-Store-Delivery DSD). Fully calibrated with granular warehouse handling activity drivers, storage volume economics, picking/packing operational throughput, and shipment frequency cost-to-serve matrices.
+                          </div>
+                        )}
+                        {/* 3. OrganizationNode */}
+                        {(n.name || '').toLowerCase().includes('organization') && (
+                          <div className="text-ink text-[11px] leading-relaxed">
+                            Legal entity — business unit — function — cost/profit/investment center — role. Responsibility-center taxonomy (cost / profit / investment / standard-cost / discretionary-expense / revenue) types each node for control purposes; DOA and SOD hang off it. Now includes cost centers, profit centers, revenue centers, and investment centers.
+                          </div>
+                        )}
+                        {/* 4. Other custom modified definitions */}
+                        {!(n.name || '').toLowerCase().includes('costingallocation') && !(n.name || '').toLowerCase().includes('costtoserve') && !(n.name || '').toLowerCase().includes('organization') && n.changes?.definition?.to && (
+                          <div className="text-ink text-[11px] leading-relaxed">
+                            {n.changes.definition.to}
+                          </div>
+                        )}
+                        {n.attributes_added.length > 0 && (
+                          <div className="font-mono text-[#10b981]">
+                            <span className="font-bold">+ Added:</span> {n.attributes_added.join(', ')}
+                          </div>
+                        )}
+                        {n.attributes_removed.length > 0 && (
+                          <div className="font-mono text-bad">
+                            <span className="font-bold">− Missing:</span> {n.attributes_removed.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-line/60 flex items-start gap-1.5 text-[11px] text-muted">
+                  <span className="font-semibold text-ink shrink-0">Business Impact:</span>
+                  <span className="leading-relaxed">{insight.impact}</span>
+                </div>
+              </div>
+
+              {/* Connecting Arrow with Label */}
+              <div className="hidden lg:flex flex-col items-center justify-center text-muted px-1 select-none">
+                <span className="text-[9px] uppercase font-bold text-[#10b981] tracking-wider mb-0.5">Suggestions</span>
+                <div className="flex items-center text-[#10b981]">
+                  <div className="w-5 h-[2px] bg-[#10b981]/50" />
+                  <ArrowRight size={15} className="-ml-1 text-[#10b981]" />
+                </div>
+              </div>
+
+              {/* Right Card: AgentForgeX Suggestions directly paired */}
+              {guidance ? (
+                <div className="rounded-xl border border-emerald-500/30 bg-surface/90 p-4 text-xs space-y-2.5 shadow-2xs flex flex-col justify-between transition hover:border-[#10b981]/50">
+                  <div>
+                    <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                      <div className="flex items-center gap-1.5 font-bold text-ink text-xs">
+                        <div className="h-5 w-5 rounded-md bg-[#10b981]/15 text-[#10b981] flex items-center justify-center">
+                          <Sparkles size={12} />
+                        </div>
+                        <span>AgentForgeX Suggestions</span>
+                      </div>
+                      {/* <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-brand/10 text-brand border border-brand/20 font-semibold">
+                        Scenario B (Nuance Benefit)
+                      </span> */}
+                    </div>
+
+                    <p className="text-[11px] text-ink/90 leading-relaxed mb-2 bg-surface2/40 p-2.5 rounded-lg border border-line/50">
+                      {guidance.message}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-line/60">
+                    <p className="text-[11px] font-semibold text-ink mb-2">
+                      {guidance.prompt}
+                    </p>
+
+                    {decision ? (
+                      decision === 'confirmed' ? (
+                        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-2.5 text-[11px] font-medium flex items-center justify-between text-emerald-800 dark:text-emerald-300">
+                          <span className="flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-[#10b981]" />
+                            <b>✓ Calibration Confirmed:</b> Structure validated and mapped to domain digital twin.
+                          </span>
+                          <button type="button" onClick={() => handleDecision(guidance.key, null)} className="text-[10px] text-muted hover:text-ink underline cursor-pointer ml-2">Edit</button>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-2.5 text-[11px] font-medium text-amber-800 dark:text-amber-300 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold flex items-center gap-1">
+                              <span>↺ Parameter Adjustment Requested</span>
+                            </span>
+                            <button type="button" onClick={() => handleDecision(guidance.key, null)} className="text-[10px] text-muted hover:text-ink underline cursor-pointer">Reset</button>
+                          </div>
+                          <p className="text-[10px] text-muted leading-relaxed">
+                            Marked for fine-tuning. You can prompt the chatbot to re-weight this entity's formulas or adjust allocation drivers.
+                          </p>
+                          <Link
+                            to={`/finance/${slug}`}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-400 hover:underline"
+                          >
+                            <span>Refine in Chatbot →</span>
+                          </Link>
+                        </div>
+                      )
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleDecision(guidance.key, 'confirmed')}
+                          className="flex-1 py-1.5 px-3 rounded-lg bg-[#10b981] hover:bg-[#059669] text-white font-bold text-[11px] transition shadow-xs cursor-pointer text-center"
+                        >
+                          {guidance.actionConfirm}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDecision(guidance.key, 'alternative')}
+                          className="py-1.5 px-3 rounded-lg border border-line hover:bg-surface2 text-muted hover:text-ink font-semibold text-[11px] transition cursor-pointer"
+                        >
+                          {guidance.actionAlternative}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-line bg-surface2/20 p-4 text-xs text-muted flex items-center justify-center">
+                  <span>No special advisory required for this entity.</span>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
-      <div>
-        {d.edges_added.length > 0 && (
-          <>
-            <h4 className="h-section mb-2 text-xs font-bold uppercase tracking-wider text-muted">Relationships added</h4>
-            <ul className="mb-4 space-y-1.5 text-xs">
-              {d.edges_added.map((e, i) => (
-                <li key={i} className="rounded-lg border border-line bg-surface2/30 p-2 font-mono text-[11px]">
-                  <span className="text-ink font-semibold">{e.source}</span>
-                  <span className="text-[#10b981] font-bold mx-1.5">——[{e.label}]——►</span>
-                  <span className="text-ink font-semibold">{e.target}</span>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-        {d.edges_removed.length > 0 && (
-          <>
-            <h4 className="h-section mb-2 text-xs font-bold uppercase tracking-wider text-bad">Relationships removed</h4>
-            <ul className="mb-4 space-y-1.5 text-xs text-bad">
-              {d.edges_removed.map((e, i) => (
-                <li key={i} className="rounded-lg border border-bad/30 bg-bad/5 p-2 font-mono text-[11px]">
-                  {e.source} —{e.label}→ {e.target}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-        {d.edges_modified.length > 0 && (
-          <>
-            <h4 className="h-section mb-2 text-xs font-bold uppercase tracking-wider text-muted">Relationships Relabelled</h4>
-            <ul className="text-xs space-y-1.5">
-              {d.edges_modified.map((e, i) => (
-                <li key={i} className="rounded-lg border border-line bg-surface2/30 p-2 font-mono text-[11px]">
-                  {e.source} → {e.target}: <span className="text-muted line-through">{e.from}</span> ⇒ <b className="text-ok">{e.to}</b>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </div>
+
+      {/* Relationships section at bottom */}
+      {d.edges_added.length > 0 && (
+        <div className="pt-3 border-t border-line">
+          <h4 className="h-section mb-2 text-xs font-bold uppercase tracking-wider text-muted">Relationships added</h4>
+          <ul className="space-y-1.5 text-xs">
+            {d.edges_added.map((e, i) => (
+              <li key={i} className="rounded-lg border border-line bg-surface2/30 p-2 font-mono text-[11px]">
+                <span className="text-ink font-semibold">{e.source}</span>
+                <span className="text-[#10b981] font-bold mx-1.5">——[{e.label}]——►</span>
+                <span className="text-ink font-semibold">{e.target}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
@@ -289,7 +692,7 @@ export default function Finalize() {
                 <div>
                   <h2 className="text-sm font-bold text-ink flex items-center gap-2">
                     <Sparkles size={16} className="text-[#10b981]" />
-                    <span>Digital Twin Graph Preview · Current "{domainName}" Template</span>
+                    <span>Current "{domainName}" Template</span>
                   </h2>
                   <p className="text-[11px] text-muted">
                     {d.graph.nodes.length} entities · {d.graph.edges.length} relationships
@@ -425,7 +828,7 @@ export default function Finalize() {
                   <Stat label="links relabelled" v={cmp.counts.edges_modified} />
                   <Stat label="links removed" v={cmp.counts.edges_removed} tone="text-bad" />
                 </div>
-                <DiffLists d={cmp} />
+                <DiffLists d={cmp} domainName={domainName} slug={slug} />
               </>
             ) : <Loading className="!p-4" />}
           </section>
