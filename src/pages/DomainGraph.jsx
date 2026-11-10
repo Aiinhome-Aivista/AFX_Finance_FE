@@ -604,27 +604,18 @@ export default function DomainGraph() {
   return (
     <Layout
       wide
-      // headerAction={
-      //   <button
-      //     type="button"
-      //     onClick={() => setLeftViewMode(leftViewMode === 'upload' ? 'graph' : 'upload')}
-      //     className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
-      //     title={leftViewMode === 'upload' ? 'Return to Knowledge Graph' : 'Upload business telemetry data'}
-      //   >
-      //     <span>Next: Upload Data</span>
-      //     <ArrowRight size={13} />
-      //   </button>
-      // }
       headerAction={
-        <button
-          type="button"
-          onClick={() => setLeftViewMode(leftViewMode === 'upload' ? 'graph' : 'upload')}
-          className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
-          title={leftViewMode === 'upload' ? 'Return to Knowledge Graph' : 'Upload business telemetry data'}
-        >
-          <span>Next: Upload Data</span>
-          <ArrowRight size={13} />
-        </button>
+        isGapMode ? (
+          <button
+            type="button"
+            onClick={() => nav(`/finance/${slug}/finalize`)}
+            className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
+            title="Proceed to Review & Finalize Twin"
+          >
+            <span>Next: Finalize Twin</span>
+            <ArrowRight size={13} />
+          </button>
+        ) : null
       }
     >
       {/* Top Header Navigation with Domain Tabs */}
@@ -711,7 +702,7 @@ export default function DomainGraph() {
           </div>
 
           {/* Action Buttons: Gap Analysis directly in top header */}
-          {hasUploadedFiles && (
+          {hasUploadedFiles && leftViewMode !== 'upload' && (
             <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
@@ -720,7 +711,6 @@ export default function DomainGraph() {
                   ? 'bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-red-500/25 ring-2 ring-red-400/40'
                   : 'btn-ghost border-[#ef4444] text-[#ef4444] hover:bg-[#ef4444]/10'
                   }`}
-                title="Compare uploaded business telemetry against baseline to highlight discrepancies in RED"
               >
                 <Sparkles size={14} />
                 <span>Gap Analysis</span>
@@ -758,7 +748,7 @@ export default function DomainGraph() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-red-500/20 bg-red-50/80 dark:bg-red-950/40 px-3.5 py-2 text-xs">
                 <div className="flex items-center gap-2">
                   <span className="flex h-2.5 w-2.5 rounded-full bg-[#ef4444] animate-pulse" />
-                  <span className="font-bold text-ink">KG2 Gap Analysis Evolution:</span>
+                  <span className="font-bold text-ink">Telemetry Gap Analysis:</span>
                   <span className="rounded-full bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300 px-2 py-0.5 text-[11px] font-bold border border-red-300/40">
                     {gapData.stats?.discrepancies || 0} Gaps in RED ({gapData.stats?.missing || 0} Missing, {gapData.stats?.new || 0} New)
                   </span>
@@ -777,15 +767,6 @@ export default function DomainGraph() {
                     className="btn-ghost btn-sm text-[11px] px-2.5 py-1 text-muted hover:text-ink cursor-pointer"
                   >
                     Exit Gap Mode
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      nav(`/finance/${slug}/finalize`)
-                    }}
-                    className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold px-3 py-1 text-[11px] rounded-lg shadow-sm cursor-pointer"
-                  >
-                    Next: Finalize Twin →
                   </button>
                 </div>
               </div>

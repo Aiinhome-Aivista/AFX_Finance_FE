@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import ChevronTracker from './ChevronTracker'
 
-export default function Layout({ children, wide }) {
+export default function Layout({ children, wide, headerAction }) {
   const { user, logout } = useAuth()
   const { theme, toggle } = useTheme()
   const nav = useNavigate()
@@ -39,6 +39,7 @@ export default function Layout({ children, wide }) {
 
           {/* User Controls & Actions */}
           <div className="flex items-center gap-2 shrink-0">
+            {headerAction}
             <button
               className="btn-ghost btn-sm"
               onClick={toggle}
