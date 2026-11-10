@@ -663,9 +663,6 @@ export default function Finalize() {
               </span>
             )}
           </h1>
-          <p className="text-xs text-muted mt-0.5">
-            Step 6: Review, validate and finalize your customized Finance Digital Twin.
-          </p>
         </div>
       </div>
 
