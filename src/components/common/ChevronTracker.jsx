@@ -120,7 +120,7 @@ export default function ChevronTracker() {
         )
 
         if (isCompleted) {
-          // ✅ Completed Stage: Rich emerald gradient with crisp white text & border bevel (same across all steps)
+          // Completed Stage: Rich emerald gradient with crisp white text & border bevel (same across all steps)
           outerBg = 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600'
           innerBg = 'bg-gradient-to-r from-[#059669] to-[#047857]'
           titleColor = 'text-white font-bold'
@@ -132,7 +132,7 @@ export default function ChevronTracker() {
             </span>
           )
         } else if (isActive) {
-          // 🟢 Active Stage: Electric Cyan-Emerald gradient outline with elevated card
+          // Active Stage: Electric Cyan-Emerald gradient outline with elevated card
           outerBg = 'bg-gradient-to-r from-[#10b981] via-[#22d3ee] to-[#10b981]'
           innerBg = 'bg-white/95 dark:bg-[#252B33] backdrop-blur-md'
           titleColor = 'text-emerald-800 dark:text-[#34d399] font-extrabold'

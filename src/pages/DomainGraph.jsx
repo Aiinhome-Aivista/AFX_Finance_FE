@@ -984,7 +984,7 @@ export default function DomainGraph() {
               </div>
 
               <div className="rounded-xl bg-surface2/60 p-3 text-[11px] text-muted space-y-1 border border-line/50">
-                <p className="font-semibold text-ink">💡 What will be generated:</p>
+                <p className="font-semibold text-ink">What will be generated:</p>
                 <ul className="list-disc pl-4 space-y-0.5">
                   <li>8-14 core finance entities with attributes & formulas</li>
                   <li>Directed workflow & data relationships</li>
