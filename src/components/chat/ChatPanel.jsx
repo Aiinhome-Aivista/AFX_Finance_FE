@@ -368,26 +368,14 @@ export default function ChatPanel({
                 {isComplete ? 'Discovery Complete · Model Ready' : 'Nuances Captured · Model Ready'}
               </span>
             </div>
-            {onNextToUpload && (
+            {onNextToUpload && !isUploadOpen && (
               <button
                 type="button"
                 onClick={onNextToUpload}
-                className={`btn text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer font-bold shadow-sm transition-all ${isUploadOpen
-                  ? 'btn-ghost border-[#10b981] text-[#10b981]'
-                  : 'bg-[#10b981] hover:bg-[#059669] text-white shadow-emerald-500/25 hover:scale-105'
-                  }`}
+                className="btn text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer font-bold shadow-sm transition-all bg-[#10b981] hover:bg-[#059669] text-white shadow-emerald-500/25 hover:scale-105"
               >
-                {isUploadOpen ? (
-                  <>
-                    <span>Viewing Upload</span>
-                    <CheckCircle2 size={13} />
-                  </>
-                ) : (
-                  <>
-                    <span>Next: Upload Data</span>
-                    <ArrowRight size={13} />
-                  </>
-                )}
+                <span>Next: Upload Data</span>
+                <ArrowRight size={13} />
               </button>
             )}
           </div>

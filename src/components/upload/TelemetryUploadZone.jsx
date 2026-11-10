@@ -261,7 +261,7 @@ export default function TelemetryUploadZone({
               type="button"
               onClick={onProceedToGapAnalysis}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-white shadow-md shadow-emerald-500/25 hover:scale-[1.02] transition-all cursor-pointer"
-              title="Proceed to Step 5: Gap Analysis Evolution"
+
             >
               <span>Proceed to Gap Analysis</span>
             </button>
