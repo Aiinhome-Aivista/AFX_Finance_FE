@@ -342,14 +342,25 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
     setIsPanning(false)
   }
 
-  // Wheel zoom
-  const onWheel = (e) => {
-    e.preventDefault()
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const factor = e.deltaY < 0 ? 1.12 : 0.89
-    zoomAt(factor, e.clientX - rect.left, e.clientY - rect.top)
-  }
+  // Wheel zoom with native non-passive listener to reliably prevent window/page scrolling
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const handleWheel = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const rect = el.getBoundingClientRect()
+      if (!rect) return
+      const factor = e.deltaY < 0 ? 1.12 : 0.89
+      zoomAt(factor, e.clientX - rect.left, e.clientY - rect.top)
+    }
+
+    el.addEventListener('wheel', handleWheel, { passive: false })
+    return () => {
+      el.removeEventListener('wheel', handleWheel)
+    }
+  }, [zoomAt])
 
   // Node click handler
   const handleNodeClick = (e, nodeId) => {
@@ -409,16 +420,18 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
   return (
     <div
       ref={containerRef}
-      className={`select-none transition-all duration-200 ${isFullscreen
+      className={`select-none transition-all duration-200 overscroll-contain touch-none ${isFullscreen
         ? 'fixed inset-0 z-[9999] h-screen w-screen overflow-hidden rounded-none border-0 shadow-none'
         : 'relative h-[74vh] min-h-[500px] w-full overflow-hidden rounded-2xl border border-line shadow-card'
         } ${isPanning ? 'cursor-grabbing' : 'cursor-grab'} ${className}`}
-      style={{ backgroundColor: themeColors.bg }}
+      style={{
+        backgroundColor: themeColors.bg,
+        overscrollBehavior: 'contain',
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
-      onWheel={onWheel}
       onClick={handleCanvasClick}
     >
       {/* Floating Canvas Controls (Zoom In, Zoom Out, Reset Fit, Full Screen) */}
