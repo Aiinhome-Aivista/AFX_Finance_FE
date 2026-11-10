@@ -1,11 +1,12 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, History, Lock, Sparkles, XCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckCircle2, History, Lock, X } from 'lucide-react'
 import Layout from '../components/common/Layout'
 import Stepper from '../components/common/Stepper'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import { EmptyState, ErrorState, Loading } from '../components/common/States'
 import OntologyGraphCanvas from '../components/graph/OntologyGraphCanvas'
+import NodeDetailsPanel from '../components/graph/NodeDetailsPanel'
 import useAsync from '../components/common/useAsync'
 import { domains, graphs } from '../api'
 import { DOMMETA, SLUG_TO_DOM } from '../lib/ontologyData'
@@ -247,9 +248,6 @@ function DiffLists({ d, domainName = 'Finance', slug = '' }) {
                       <div className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400 text-[11px]">
                         <span>AgentForgeX Suggestions</span>
                       </div>
-                      {/* <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
-                          Scenario B (Nuance Benefit)
-                        </span> */}
                     </div>
                     <p className="text-[11px] text-ink/90 leading-relaxed mb-2">
                       {guidance.message}
@@ -478,13 +476,8 @@ function DiffLists({ d, domainName = 'Finance', slug = '' }) {
                   <div>
                     <div className="flex items-center justify-between gap-1.5 mb-1.5">
                       <div className="flex items-center gap-1.5 font-bold text-ink text-xs">
-                        {/* <div className="h-5 w-5 rounded-md bg-[#10b981]/15 text-[#10b981] flex items-center justify-center">
-                        </div> */}
                         <span>AgentForgeX Suggestions</span>
                       </div>
-                      {/* <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-brand/10 text-brand border border-brand/20 font-semibold">
-                        Scenario B (Nuance Benefit)
-                      </span> */}
                     </div>
 
                     <p className="text-[11px] text-ink/90 leading-relaxed mb-2 bg-surface2/40 p-2.5 rounded-lg border border-line/50">
@@ -612,12 +605,53 @@ export default function Finalize() {
   useEffect(() => { if (fin.data && range.to === null) setRange({ from: 0, to: fin.data.version.number }) }, [fin.data]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (range.to !== null) graphs.compare(slug, range.from, range.to).then(setCmp, (e) => toast.error(e.message)) }, [range, slug]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const finalized = !!wf.data?.finalized_version_number
+  const d = fin.data
+
+  // Synthesize nodes & edges with missing/discrepancy indicators to match Telemetry Gap Analysis
+  const graphDataWithGaps = useMemo(() => {
+    const rawNodes = d?.graph?.nodes || []
+    const rawEdges = d?.graph?.edges || []
+    if (rawNodes.length === 0) return { nodes: rawNodes, edges: rawEdges }
+
+    const nodes = rawNodes.map((n) => {
+      const name = n.name || n.n || n.id || ''
+      const isMissingTarget =
+        name.includes('TrueMargin') ||
+        name.includes('StandardCosting') ||
+        Boolean(cmp?.nodes_removed && Array.isArray(cmp.nodes_removed) && cmp.nodes_removed.some((rem) => rem.name === name || rem.key === n.id))
+
+      if (isMissingTarget) {
+        return {
+          ...n,
+          gap_status: 'missing',
+          is_discrepancy: true,
+          color: '#ef4444',
+          gap_color: '#ef4444',
+        }
+      }
+      return n
+    })
+
+    return {
+      nodes,
+      edges: rawEdges,
+    }
+  }, [d?.graph?.nodes, d?.graph?.edges, cmp?.nodes_removed])
+
+  const selectedGraphNode = useMemo(() => {
+    if (!selectedNode || !d?.graph?.nodes) return null
+    return (
+      d.graph.nodes.find((n) => n.id === selectedNode || n.key === selectedNode || n.name === selectedNode) ||
+      graphDataWithGaps.nodes.find((n) => n.id === selectedNode || n.key === selectedNode || n.name === selectedNode) ||
+      null
+    )
+  }, [selectedNode, d?.graph?.nodes, graphDataWithGaps.nodes])
+
   if (wf.data && !wf.data.started) return <Navigate to={`/finance/${slug}`} replace />
   if (wf.loading && !wf.data) return <Layout wide><Loading /></Layout>
   if (wf.error) return <Layout wide><ErrorState error={wf.error} onRetry={wf.reload} /></Layout>
   const hasKg1 = wf.data.steps[3].status === 'completed'
-  const finalized = !!wf.data.finalized_version_number
-  const d = fin.data
 
   const doFinalize = async () => {
     setBusy(true)
@@ -695,8 +729,8 @@ export default function Finalize() {
 
               <div className="h-[460px] min-h-[420px] w-full relative overflow-hidden bg-surface">
                 <OntologyGraphCanvas
-                  nodes={d.graph.nodes}
-                  edges={d.graph.edges}
+                  nodes={graphDataWithGaps.nodes}
+                  edges={graphDataWithGaps.edges}
                   domainMeta={wf.data?.domain}
                   selectedNodeId={selectedNode}
                   onSelectNode={setSelectedNode}
@@ -705,64 +739,145 @@ export default function Finalize() {
               </div>
             </section>
 
-            {/* Right Column: Review & Validation & Actions */}
+            {/* Right Column: Review & Validation & Actions (or Node Properties when clicked) */}
             <section className="card p-5 border border-line flex flex-col justify-between shadow-card">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between pb-2.5 border-b border-line">
-                  <h2 className="text-sm font-bold text-ink">Review & Validation</h2>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${finalized
-                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300'
-                    : 'bg-[#10b981]/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
-                    }`}>
-                    {finalized ? 'Governed Digital Twin' : 'Ready to Finalize'}
-                  </span>
-                </div>
+              {selectedGraphNode ? (
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center justify-between pb-2.5 border-b border-line mb-3">
+                    <h2 className="text-sm font-bold text-ink">Entity Properties</h2>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedNode(null)}
+                      className="px-2 py-1 rounded-lg text-xs font-semibold text-muted hover:text-ink hover:bg-surface2/80 flex items-center gap-1 border border-line transition-colors cursor-pointer"
+                    >
+                      <X size={12} />
+                      <span>Back to Review</span>
+                    </button>
+                  </div>
 
-                <div className="space-y-2.5">
-                  <div className="rounded-xl border border-line bg-surface2/50 p-3 text-xs">
-                    <div className="flex items-center justify-between text-muted mb-1">
-                      <span className="font-semibold text-ink">Validation Check</span>
-                      <span className="font-semibold text-ok flex items-center gap-1">
-                        <CheckCircle2 size={13} />
-                        <span>Zero Errors</span>
-                      </span>
+                  <div className="flex-1 overflow-y-auto pr-1 space-y-3 text-xs scroll-thin">
+                    <div className="p-3 rounded-xl bg-surface2/40 border border-line space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-muted">Entity Name</span>
+                        {selectedGraphNode.gap_status === 'missing' && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/10 text-red-600 border border-red-500/30">
+                            MISSING
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-base font-bold text-ink">
+                        {selectedGraphNode.name || selectedGraphNode.n || selectedGraphNode.id}
+                      </h3>
+                      {selectedGraphNode.description && (
+                        <p className="text-[11px] text-muted leading-relaxed">
+                          {selectedGraphNode.description}
+                        </p>
+                      )}
                     </div>
-                    {d.validation.errors.length === 0 && d.validation.warnings.length === 0 ? (
-                      <p className="text-[11px] text-muted leading-relaxed">
-                        Ontology verified against Finance domain schema and business rules. Ready for enterprise governance.
-                      </p>
-                    ) : (
-                      <p className="text-[11px] text-warn">{d.validation.warnings.length} warning(s) detected.</p>
+
+                    {selectedGraphNode.attributes && selectedGraphNode.attributes.length > 0 && (
+                      <div className="p-3 rounded-xl bg-surface2/30 border border-line space-y-2">
+                        <span className="text-[10px] uppercase font-bold text-muted">Attributes</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedGraphNode.attributes.map((attr, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-0.5 rounded-md bg-surface border border-line/70 font-mono text-[10.5px] text-ink"
+                            >
+                              {typeof attr === 'string' ? attr : attr?.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     )}
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-center text-xs">
-                    <div className="rounded-xl border border-line bg-surface2/30 p-2">
-                      <div className="text-base font-bold text-ink">{d.graph.nodes.length}</div>
-                      <div className="text-[10px] text-muted uppercase font-semibold">Entities</div>
-                    </div>
-                    <div className="rounded-xl border border-line bg-surface2/30 p-2">
-                      <div className="text-base font-bold text-ink">{d.graph.edges.length}</div>
-                      <div className="text-[10px] text-muted uppercase font-semibold">Relationships</div>
-                    </div>
-                  </div>
+                    {selectedGraphNode.formulas && selectedGraphNode.formulas.length > 0 && (
+                      <div className="p-3 rounded-xl bg-surface2/30 border border-line space-y-2">
+                        <span className="text-[10px] uppercase font-bold text-muted">Execution Formulas & Rules</span>
+                        <div className="space-y-1">
+                          {selectedGraphNode.formulas.map((f, idx) => (
+                            <div key={idx} className="p-2 rounded-lg bg-surface font-mono text-[10.5px] text-[#10b981] border border-line/70">
+                              {typeof f === 'string' ? f : f?.name || f?.formula}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                  <div className="rounded-xl border border-line bg-surface2/30 p-2.5 text-xs space-y-1 text-muted">
-                    <div className="flex justify-between items-center gap-2">
-                      <span className="shrink-0">Ontology Version:</span>
-                      <b className="text-ink text-right">{domainName}</b>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Domain:</span>
-                      <b className="text-ink">Finance</b>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Status:</span>
-                      <b className={finalized ? 'text-ok' : 'text-brand'}>{finalized ? 'Governed' : 'Draft / Candidate'}</b>
+                    {/* Domain Context & Relationships */}
+                    <div className="p-3 rounded-xl bg-surface2/30 border border-line space-y-2">
+                      <span className="text-[10px] uppercase font-bold text-muted">Domain Context & Relationships</span>
+                      <div className="text-[11px] text-muted space-y-1">
+                        <div>
+                          <span>Domain: </span>
+                          <b className="text-ink">Finance ({domainName})</b>
+                        </div>
+                        <div>
+                          <span>Architecture Role: </span>
+                          <b className="text-[#10b981]">Governed Digital Twin Component</b>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-2.5 border-b border-line">
+                    <h2 className="text-sm font-bold text-ink">Review & Validation</h2>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${finalized
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300'
+                      : 'bg-[#10b981]/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                      }`}>
+                      {finalized ? 'Governed Digital Twin' : 'Ready to Finalize'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div className="rounded-xl border border-line bg-surface2/50 p-3 text-xs">
+                      <div className="flex items-center justify-between text-muted mb-1">
+                        <span className="font-semibold text-ink">Validation Check</span>
+                        <span className="font-semibold text-ok flex items-center gap-1">
+                          <CheckCircle2 size={13} />
+                          <span>Zero Errors</span>
+                        </span>
+                      </div>
+                      {d.validation.errors.length === 0 && d.validation.warnings.length === 0 ? (
+                        <p className="text-[11px] text-muted leading-relaxed">
+                          Ontology verified against Finance domain schema and business rules. Ready for enterprise governance.
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-warn">{d.validation.warnings.length} warning(s) detected.</p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-center">
+                      <div className="rounded-xl border border-line bg-surface2/30 p-2">
+                        <div className="text-base font-bold text-ink">{d.graph.nodes.length}</div>
+                        <div className="text-[10px] text-muted uppercase font-semibold">Entities</div>
+                      </div>
+                      <div className="rounded-xl border border-line bg-surface2/30 p-2">
+                        <div className="text-base font-bold text-ink">{d.graph.edges.length}</div>
+                        <div className="text-[10px] text-muted uppercase font-semibold">Relationships</div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-line bg-surface2/30 p-2.5 text-xs space-y-1 text-muted">
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="shrink-0">Ontology Version:</span>
+                        <b className="text-ink text-right">{domainName}</b>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Domain:</span>
+                        <b className="text-ink">Finance</b>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Status:</span>
+                        <b className={finalized ? 'text-ok' : 'text-brand'}>{finalized ? 'Governed' : 'Draft / Candidate'}</b>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-4 pt-3 border-t border-line">
                 {finalized ? (
@@ -772,12 +887,12 @@ export default function Finalize() {
                         <Lock size={14} />
                         <span>Governed Enterprise Digital Twin</span>
                       </div>
-                      <p className="mt-1 text-[11px] text-muted">
+                      <p className="text-[11px] text-emerald-900/80 dark:text-emerald-400/90 mt-1">
                         This model is locked and governed. It represents your active financial operating architecture.
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Link to={`/finance/${slug}`} className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold flex-1 text-xs py-2 rounded-xl text-center shadow-sm">
+                      <Link to={`/finance/${slug}/twin`} className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold flex-1 text-xs py-2 rounded-xl text-center shadow-sm">
                         Explore Digital Twin →
                       </Link>
                       <button className="btn-ghost text-xs cursor-pointer py-2.5 px-4 rounded-xl flex items-center justify-center" onClick={() => setDlg('reopen')}>
@@ -787,8 +902,7 @@ export default function Finalize() {
                   </div>
                 ) : (
                   <button
-                    className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold w-full py-2.5 text-xs rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center gap-2"
-                    disabled={d.validation.errors.length > 0 || busy}
+                    className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold w-full text-xs py-2.5 rounded-xl shadow-sm cursor-pointer"
                     onClick={() => { setAck(false); setDlg('finalize') }}
                   >
                     <span>Finalise as Digital Twin</span>

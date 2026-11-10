@@ -57,7 +57,7 @@ export default function ChevronTracker() {
       info.isGapMode ||
       location.search.includes('upload') ||
       location.search.includes('gap')
-    const isFinalizePage = path.includes('/finalize')
+    const isFinalizePage = path.includes('/finalize') || path.includes('/twin')
 
     let step = 1
     if (!extractedSlug || path === '/finance') {

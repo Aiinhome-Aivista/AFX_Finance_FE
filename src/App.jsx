@@ -9,6 +9,7 @@ import DomainGraph from './pages/DomainGraph'
 import Customize from './pages/Customize'
 import Finalize from './pages/Finalize'
 import Telemetry from './pages/Telemetry'
+import DigitalTwinExplorer from './pages/DigitalTwinExplorer'
 
 const P = ({ children, app }) => <ProtectedRoute requireApp={app}>{children}</ProtectedRoute>
 
@@ -25,6 +26,7 @@ export default function App() {
       <Route path="/finance/:slug/overview" element={<P><DomainOverview /></P>} />
       <Route path="/finance/:slug/customize" element={<P><DomainGraph /></P>} />
       <Route path="/finance/:slug/finalize" element={<P><Finalize /></P>} />
+      <Route path="/finance/:slug/twin" element={<P><DigitalTwinExplorer /></P>} />
       <Route path="/finance/:slug/telemetry" element={<P><DomainGraph /></P>} />
       <Route path="*" element={<Navigate to={user ? '/finance' : '/login'} replace />} />
     </Routes>
