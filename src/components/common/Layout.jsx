@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import ChevronTracker from './ChevronTracker'
 
-export default function Layout({ children, wide, headerAction }) {
+export default function Layout({ children, wide }) {
   const { user, logout } = useAuth()
   const { theme, toggle } = useTheme()
   const nav = useNavigate()
@@ -19,7 +19,7 @@ export default function Layout({ children, wide, headerAction }) {
             to={user?.selected_app ? '/finance' : '/apps'}
             className="flex items-center gap-2.5 font-semibold shrink-0 group focus:outline-none"
           >
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#10b981] text-[#0a0a0a] shadow-sm shadow-[#10b981]/30 transition-transform group-hover:scale-105">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#10b981] text-[#141821] shadow-sm shadow-[#10b981]/30 transition-transform group-hover:scale-105">
               <BrainCircuit size={22} strokeWidth={2.4} />
             </span>
             <div className="hidden sm:flex items-baseline gap-2">
@@ -39,7 +39,6 @@ export default function Layout({ children, wide, headerAction }) {
 
           {/* User Controls & Actions */}
           <div className="flex items-center gap-2 shrink-0">
-            {headerAction}
             <button
               className="btn-ghost btn-sm"
               onClick={toggle}

@@ -15,26 +15,160 @@ import { useWorkflow } from '../context/WorkflowContext'
 
 const Stat = ({ label, v, tone }) => <div className="rounded-xl bg-surface2 p-3 text-center"><div className={`text-xl font-semibold ${tone || ''}`}>{v}</div><div className="text-[11px] text-muted">{label}</div></div>
 
+function getBusinessInsight(nodeName, attrsAdded = [], renamedFrom = '') {
+  const nameLower = (nodeName || '').toLowerCase()
+  const attrs = attrsAdded.join(' ').toLowerCase()
+  
+  if (attrs.includes('zbb') || nameLower.includes('budget') || attrs.includes('variancethreshold')) {
+    return {
+      tag: 'Cost Control & Variance Governance',
+      badgeClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30',
+      impact: 'Enforces Zero-Based Budgeting (ZBB) thresholds. Prevents cost leakage and uncontrolled budget overspending across business units & operating entities.',
+    }
+  }
+  if (attrs.includes('discount') || attrs.includes('rebate') || nameLower.includes('driver')) {
+    return {
+      tag: 'Gross-to-Net Revenue Protection',
+      badgeClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30',
+      impact: 'Captures off-invoice rebates & promotional trade discounts. Eliminates margin discrepancies between Gross Sales and Net Revenue.',
+    }
+  }
+  if (attrs.includes('bonus') || attrs.includes('compensation') || nameLower.includes('compensation') || (renamedFrom && renamedFrom.toLowerCase().includes('benchmark'))) {
+    return {
+      tag: 'Executive Incentive Alignment',
+      badgeClass: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30',
+      impact: 'Directly anchors managerial bonus eligibility to net profit margin and cost efficiency, eliminating misaligned payouts.',
+    }
+  }
+  if (nameLower.includes('scenario') || nameLower.includes('planningversion')) {
+    return {
+      tag: 'Dynamic Scenario Planning',
+      badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30',
+      impact: 'Integrates real-time ZBB sensitivity simulations against volatile market conditions and raw material price spikes.',
+    }
+  }
+  return {
+    tag: 'Enterprise Operating Rule',
+    badgeClass: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/30',
+    impact: 'Customized client operating constraint calibrated against enterprise finance architecture standards.',
+  }
+}
+
 function DiffLists({ d }) {
   const none = !Object.entries(d.counts).some(([k, v]) => /added|removed|modified/.test(k) && v)
   if (none) return <p className="mt-2 text-sm text-muted">No differences.</p>
   return (
-    <div className="mt-3 grid gap-3 md:grid-cols-2">
+    <div className="mt-4 grid gap-4 md:grid-cols-2">
       <div>
-        {d.nodes_added.length > 0 && <><h4 className="h-section mb-1">Entities added</h4><ul className="mb-3 space-y-1 text-sm">{d.nodes_added.map((n) => <li key={n.key}><span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ background: n.color }} /><b>{n.name}</b> <span className="text-xs text-muted">({n.origin})</span></li>)}</ul></>}
-        {d.nodes_removed.length > 0 && <><h4 className="h-section mb-1">Entities removed</h4><ul className="mb-3 space-y-1 text-sm">{d.nodes_removed.map((n) => <li key={n.key} className="text-bad">{n.name}</li>)}</ul></>}
-        {d.nodes_modified.length > 0 && <><h4 className="h-section mb-1">Entities modified</h4><ul className="space-y-1.5 text-sm">{d.nodes_modified.map((n) => (
-          <li key={n.key}><b>{n.name}</b>
-            {n.changes.name && <div className="text-xs text-muted">renamed from “{n.changes.name.from}”</div>}
-            {n.attributes_added.length > 0 && <div className="text-xs text-ok">+ {n.attributes_added.join(', ')}</div>}
-            {n.attributes_removed.length > 0 && <div className="text-xs text-bad">− {n.attributes_removed.join(', ')}</div>}
-            {n.changes.notes && <div className="text-xs text-muted">business-rule note added</div>}
-            {n.changes.formulas && <div className="text-xs text-muted">formulas changed</div>}</li>))}</ul></>}
+        {d.nodes_added.length > 0 && (
+          <>
+            <h4 className="h-section mb-2 text-xs font-bold uppercase tracking-wider text-muted">Entities added</h4>
+            <ul className="mb-4 space-y-2 text-sm">
+              {d.nodes_added.map((n) => (
+                <li key={n.key} className="rounded-xl border border-line bg-surface2/40 p-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ background: n.color }} />
+                    <b className="text-ink">{n.name}</b>
+                    <span className="text-[11px] text-muted">({n.origin})</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {d.nodes_removed.length > 0 && (
+          <>
+            <h4 className="h-section mb-2 text-xs font-bold uppercase tracking-wider text-bad">Entities removed (Risk Alert)</h4>
+            <ul className="mb-4 space-y-2 text-sm">
+              {d.nodes_removed.map((n) => (
+                <li key={n.key} className="rounded-xl border border-bad/30 bg-bad/5 p-2.5 text-bad">
+                  <b>{n.name}</b>
+                  <div className="text-[11px] text-bad/80 mt-0.5">⚠️ Missing in current model: Ensure statutory compliance is maintained.</div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {d.nodes_modified.length > 0 && (
+          <>
+            <h4 className="h-section mb-2 text-xs font-bold uppercase tracking-wider text-muted">Entities modified (Business Value & Nuances)</h4>
+            <ul className="space-y-3 text-sm">
+              {d.nodes_modified.map((n) => {
+                const insight = getBusinessInsight(n.name, n.attributes_added, n.changes.name?.from)
+                return (
+                  <li key={n.key} className="rounded-xl border border-line bg-surface2/40 p-3 text-xs space-y-1.5 transition hover:border-[#10b981]/40">
+                    <div className="flex flex-wrap items-center justify-between gap-1.5">
+                      <b className="text-sm font-bold text-ink">{n.name}</b>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${insight.badgeClass}`}>
+                        {insight.tag}
+                      </span>
+                    </div>
+                    {n.changes.name && (
+                      <div className="text-[11px] text-muted">
+                        renamed from <span className="line-through text-slate-400">“{n.changes.name.from}”</span>
+                      </div>
+                    )}
+                    {n.attributes_added.length > 0 && (
+                      <div className="text-[11px] font-mono text-[#10b981]">
+                        + {n.attributes_added.join(', ')}
+                      </div>
+                    )}
+                    {n.attributes_removed.length > 0 && (
+                      <div className="text-[11px] font-mono text-bad">
+                        − {n.attributes_removed.join(', ')}
+                      </div>
+                    )}
+                    {/* Business Value & Risk Prevention Context */}
+                    <div className="mt-1.5 pt-1.5 border-t border-line/60 flex items-start gap-1.5 text-[11px] text-muted">
+                      <span className="font-semibold text-ink shrink-0">Business Impact:</span>
+                      <span className="leading-relaxed">{insight.impact}</span>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          </>
+        )}
       </div>
       <div>
-        {d.edges_added.length > 0 && <><h4 className="h-section mb-1">Relationships added</h4><ul className="mb-3 space-y-1 text-xs">{d.edges_added.map((e, i) => <li key={i}>{e.source} —{e.label}→ {e.target}</li>)}</ul></>}
-        {d.edges_removed.length > 0 && <><h4 className="h-section mb-1">Relationships removed</h4><ul className="mb-3 space-y-1 text-xs text-bad">{d.edges_removed.map((e, i) => <li key={i}>{e.source} —{e.label}→ {e.target}</li>)}</ul></>}
-        {d.edges_modified.length > 0 && <><h4 className="h-section mb-1">Relabelled</h4><ul className="text-xs">{d.edges_modified.map((e, i) => <li key={i}>{e.source}→{e.target}: {e.from} ⇒ {e.to}</li>)}</ul></>}
+        {d.edges_added.length > 0 && (
+          <>
+            <h4 className="h-section mb-2 text-xs font-bold uppercase tracking-wider text-muted">Relationships added</h4>
+            <ul className="mb-4 space-y-1.5 text-xs">
+              {d.edges_added.map((e, i) => (
+                <li key={i} className="rounded-lg border border-line bg-surface2/30 p-2 font-mono text-[11px]">
+                  <span className="text-ink font-semibold">{e.source}</span>
+                  <span className="text-[#10b981] font-bold mx-1.5">——[{e.label}]——►</span>
+                  <span className="text-ink font-semibold">{e.target}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {d.edges_removed.length > 0 && (
+          <>
+            <h4 className="h-section mb-2 text-xs font-bold uppercase tracking-wider text-bad">Relationships removed</h4>
+            <ul className="mb-4 space-y-1.5 text-xs text-bad">
+              {d.edges_removed.map((e, i) => (
+                <li key={i} className="rounded-lg border border-bad/30 bg-bad/5 p-2 font-mono text-[11px]">
+                  {e.source} —{e.label}→ {e.target}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {d.edges_modified.length > 0 && (
+          <>
+            <h4 className="h-section mb-2 text-xs font-bold uppercase tracking-wider text-muted">Relationships Relabelled</h4>
+            <ul className="text-xs space-y-1.5">
+              {d.edges_modified.map((e, i) => (
+                <li key={i} className="rounded-lg border border-line bg-surface2/30 p-2 font-mono text-[11px]">
+                  {e.source} → {e.target}: <span className="text-muted line-through">{e.from}</span> ⇒ <b className="text-ok">{e.to}</b>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
     </div>
   )
