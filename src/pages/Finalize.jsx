@@ -245,7 +245,6 @@ function DiffLists({ d, domainName = 'Finance', slug = '' }) {
                   <div>
                     <div className="flex items-center justify-between gap-1.5 mb-1.5">
                       <div className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400 text-[11px]">
-                        <Sparkles size={13} />
                         <span>AgentForgeX Suggestions</span>
                       </div>
                       {/* <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
@@ -335,7 +334,6 @@ function DiffLists({ d, domainName = 'Finance', slug = '' }) {
                   <div>
                     <div className="flex items-center justify-between gap-1.5 mb-1.5">
                       <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400 text-[11px]">
-                        <AlertTriangle size={13} />
                         <span>AgentForgeX Suggestions</span>
                       </div>
                       <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300">
@@ -480,9 +478,8 @@ function DiffLists({ d, domainName = 'Finance', slug = '' }) {
                   <div>
                     <div className="flex items-center justify-between gap-1.5 mb-1.5">
                       <div className="flex items-center gap-1.5 font-bold text-ink text-xs">
-                        <div className="h-5 w-5 rounded-md bg-[#10b981]/15 text-[#10b981] flex items-center justify-center">
-                          <Sparkles size={12} />
-                        </div>
+                        {/* <div className="h-5 w-5 rounded-md bg-[#10b981]/15 text-[#10b981] flex items-center justify-center">
+                        </div> */}
                         <span>AgentForgeX Suggestions</span>
                       </div>
                       {/* <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-brand/10 text-brand border border-brand/20 font-semibold">
@@ -659,7 +656,7 @@ export default function Finalize() {
             <ArrowLeft size={14} /> Back to Knowledge Graph & Chatbot
           </Link>
           <h1 className="text-xl font-bold tracking-tight text-ink flex items-center gap-2">
-            <span>Enterprise Digital Twin Finalization</span>
+            <span>Enterprise Review & Validation Finalization</span>
             {finalized && (
               <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 text-xs font-bold border border-emerald-300/40">
                 Governed
@@ -691,7 +688,6 @@ export default function Finalize() {
               <div className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 select-none shrink-0">
                 <div>
                   <h2 className="text-sm font-bold text-ink flex items-center gap-2">
-                    <Sparkles size={16} className="text-[#10b981]" />
                     <span>Current "{domainName}" Template</span>
                   </h2>
                   <p className="text-[11px] text-muted">
@@ -712,11 +708,11 @@ export default function Finalize() {
               </div>
             </section>
 
-            {/* Right Column: Digital Twin Governance & Actions */}
+            {/* Right Column: Review & Validation & Actions */}
             <section className="card p-5 border border-line flex flex-col justify-between shadow-card">
               <div className="space-y-3">
                 <div className="flex items-center justify-between pb-2.5 border-b border-line">
-                  <h2 className="text-sm font-bold text-ink">Digital Twin Governance</h2>
+                  <h2 className="text-sm font-bold text-ink">Review & Validation</h2>
                   <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${finalized
                     ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300'
                     : 'bg-[#10b981]/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
@@ -798,8 +794,7 @@ export default function Finalize() {
                     disabled={d.validation.errors.length > 0 || busy}
                     onClick={() => { setAck(false); setDlg('finalize') }}
                   >
-                    <Sparkles size={15} />
-                    <span>Finalise as Digital Twin 🌟</span>
+                    <span>Finalise as Digital Twin</span>
                   </button>
                 )}
               </div>
