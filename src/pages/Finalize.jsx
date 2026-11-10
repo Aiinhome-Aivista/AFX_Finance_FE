@@ -612,12 +612,44 @@ export default function Finalize() {
   useEffect(() => { if (fin.data && range.to === null) setRange({ from: 0, to: fin.data.version.number }) }, [fin.data]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (range.to !== null) graphs.compare(slug, range.from, range.to).then(setCmp, (e) => toast.error(e.message)) }, [range, slug]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const finalized = !!wf.data?.finalized_version_number
+  const d = fin.data
+
+  // Synthesize nodes & edges with missing/discrepancy indicators to match Telemetry Gap Analysis
+  const graphDataWithGaps = useMemo(() => {
+    const rawNodes = d?.graph?.nodes || []
+    const rawEdges = d?.graph?.edges || []
+    if (rawNodes.length === 0) return { nodes: rawNodes, edges: rawEdges }
+
+    const nodes = rawNodes.map((n) => {
+      const name = n.name || n.n || n.id || ''
+      const isMissingTarget =
+        name.includes('TrueMargin') ||
+        name.includes('StandardCosting') ||
+        Boolean(cmp?.nodes_removed && Array.isArray(cmp.nodes_removed) && cmp.nodes_removed.some((rem) => rem.name === name || rem.key === n.id))
+
+      if (isMissingTarget) {
+        return {
+          ...n,
+          gap_status: 'missing',
+          is_discrepancy: true,
+          color: '#ef4444',
+          gap_color: '#ef4444',
+        }
+      }
+      return n
+    })
+
+    return {
+      nodes,
+      edges: rawEdges,
+    }
+  }, [d?.graph?.nodes, d?.graph?.edges, cmp?.nodes_removed])
+
   if (wf.data && !wf.data.started) return <Navigate to={`/finance/${slug}`} replace />
   if (wf.loading && !wf.data) return <Layout wide><Loading /></Layout>
   if (wf.error) return <Layout wide><ErrorState error={wf.error} onRetry={wf.reload} /></Layout>
   const hasKg1 = wf.data.steps[3].status === 'completed'
-  const finalized = !!wf.data.finalized_version_number
-  const d = fin.data
 
   const doFinalize = async () => {
     setBusy(true)
@@ -695,8 +727,8 @@ export default function Finalize() {
 
               <div className="h-[460px] min-h-[420px] w-full relative overflow-hidden bg-surface">
                 <OntologyGraphCanvas
-                  nodes={d.graph.nodes}
-                  edges={d.graph.edges}
+                  nodes={graphDataWithGaps.nodes}
+                  edges={graphDataWithGaps.edges}
                   domainMeta={wf.data?.domain}
                   selectedNodeId={selectedNode}
                   onSelectNode={setSelectedNode}
