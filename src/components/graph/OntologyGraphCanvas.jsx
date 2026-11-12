@@ -48,7 +48,32 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
   // Layout computations (dynamic when propNodes provided, otherwise canonical layout)
   const layout = useMemo(() => {
     if (propNodes && propNodes.length > 0) {
-      return computeDynamicLayout(propNodes, propEdges || [], activeDomain, propDomainMeta)
+      // Filter out any telemetry / uploaded file nodes so raw files never appear as graph entities
+      const cleanNodes = propNodes.filter((n) => {
+        const name = String(n.name || n.n || n.id || '')
+        const key = String(n.key || n.id || '')
+        const kind = String(n.kind || '')
+        return !(
+          kind === 'datasource' ||
+          key.startsWith('data-file-') ||
+          name.startsWith('Telemetry:') ||
+          name.startsWith('Data:') ||
+          /\.(pdf|xlsx|xls|csv|json|txt|docx)$/i.test(name)
+        )
+      })
+      const validKeys = new Set()
+      cleanNodes.forEach((n) => {
+        if (n.id) validKeys.add(String(n.id))
+        if (n.key) validKeys.add(String(n.key))
+        if (n.name) validKeys.add(String(n.name))
+        if (n.n) validKeys.add(String(n.n))
+      })
+      const cleanEdges = (propEdges || []).filter((e) => {
+        const src = String(e.source?.id || e.source || e.srcId || e.from || '')
+        const tgt = String(e.target?.id || e.target || e.tgtId || e.to || '')
+        return validKeys.has(src) && validKeys.has(tgt)
+      })
+      return computeDynamicLayout(cleanNodes, cleanEdges, activeDomain, propDomainMeta)
     }
     return computeLayout()
   }, [propNodes, propEdges, activeDomain, propDomainMeta])

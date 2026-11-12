@@ -582,8 +582,42 @@ export function buildDynamicBusinessInsight(node, mode = 'modified', ctx = {}) {
  */
 export function annotateMissingGapNodes(graph, nodesRemoved = [], gapGraph = null) {
   const hasGapGraph = Boolean(gapGraph?.nodes && gapGraph.nodes.length > 0)
-  const rawNodes = hasGapGraph ? gapGraph.nodes : (graph?.nodes || [])
-  const rawEdges = hasGapGraph && Array.isArray(gapGraph.edges) ? gapGraph.edges : (graph?.edges || [])
+  const rawNodes = (hasGapGraph ? gapGraph.nodes : (graph?.nodes || []))
+    // Filter out file nodes so no filename entity appears in the knowledge graph
+    .filter((n) => {
+      const name = n.name || n.n || n.id || ''
+      const key = n.key || n.id || ''
+      const kind = n.kind || ''
+      return !(
+        kind === 'datasource' ||
+        key.startsWith('data-file-') ||
+        name.startsWith('Telemetry:') ||
+        name.startsWith('Data:') ||
+        /\.(pdf|xlsx|xls|csv|json|txt|docx)$/i.test(name)
+      )
+    })
+
+  const validKeys = new Set()
+  rawNodes.forEach((n) => {
+    if (n.id) validKeys.add(String(n.id))
+    if (n.key) validKeys.add(String(n.key))
+    if (n.name) validKeys.add(String(n.name))
+    if (n.n) validKeys.add(String(n.n))
+  })
+
+  // Prefer existing graph edges if gapGraph has no edges or empty relationships
+  const candidateEdges = (hasGapGraph && Array.isArray(gapGraph.edges) && gapGraph.edges.length > 0)
+    ? gapGraph.edges
+    : (graph?.edges || [])
+
+  const rawEdges = candidateEdges
+    // Filter out edges connected to excluded file nodes or invalid nodes
+    .filter((e) => {
+      const src = String(e.source?.id || e.source || e.srcId || e.from || '')
+      const tgt = String(e.target?.id || e.target || e.tgtId || e.to || '')
+      return validKeys.has(src) && validKeys.has(tgt)
+    })
+
   if (rawNodes.length === 0) return { nodes: rawNodes, edges: rawEdges }
 
   const removedList = Array.isArray(nodesRemoved) ? nodesRemoved : []

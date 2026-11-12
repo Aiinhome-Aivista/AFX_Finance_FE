@@ -897,6 +897,9 @@ export function computeDynamicLayout(rawNodes, rawEdges, activeDomain = 'all', d
       evidence: ev,
     }
     byId[id] = nodeObj
+    if (rn.name) byId[rn.name] = nodeObj
+    if (rn.key) byId[rn.key] = nodeObj
+    if (rn.n) byId[rn.n] = nodeObj
     return nodeObj
   })
 

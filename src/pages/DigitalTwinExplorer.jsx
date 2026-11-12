@@ -79,19 +79,36 @@ export default function DigitalTwinExplorer() {
     }
   }, [slug, d])
 
-  const graphDataWithGaps = useMemo(
-    () => annotateMissingGapNodes(d?.graph, cmp?.nodes_removed, gapGraph || d?.gap_graph),
-    [d?.graph, d?.gap_graph, cmp?.nodes_removed, gapGraph],
-  )
+  // Clean, production-certified architecture graph (No missing gap alerts or red warning badges)
+  const productionGraph = useMemo(() => {
+    const rawNodes = d?.graph?.nodes || []
+    const rawEdges = d?.graph?.edges || []
+    if (rawNodes.length === 0) return { nodes: [], edges: [] }
+
+    // Strip any gap_status / missing indicators so all nodes appear verified and standard
+    const nodes = rawNodes.map((n) => ({
+      ...n,
+      gap_status: undefined,
+      is_discrepancy: false,
+      gap_color: undefined,
+      gap_label: undefined,
+      color: n.color && n.color !== '#ef4444' ? n.color : undefined,
+    }))
+
+    return {
+      nodes,
+      edges: rawEdges,
+    }
+  }, [d?.graph?.nodes, d?.graph?.edges])
 
   const selectedNode = useMemo(() => {
-    if (!selectedNodeId || !graphDataWithGaps.nodes.length) return null
+    if (!selectedNodeId || !productionGraph.nodes.length) return null
     return (
-      graphDataWithGaps.nodes.find(
+      productionGraph.nodes.find(
         (n) => n.id === selectedNodeId || n.key === selectedNodeId || n.name === selectedNodeId
       ) || null
     )
-  }, [selectedNodeId, graphDataWithGaps.nodes])
+  }, [selectedNodeId, productionGraph.nodes])
 
   const handleRunSimulation = () => {
     setIsSimulating(true)
@@ -201,7 +218,7 @@ export default function DigitalTwinExplorer() {
                     Production Architecture Graph (Locked & Governed)
                   </h2>
                   <p className="text-[11px] text-muted">
-                    {graphDataWithGaps.nodes.length || d?.graph?.nodes?.length || 0} verified entities · {graphDataWithGaps.edges.length || d?.graph?.edges?.length || 0} certified relationships
+                    {productionGraph.nodes.length || d?.graph?.nodes?.length || 0} verified entities · {productionGraph.edges.length || d?.graph?.edges?.length || 0} certified relationships
                   </p>
                 </div>
               </div>
@@ -210,8 +227,8 @@ export default function DigitalTwinExplorer() {
             <div className="h-[560px] min-h-[500px] w-full relative overflow-hidden bg-surface">
               {d?.graph ? (
                 <OntologyGraphCanvas
-                  nodes={graphDataWithGaps.nodes}
-                  edges={graphDataWithGaps.edges}
+                  nodes={productionGraph.nodes}
+                  edges={productionGraph.edges}
                   domainMeta={wf.data?.domain}
                   selectedNodeId={selectedNodeId}
                   onSelectNode={setSelectedNodeId}
