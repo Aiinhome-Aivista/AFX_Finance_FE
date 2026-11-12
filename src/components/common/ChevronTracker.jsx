@@ -4,11 +4,12 @@ import { Check, Sparkles } from 'lucide-react'
 import { useWorkflow } from '../../context/WorkflowContext'
 
 /**
- * 4 Dynamic Workflow Stages according to Option 1:
+ * 5 Dynamic Workflow Stages:
  * 1. Domain Prompts (Domain selection & prompts overview: /finance)
  * 2. Core Nuances (KG1 Interview & Discovery: /finance/:slug)
  * 3. Business Telemetry (KG2 Gap Analysis & Upload: /finance/:slug?mode=upload)
- * 4. Review & Digital Twin (Governance & Finalization: /finance/:slug/finalize)
+ * 4. Review (Validation & Finalization: /finance/:slug/finalize)
+ * 5. Finalize Digital Twin (Governed Console: /finance/:slug/twin)
  */
 const STAGES = [
   {
@@ -32,8 +33,14 @@ const STAGES = [
   {
     id: 4,
     title: 'Review',
-    subtitle: 'Digital Twin',
+    subtitle: 'Validation & Diff',
     getRoute: (slug) => (slug ? `/finance/${slug}/finalize` : '/finance'),
+  },
+  {
+    id: 5,
+    title: 'Finalize Digital Twin',
+    subtitle: 'Governed Console',
+    getRoute: (slug) => (slug ? `/finance/${slug}/twin` : '/finance'),
   },
 ]
 
@@ -43,7 +50,7 @@ export default function ChevronTracker() {
   const { domainMap } = useWorkflow()
 
   // Extract slug from /finance/:slug/...
-  const { currentStep, slug, domainInfo, isFinalized } = useMemo(() => {
+  const { currentStep, slug, domainInfo, isFinalized, isTwinPage } = useMemo(() => {
     const parts = path.split('/').filter(Boolean)
     let extractedSlug = null
     if (parts[0] === 'finance' && parts[1] && !['overview'].includes(parts[1])) {
@@ -57,12 +64,15 @@ export default function ChevronTracker() {
       info.isGapMode ||
       location.search.includes('upload') ||
       location.search.includes('gap')
-    const isFinalizePage = path.includes('/finalize') || path.includes('/twin')
+    const twinPage = path.includes('/twin')
+    const finalizePage = path.includes('/finalize')
 
     let step = 1
     if (!extractedSlug || path === '/finance') {
       step = 1
-    } else if (isFinalizePage) {
+    } else if (twinPage) {
+      step = 5
+    } else if (finalizePage) {
       step = 4
     } else if (isUploadView) {
       step = 3
@@ -75,6 +85,7 @@ export default function ChevronTracker() {
       slug: extractedSlug,
       domainInfo: info,
       isFinalized: finalized,
+      isTwinPage: twinPage,
     }
   }, [path, location.search, domainMap])
 
@@ -86,8 +97,8 @@ export default function ChevronTracker() {
       {STAGES.map((stage) => {
         // Dynamic Completion & Lock Calculation:
         const isDomainSelected = Boolean(slug)
-        const isKG1Ready = Boolean(domainInfo.isKG1Ready || isFinalized)
-        const hasFiles = Boolean(domainInfo.hasFiles || isFinalized)
+        const isKG1Ready = Boolean(domainInfo.isKG1Ready || isFinalized || isTwinPage)
+        const hasFiles = Boolean(domainInfo.hasFiles || isFinalized || isTwinPage)
 
         let isCompleted = false
         let isLocked = false
@@ -101,8 +112,11 @@ export default function ChevronTracker() {
           isCompleted = hasFiles && currentStep > 3
           isLocked = !isDomainSelected || (!isKG1Ready && !hasFiles)
         } else if (stage.id === 4) {
-          isCompleted = isFinalized
-          isLocked = !isDomainSelected || (!isKG1Ready && !isFinalized)
+          isCompleted = isFinalized || currentStep > 4
+          isLocked = !isDomainSelected || (!isKG1Ready && !isFinalized && !isTwinPage)
+        } else if (stage.id === 5) {
+          isCompleted = isFinalized && isTwinPage
+          isLocked = !isDomainSelected || (!isFinalized && !isTwinPage)
         }
 
         const isActive = stage.id === currentStep
@@ -148,14 +162,18 @@ export default function ChevronTracker() {
 
         // Subtitle customization if Governed
         const displaySubtitle =
-          stage.id === 4 && isFinalized ? 'Governed Twin' : stage.subtitle
+          stage.id === 4 && isFinalized
+            ? 'Governed'
+            : stage.id === 5 && isFinalized
+              ? 'Active Twin'
+              : stage.subtitle
 
         const content = (
           <div
             className={`chevron-arrow relative p-[1.5px] transition-all duration-300 ${outerBg} ${containerShadow}`}
           >
             <div
-              className={`chevron-arrow ${innerBg} px-4 sm:px-5 py-1.5 flex items-center gap-2 select-none min-w-[128px] sm:min-w-[155px] h-[38px]`}
+              className={`chevron-arrow ${innerBg} px-3.5 sm:px-4 py-1.5 flex items-center gap-2 select-none min-w-[116px] sm:min-w-[140px] h-[38px]`}
             >
               {/* Status Indicator Icon */}
               <span className="flex items-center justify-center shrink-0">
@@ -164,10 +182,10 @@ export default function ChevronTracker() {
 
               {/* Step Title & Subtitle */}
               <div className="flex flex-col min-w-0 leading-tight">
-                <span className={`text-[11px] sm:text-xs truncate tracking-tight ${titleColor}`}>
+                <span className={`text-[11px] sm:text-xs whitespace-nowrap tracking-tight ${titleColor}`}>
                   {stage.title}
                 </span>
-                <span className={`text-[9px] sm:text-[10px] truncate ${subColor}`}>
+                <span className={`text-[9px] sm:text-[10px] whitespace-nowrap ${subColor}`}>
                   {displaySubtitle}
                 </span>
               </div>
@@ -181,7 +199,7 @@ export default function ChevronTracker() {
           return (
             <div
               key={stage.id}
-              className="cursor-not-allowed opacity-55"
+              className="cursor-not-allowed opacity-55 shrink-0"
               title="Step locked: Complete previous steps first"
             >
               {content}
@@ -193,7 +211,7 @@ export default function ChevronTracker() {
           <Link
             key={stage.id}
             to={targetRoute}
-            className="group cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-[#10b981] rounded block"
+            className="group cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-[#10b981] rounded block shrink-0"
             title={`${stage.title} - ${displaySubtitle}`}
           >
             {content}

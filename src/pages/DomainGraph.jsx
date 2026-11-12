@@ -610,9 +610,9 @@ export default function DomainGraph() {
             type="button"
             onClick={() => nav(`/finance/${slug}/finalize`)}
             className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
-            title="Proceed to Review & Finalize Twin"
+            title="Proceed to Review & Validation"
           >
-            <span>Next: Finalize Twin</span>
+            <span>Next: Review</span>
             <ArrowRight size={13} />
           </button>
         ) : null

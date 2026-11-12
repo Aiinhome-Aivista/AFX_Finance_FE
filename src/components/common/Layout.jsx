@@ -33,7 +33,7 @@ export default function Layout({ children, wide, headerAction }) {
           </Link>
 
           {/* Persistent Chevron Arrow Progress Tracker */}
-          <div className="flex justify-start ml-2 sm:ml-4 mr-auto">
+          <div className="flex justify-start min-w-0 ml-2 sm:ml-4 mr-auto">
             <ChevronTracker />
           </div>
 

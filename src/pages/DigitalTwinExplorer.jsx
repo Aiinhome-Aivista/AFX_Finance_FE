@@ -21,10 +21,12 @@ import { domains, files as filesApi, graphs } from '../api'
 import { annotateMissingGapNodes } from '../lib/businessImpact'
 import { DOMMETA, SLUG_TO_DOM } from '../lib/ontologyData'
 import { useToast } from '../context/ToastContext'
+import { useWorkflow } from '../context/WorkflowContext'
 
 export default function DigitalTwinExplorer() {
   const { slug } = useParams()
   const toast = useToast()
+  const { updateDomainWorkflow } = useWorkflow()
   const wf = useAsync(() => domains.workflow(slug), [slug])
   const fin = useAsync(() => graphs.finalization(slug), [slug])
 
@@ -50,6 +52,16 @@ export default function DigitalTwinExplorer() {
 
   const d = fin.data
   const finalized = Boolean(wf.data?.finalized_version_number)
+
+  useEffect(() => {
+    if (slug && wf.data) {
+      updateDomainWorkflow(slug, {
+        isKG1Ready: true,
+        hasFiles: true,
+        isFinalized: Boolean(wf.data.finalized_version_number),
+      })
+    }
+  }, [slug, wf.data, updateDomainWorkflow])
 
   useEffect(() => {
     setGapGraph(null)

@@ -649,11 +649,11 @@ function DiffLists({ d, domainName = 'Finance', slug = '', graph = null, history
               </div>
 
               {/* Connecting Arrow with Label */}
-              <div className="hidden lg:flex flex-col items-center justify-center text-muted px-1 select-none">
-                <span className="text-[9px] uppercase font-bold text-[#10b981] tracking-wider mb-0.5">Suggestions</span>
+              <div className="hidden lg:flex flex-col items-center justify-center text-muted px-1.5 select-none">
+                <span className="text-xs uppercase font-bold text-[#10b981] tracking-wider mb-1">Suggestions</span>
                 <div className="flex items-center text-[#10b981]">
-                  <div className="w-5 h-[2px] bg-[#10b981]/50" />
-                  <ArrowRight size={15} className="-ml-1 text-[#10b981]" />
+                  <div className="w-7 h-[2px] bg-[#10b981]/50" />
+                  <ArrowRight size={17} className="-ml-1 text-[#10b981]" />
                 </div>
               </div>
 
@@ -872,8 +872,32 @@ export default function Finalize() {
     }
   }
 
+  const finalizeHeaderAction =
+    hasKg1 && d ? (
+      finalized ? (
+        <Link
+          to={`/finance/${slug}/twin`}
+          className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 transition-all hover:scale-[1.02]"
+          title="Open Governed Digital Twin Console"
+        >
+          <span>Next: Digital Twin</span>
+          <ArrowRight size={13} />
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={() => { setAck(false); setDlg('finalize') }}
+          className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
+          title="Finalize & Govern Digital Twin"
+        >
+          <span>Next: Finalize Twin</span>
+          <ArrowRight size={13} />
+        </button>
+      )
+    ) : null
+
   return (
-    <Layout wide>
+    <Layout wide headerAction={finalizeHeaderAction}>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
         <div>
           <Link to={`/finance/${slug}`} className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink font-semibold mb-1">
