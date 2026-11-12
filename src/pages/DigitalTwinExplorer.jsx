@@ -1,18 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   CheckCircle2,
-  Database,
   Download,
   ExternalLink,
   Layers,
-  Lock,
   Play,
   Share2,
   ShieldCheck,
   Sliders,
-  Sparkles,
   Workflow,
   X,
 } from 'lucide-react'
@@ -20,7 +17,8 @@ import Layout from '../components/common/Layout'
 import OntologyGraphCanvas from '../components/graph/OntologyGraphCanvas'
 import { Loading, ErrorState } from '../components/common/States'
 import useAsync from '../components/common/useAsync'
-import { domains, graphs } from '../api'
+import { domains, files as filesApi, graphs } from '../api'
+import { annotateMissingGapNodes } from '../lib/businessImpact'
 import { DOMMETA, SLUG_TO_DOM } from '../lib/ontologyData'
 import { useToast } from '../context/ToastContext'
 
@@ -31,7 +29,9 @@ export default function DigitalTwinExplorer() {
   const fin = useAsync(() => graphs.finalization(slug), [slug])
 
   const [selectedNodeId, setSelectedNodeId] = useState(null)
-  const [activeRightTab, setActiveRightTab] = useState('telemetry') // 'telemetry' | 'simulation' | 'integration'
+  const [cmp, setCmp] = useState(null)
+  const [gapGraph, setGapGraph] = useState(null)
+  const [activeRightTab, setActiveRightTab] = useState('telemetry') // 'telemetry' | 'simulation'
   const [simValues, setSimValues] = useState({
     overheadRate: 94.5,
     freightMultiplier: 1.05,
@@ -51,14 +51,47 @@ export default function DigitalTwinExplorer() {
   const d = fin.data
   const finalized = Boolean(wf.data?.finalized_version_number)
 
+  useEffect(() => {
+    setGapGraph(null)
+  }, [slug])
+
+  useEffect(() => {
+    const vNum = d?.version?.number
+    if (!slug || vNum === undefined || vNum === null) return
+    graphs.compare(slug, 0, vNum).then(setCmp).catch(() => { })
+  }, [slug, d?.version?.number])
+
+  useEffect(() => {
+    if (!slug || !d) return
+    if (d.gap_graph?.nodes?.length > 0) {
+      setGapGraph(d.gap_graph)
+      return
+    }
+    let cancelled = false
+    filesApi
+      .gapAnalysis(slug, { silent: true })
+      .then((res) => {
+        if (!cancelled && res?.nodes?.length > 0) setGapGraph(res)
+      })
+      .catch(() => { })
+    return () => {
+      cancelled = true
+    }
+  }, [slug, d])
+
+  const graphDataWithGaps = useMemo(
+    () => annotateMissingGapNodes(d?.graph, cmp?.nodes_removed, gapGraph || d?.gap_graph),
+    [d?.graph, d?.gap_graph, cmp?.nodes_removed, gapGraph],
+  )
+
   const selectedNode = useMemo(() => {
-    if (!selectedNodeId || !d?.graph?.nodes) return null
+    if (!selectedNodeId || !graphDataWithGaps.nodes.length) return null
     return (
-      d.graph.nodes.find(
+      graphDataWithGaps.nodes.find(
         (n) => n.id === selectedNodeId || n.key === selectedNodeId || n.name === selectedNodeId
       ) || null
     )
-  }, [selectedNodeId, d?.graph?.nodes])
+  }, [selectedNodeId, graphDataWithGaps.nodes])
 
   const handleRunSimulation = () => {
     setIsSimulating(true)
@@ -151,13 +184,6 @@ export default function DigitalTwinExplorer() {
               <Download size={14} />
               <span>Export Schema</span>
             </button>
-            <Link
-              to={`/finance/${slug}/finalize`}
-              className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition"
-            >
-              <Lock size={13} />
-              <span>Governance Stamp</span>
-            </Link>
           </div>
         </div>
 
@@ -175,20 +201,17 @@ export default function DigitalTwinExplorer() {
                     Production Architecture Graph (Locked & Governed)
                   </h2>
                   <p className="text-[11px] text-muted">
-                    {d?.graph?.nodes?.length || 11} verified entities · {d?.graph?.edges?.length || 10} certified relationships
+                    {graphDataWithGaps.nodes.length || d?.graph?.nodes?.length || 0} verified entities · {graphDataWithGaps.edges.length || d?.graph?.edges?.length || 0} certified relationships
                   </p>
                 </div>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface2 text-muted border border-line">
-                Immutable
-              </span>
             </div>
 
             <div className="h-[560px] min-h-[500px] w-full relative overflow-hidden bg-surface">
               {d?.graph ? (
                 <OntologyGraphCanvas
-                  nodes={d.graph.nodes}
-                  edges={d.graph.edges}
+                  nodes={graphDataWithGaps.nodes}
+                  edges={graphDataWithGaps.edges}
                   domainMeta={wf.data?.domain}
                   selectedNodeId={selectedNodeId}
                   onSelectNode={setSelectedNodeId}
@@ -203,43 +226,29 @@ export default function DigitalTwinExplorer() {
           {/* Right Column: Dynamic Twin Control Center */}
           <section className="card p-5 border border-line flex flex-col justify-between shadow-card">
             <div className="space-y-4">
-              {/* Tabs: Specs / Telemetry / What-If / Integrations */}
+              {/* Tabs: Telemetry & Specs / What-If Simulation */}
               <div className="flex items-center justify-between pb-2.5 border-b border-line">
                 <div className="flex items-center gap-1.5 p-1 rounded-xl bg-surface2 border border-line/60">
                   <button
                     type="button"
                     onClick={() => setActiveRightTab('telemetry')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                      activeRightTab === 'telemetry'
-                        ? 'bg-[#10b981] text-white shadow-xs'
-                        : 'text-muted hover:text-ink'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${activeRightTab === 'telemetry'
+                      ? 'bg-[#10b981] text-white shadow-xs'
+                      : 'text-muted hover:text-ink'
+                      }`}
                   >
                     Telemetry & Specs
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveRightTab('simulation')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
-                      activeRightTab === 'simulation'
-                        ? 'bg-[#10b981] text-white shadow-xs'
-                        : 'text-muted hover:text-ink'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${activeRightTab === 'simulation'
+                      ? 'bg-[#10b981] text-white shadow-xs'
+                      : 'text-muted hover:text-ink'
+                      }`}
                   >
                     <Sliders size={13} />
                     <span>What-If Simulation</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveRightTab('integration')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
-                      activeRightTab === 'integration'
-                        ? 'bg-[#10b981] text-white shadow-xs'
-                        : 'text-muted hover:text-ink'
-                    }`}
-                  >
-                    <Database size={13} />
-                    <span>Integration</span>
                   </button>
                 </div>
               </div>
@@ -256,6 +265,16 @@ export default function DigitalTwinExplorer() {
                             style={{ backgroundColor: selectedNode.color || '#10b981' }}
                           />
                           <b className="text-sm text-ink">{selectedNode.name || selectedNode.n || selectedNode.id}</b>
+                          {selectedNode.gap_status === 'missing' && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/10 text-red-600 border border-red-500/30">
+                              MISSING
+                            </span>
+                          )}
+                          {selectedNode.gap_status === 'new' && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/10 text-red-600 border border-red-500/30">
+                              NEW TELEMETRY
+                            </span>
+                          )}
                         </div>
                         <button
                           type="button"
@@ -296,7 +315,6 @@ export default function DigitalTwinExplorer() {
                   ) : (
                     <div className="p-3.5 rounded-xl border border-line bg-surface2/30 space-y-1.5">
                       <div className="flex items-center gap-2 text-ink font-bold">
-                        <Sparkles size={14} className="text-[#10b981]" />
                         <span>Interactive Exploration Active</span>
                       </div>
                       <p className="text-[11px] text-muted leading-relaxed">
@@ -315,14 +333,10 @@ export default function DigitalTwinExplorer() {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="text-[11px]">
                       <div className="p-2 rounded-lg bg-surface border border-line">
                         <span className="text-muted block text-[10px]">Model State:</span>
                         <b className="text-ink">Locked / Governed</b>
-                      </div>
-                      <div className="p-2 rounded-lg bg-surface border border-line">
-                        <span className="text-muted block text-[10px]">Version Fingerprint:</span>
-                        <b className="text-ink font-mono">KG3-0941FA2</b>
                       </div>
                     </div>
                   </div>
@@ -407,35 +421,6 @@ export default function DigitalTwinExplorer() {
                       </div>
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* Tab 3: Integration & APIs */}
-              {activeRightTab === 'integration' && (
-                <div className="space-y-3 text-xs">
-                  <div className="p-3.5 rounded-xl border border-line bg-surface2/40 space-y-2">
-                    <b className="text-ink">Live REST API Endpoint</b>
-                    <p className="text-[11px] text-muted">
-                      Query your active financial digital twin schema directly from external automation scripts or ERP middleware.
-                    </p>
-                    <div className="p-2 rounded-lg bg-surface border border-line font-mono text-[10.5px] text-[#10b981] truncate">
-                      GET /api/finance/{slug}/twin/ontology
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl border border-line bg-surface2/40 space-y-2">
-                    <b className="text-ink">Certified BI Connectors</b>
-                    <div className="space-y-1.5 text-[11px]">
-                      <div className="flex items-center justify-between p-2 rounded-lg bg-surface border border-line">
-                        <span>PowerBI / Azure Synapse Datafeed</span>
-                        <span className="text-[#10b981] font-bold">Enabled</span>
-                      </div>
-                      <div className="flex items-center justify-between p-2 rounded-lg bg-surface border border-line">
-                        <span>Snowflake Financial Semantic Layer</span>
-                        <span className="text-[#10b981] font-bold">Enabled</span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>

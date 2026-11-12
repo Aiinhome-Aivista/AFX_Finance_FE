@@ -73,8 +73,8 @@ export const files = {
     const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
     return http.post(`/domains/${clean}/telemetry/generate`).then(d)
   },
-  gapAnalysis: (slug) => {
+  gapAnalysis: (slug, opts = {}) => {
     const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
-    return http.get(`/domains/${clean}/telemetry/gap-analysis`).then(d)
+    return http.get(`/domains/${clean}/telemetry/gap-analysis`, { params: opts.silent ? { silent: 1 } : {} }).then(d)
   },
 }
