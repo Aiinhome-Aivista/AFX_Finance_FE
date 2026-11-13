@@ -16,6 +16,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { Spinner } from '../common/States'
+import ConfirmDialog from '../common/ConfirmDialog'
 import { chat, graphs } from '../../api'
 import { useToast } from '../../context/ToastContext'
 import { useWorkflow } from '../../context/WorkflowContext'
@@ -97,6 +98,7 @@ export default function ChatPanel({
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [reopening, setReopening] = useState(false)
+  const [showReopenConfirm, setShowReopenConfirm] = useState(false)
   const [unlockedLocally, setUnlockedLocally] = useState(false)
   const [mode, setMode] = useState('answer')
   const [wittyDialogue, setWittyDialogue] = useState(null)
@@ -110,14 +112,12 @@ export default function ChatPanel({
     }
   }, [locked])
 
-  const handleReopen = async () => {
-    if (!window.confirm('Re-open and unlock this model for editing? Your uploaded telemetry and files will remain safely preserved.')) {
-      return
-    }
+  const doReopen = async () => {
     try {
       setReopening(true)
       await graphs.reopen(slug)
       setUnlockedLocally(true)
+      setShowReopenConfirm(false)
       toast.success('Model successfully unlocked!')
       if (updateDomainWorkflow) {
         updateDomainWorkflow(slug, {
@@ -511,7 +511,7 @@ export default function ChatPanel({
             <div className="flex items-center justify-center gap-2 pt-1">
               <button
                 type="button"
-                onClick={handleReopen}
+                onClick={() => setShowReopenConfirm(true)}
                 disabled={reopening}
                 className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm cursor-pointer transition hover:scale-[1.02] disabled:opacity-50"
               >
@@ -681,6 +681,19 @@ export default function ChatPanel({
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={showReopenConfirm}
+        title="Re-open and unlock this model for editing?"
+        confirmLabel="Confirm Unlock"
+        busy={reopening}
+        onCancel={() => setShowReopenConfirm(false)}
+        onConfirm={doReopen}
+      >
+        <p className="text-xs text-ink leading-relaxed">
+          Your uploaded telemetry and files will remain safely preserved.
+        </p>
+      </ConfirmDialog>
     </div>
   )
 }

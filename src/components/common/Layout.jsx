@@ -4,13 +4,14 @@ import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import ChevronTracker from './ChevronTracker'
 
-export default function Layout({ children, wide, headerAction, onNext, nextLabel, hideWorkflowBar }) {
+export default function Layout({ children, wide, headerAction, onNext, nextLabel, hideWorkflowBar, hideNext }) {
   const { user, isAnalyst, logout } = useAuth()
   const { theme, toggle } = useTheme()
   const nav = useNavigate()
   const loc = useLocation()
   const roleLabel = isAnalyst ? 'Data Analyst' : 'Data Architect'
   const isModelSelectionPage = hideWorkflowBar || loc.pathname === '/apps'
+  const isFinalStep = hideNext || loc.pathname.endsWith('/twin')
 
   const handleNext = () => {
     if (onNext) {
@@ -82,7 +83,7 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
           {/* User Controls & Actions */}
           <div className="flex items-center gap-2 shrink-0">
             {headerAction}
-            {!isModelSelectionPage && (
+            {!isModelSelectionPage && !isFinalStep && (
               <button
                 type="button"
                 onClick={handleNext}

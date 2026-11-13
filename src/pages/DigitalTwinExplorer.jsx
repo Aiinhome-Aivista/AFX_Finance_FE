@@ -7,6 +7,7 @@ import {
   ExternalLink,
   Layers,
   Play,
+  Save,
   Share2,
   Sliders,
   Workflow,
@@ -15,6 +16,7 @@ import {
 import Layout from '../components/common/Layout'
 import OntologyGraphCanvas from '../components/graph/OntologyGraphCanvas'
 import { Loading, ErrorState } from '../components/common/States'
+import SaveAsModal from '../components/common/SaveAsModal'
 import useAsync from '../components/common/useAsync'
 import { domains, files as filesApi, graphs } from '../api'
 import { annotateMissingGapNodes } from '../lib/businessImpact'
@@ -159,9 +161,45 @@ export default function DigitalTwinExplorer() {
     toast.success('Digital Twin schema exported!')
   }
 
+  const [saveAsOpen, setSaveAsOpen] = useState(false)
+
+  const defaultSaveName = useMemo(() => {
+    const now = new Date()
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
+  }, [])
+
+  const handleSaveAs = () => {
+    setSaveAsOpen(true)
+  }
+
+  const executeSaveAs = (modelName) => {
+    try {
+      const now = new Date()
+      const payload = {
+        id: `custom_${Date.now()}`,
+        name: modelName,
+        createdAt: now.toISOString(),
+        domainSlug: slug,
+        domainName: domainName || 'Finance Model',
+        nodeCount: productionGraph.nodes.length || 0,
+        edgeCount: productionGraph.edges.length || 0,
+        nodes: productionGraph.nodes,
+        edges: productionGraph.edges,
+      }
+      const existing = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
+      existing.unshift(payload)
+      localStorage.setItem('agentforgex_saved_models', JSON.stringify(existing))
+      toast.success(`Model "${modelName}" saved successfully!`)
+      setSaveAsOpen(false)
+    } catch (e) {
+      toast.error('Failed to save model: ' + e.message)
+    }
+  }
+
   if (wf.loading && !wf.data) {
     return (
-      <Layout wide>
+      <Layout wide hideNext>
         <Loading label="Loading Enterprise Digital Twin..." />
       </Layout>
     )
@@ -169,14 +207,14 @@ export default function DigitalTwinExplorer() {
 
   if (wf.error) {
     return (
-      <Layout wide>
+      <Layout wide hideNext>
         <ErrorState error={wf.error} onRetry={wf.reload} />
       </Layout>
     )
   }
 
   return (
-    <Layout wide>
+    <Layout wide hideNext>
       <div className="space-y-4">
         {/* Top Breadcrumb & Control Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
@@ -204,6 +242,16 @@ export default function DigitalTwinExplorer() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleSaveAs}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs btn-ghost border-[#10b981]/50 text-[#10b981] hover:bg-[#10b981]/10 hover:border-[#10b981]"
+              title="Save current model snapshot"
+            >
+              <Save size={14} className="text-[#10b981]" />
+              <span>Save As</span>
+            </button>
+
             <button
               type="button"
               onClick={handleExportJson}
@@ -473,6 +521,16 @@ export default function DigitalTwinExplorer() {
           </section>
         </div>
       </div>
+
+      {/* Save As In-Window Modal */}
+      <SaveAsModal
+        open={saveAsOpen}
+        defaultName={defaultSaveName}
+        domainName={domainName || 'Finance Model'}
+        entityCount={productionGraph.nodes.length || 0}
+        onSave={executeSaveAs}
+        onClose={() => setSaveAsOpen(false)}
+      />
     </Layout>
   )
 }
