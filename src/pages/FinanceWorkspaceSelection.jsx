@@ -87,12 +87,18 @@ export default function FinanceWorkspaceSelection() {
 
   // Auto-select first available model if none selected
   useEffect(() => {
-    if (savedModels.length > 0 && !selectedMyModel && !selectedPublishedModel) {
-      setSelectedMyModel(savedModels[0].name)
-    } else if (publishedModels.length > 0 && !selectedPublishedModel && !selectedMyModel) {
-      setSelectedPublishedModel(publishedModels[0].name)
+    if (isAnalyst) {
+      if (publishedModels.length > 0 && !selectedPublishedModel) {
+        setSelectedPublishedModel(publishedModels[0].name)
+      }
+    } else {
+      if (savedModels.length > 0 && !selectedMyModel && !selectedPublishedModel) {
+        setSelectedMyModel(savedModels[0].name)
+      } else if (publishedModels.length > 0 && !selectedPublishedModel && !selectedMyModel) {
+        setSelectedPublishedModel(publishedModels[0].name)
+      }
     }
-  }, [savedModels, publishedModels, selectedMyModel, selectedPublishedModel])
+  }, [isAnalyst, savedModels, publishedModels, selectedMyModel, selectedPublishedModel])
 
   const handleDeleteSavedModel = (e, modelName) => {
     e.stopPropagation()
@@ -210,19 +216,23 @@ export default function FinanceWorkspaceSelection() {
                 Finance Workspace
               </h1>
               <p className="text-xs sm:text-sm text-mute">
-                Select your customized model on the left, use the arrow to publish as a Governed Digital Twin on the right, then click Go.
+                {isAnalyst
+                  ? 'Select a governed digital twin model from Published Models and click Go.'
+                  : 'Select your customized model on the left, use the arrow to publish as a Governed Digital Twin on the right, then click Go.'}
               </p>
             </div>
 
-            {/* Top Right Quick Action: [New] */}
-            <Link
-              to="/finance"
-              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-[#0b1320] shadow-sm transition"
-              title="Create a new Finance domain model"
-            >
-              <Plus size={15} />
-              <span>New</span>
-            </Link>
+            {/* Top Right Quick Action: [New] (Data Architect Only) */}
+            {!isAnalyst && (
+              <Link
+                to="/finance"
+                className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-[#0b1320] shadow-sm transition"
+                title="Create a new Finance domain model"
+              >
+                <Plus size={15} />
+                <span>New</span>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -246,8 +256,77 @@ export default function FinanceWorkspaceSelection() {
           </div>
         )}
 
-        {/* 2-Column Side-by-Side View with Center Arrow Transfer (matches user hand-drawn sketch and AppSelect layout) */}
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-stretch mt-4">
+        {isAnalyst ? (
+          /* Data Analyst View: ONLY Published Models */
+          <div className="max-w-2xl mx-auto mt-4">
+            <section
+              aria-label="Published Models"
+              className="card p-5 border border-line bg-surface flex flex-col min-h-[380px] shadow-2xs"
+            >
+              <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-[#10b981] flex items-center justify-center">
+                    <ShieldCheck size={16} />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-ink">Published Models</h2>
+                    <p className="text-xs text-mute">Enterprise Governed Digital Twins</p>
+                  </div>
+                </div>
+                <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
+                  {publishedModels.length}
+                </span>
+              </div>
+
+              {publishedModels.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center text-center p-6">
+                  <p className="text-xs text-mute">
+                    No certified digital twin models published yet.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
+                  {publishedModels.map((m) => {
+                    const isSelected = selectedPublishedModel === m.name
+                    return (
+                      <div
+                        key={m.name}
+                        onClick={() => {
+                          setSelectedPublishedModel(m.name)
+                          setSelectedMyModel(null)
+                        }}
+                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer ${
+                          isSelected
+                            ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
+                            : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
+                            {m.name}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                            <ShieldCheck size={12} /> Certified Twin
+                          </span>
+                        </div>
+                        <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
+                        <p className="text-xs text-mute mt-1">
+                          Domain: {m.domainName || m.slug?.replace(/-/g, ' ')} · Governed Architecture
+                        </p>
+                        <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
+                          <span>Published on {m.publishedAt ? new Date(m.publishedAt).toLocaleDateString() : 'Recent'}</span>
+                          <span className="text-[#10b981] font-semibold">Explore Digital Twin →</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
+        ) : (
+          /* Data Architect View: 2-Column Side-by-Side View with Center Arrow Transfer (matches user hand-drawn sketch and AppSelect layout) */
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-stretch mt-4">
           {/* Left Column: My Finance Models (Only Saved Models) */}
           <section
             aria-label="My Finance Models"
@@ -414,6 +493,7 @@ export default function FinanceWorkspaceSelection() {
             )}
           </section>
         </div>
+      )}
 
         {/* Bottom Bar: Selected Workspace Model and Go Action Button */}
         <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface px-5 py-4 shadow-sm">
@@ -434,6 +514,8 @@ export default function FinanceWorkspaceSelection() {
                   </span>
                 )}
               </span>
+            ) : isAnalyst ? (
+              <span>Click any published model to select it and click Go to inspect the digital twin.</span>
             ) : (
               <span>Select any saved or published model to select it and click Go, or click + New to create a fresh model.</span>
             )}
