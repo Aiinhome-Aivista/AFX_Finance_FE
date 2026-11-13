@@ -64,8 +64,8 @@ export function AuthProvider({ children }) {
     return r.user
   }
 
-  const register = async (email, display_name, password) => {
-    const r = await authApi.register({ email, display_name, password })
+  const register = async (email, display_name, password, role = 'data_architect') => {
+    const r = await authApi.register({ email, display_name, password, role })
     if (r?.token) tokenStore.set(r.token)
     if (r?.user) {
       userStore.set(r.user)
@@ -92,8 +92,12 @@ export function AuthProvider({ children }) {
     return r.user
   }
 
+  const role = user?.role || 'data_architect'
+  const isArchitect = !!user && role === 'data_architect'
+  const isAnalyst = !!user && role === 'data_analyst'
+
   return (
-    <Ctx.Provider value={{ user, loading, login, register, logout, refreshUser }}>
+    <Ctx.Provider value={{ user, role, isArchitect, isAnalyst, loading, login, register, logout, refreshUser }}>
       {children}
     </Ctx.Provider>
   )

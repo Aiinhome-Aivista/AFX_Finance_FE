@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -20,15 +20,19 @@ import useAsync from '../components/common/useAsync'
 import { domains, files as filesApi, graphs } from '../api'
 import { annotateMissingGapNodes } from '../lib/businessImpact'
 import { DOMMETA, SLUG_TO_DOM } from '../lib/ontologyData'
+import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useWorkflow } from '../context/WorkflowContext'
 
 export default function DigitalTwinExplorer() {
   const { slug } = useParams()
+  const [searchParams] = useSearchParams()
+  const wfParam = searchParams.get('wf')
+  const { isAnalyst } = useAuth()
   const toast = useToast()
   const { updateDomainWorkflow } = useWorkflow()
-  const wf = useAsync(() => domains.workflow(slug), [slug])
-  const fin = useAsync(() => graphs.finalization(slug), [slug])
+  const wf = useAsync(() => domains.workflow(slug, wfParam), [slug, wfParam])
+  const fin = useAsync(() => graphs.finalization(slug, wfParam), [slug, wfParam])
 
   const [selectedNodeId, setSelectedNodeId] = useState(null)
   const [cmp, setCmp] = useState(null)
@@ -70,8 +74,8 @@ export default function DigitalTwinExplorer() {
   useEffect(() => {
     const vNum = d?.version?.number
     if (!slug || vNum === undefined || vNum === null) return
-    graphs.compare(slug, 0, vNum).then(setCmp).catch(() => { })
-  }, [slug, d?.version?.number])
+    graphs.compare(slug, 0, vNum, wfParam).then(setCmp).catch(() => { })
+  }, [slug, wfParam, d?.version?.number])
 
   useEffect(() => {
     if (!slug || !d) return
@@ -81,7 +85,7 @@ export default function DigitalTwinExplorer() {
     }
     let cancelled = false
     filesApi
-      .gapAnalysis(slug, { silent: true })
+      .gapAnalysis(slug, { silent: true, wf: wfParam })
       .then((res) => {
         if (!cancelled && res?.nodes?.length > 0) setGapGraph(res)
       })
@@ -89,7 +93,7 @@ export default function DigitalTwinExplorer() {
     return () => {
       cancelled = true
     }
-  }, [slug, d])
+  }, [slug, wfParam, d])
 
   // Clean, production-certified architecture graph (No missing gap alerts or red warning badges)
   const productionGraph = useMemo(() => {
@@ -179,11 +183,11 @@ export default function DigitalTwinExplorer() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
           <div className="space-y-1">
             <Link
-              to={`/finance/${slug}/finalize`}
+              to={isAnalyst ? '/finance' : `/finance/${slug}/finalize`}
               className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink font-semibold transition"
             >
               <ArrowLeft size={14} />
-              <span>Back to Review & Governance</span>
+              <span>{isAnalyst ? 'Back to Published Models' : 'Back to Review & Governance'}</span>
             </Link>
 
             <div className="flex flex-wrap items-center gap-2.5">
@@ -456,17 +460,19 @@ export default function DigitalTwinExplorer() {
 
             {/* Bottom Actions */}
             <div className="pt-3 border-t border-line flex flex-wrap gap-2">
-              <Link
-                to={`/finance/${slug}`}
-                className="btn-ghost flex-1 text-center py-2 text-xs rounded-xl border border-line hover:bg-surface2 cursor-pointer"
-              >
-                Inspect Chatbot History
-              </Link>
+              {!isAnalyst && (
+                <Link
+                  to={`/finance/${slug}`}
+                  className="btn-ghost flex-1 text-center py-2 text-xs rounded-xl border border-line hover:bg-surface2 cursor-pointer"
+                >
+                  Inspect Chatbot History
+                </Link>
+              )}
               <Link
                 to="/finance"
                 className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold flex-1 text-center py-2 text-xs rounded-xl shadow-sm transition"
               >
-                All Finance Domains →
+                {isAnalyst ? 'Published Models →' : 'All Finance Domains →'}
               </Link>
             </div>
           </section>

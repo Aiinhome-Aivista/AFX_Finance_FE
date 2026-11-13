@@ -5,11 +5,13 @@ import {
   ArrowRight,
   Bot,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   FileText,
   Layers,
   Network,
+  Save,
   Search,
   Sparkles,
   UploadCloud,
@@ -241,6 +243,9 @@ export default function DomainGraph() {
     } else if (mode === 'gap') {
       setIsGapMode(true)
       setLeftViewMode('graph')
+    } else {
+      setLeftViewMode('graph')
+      setIsGapMode(false)
     }
   }, [searchParams])
 
@@ -601,22 +606,72 @@ export default function DomainGraph() {
     }
   }
 
+  const handleSaveAs = () => {
+    try {
+      const now = new Date()
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      const formattedDate = `${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
+      const defaultName = `Finance_Model_${formattedDate}`
+
+      const modelName = window.prompt('Enter model name to Save As:', defaultName) || defaultName
+
+      const payload = {
+        name: modelName,
+        savedAt: now.toISOString(),
+        slug,
+        version: g.data?.version || { number: 1, label: 'v1.0' },
+        nodes: base?.nodes || [],
+        edges: base?.edges || [],
+        flows: g.data?.flows || [],
+      }
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${modelName.replace(/\s+/g, '_')}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      toast.success(`Model "${modelName}" saved successfully!`)
+    } catch (e) {
+      toast.error('Failed to save model: ' + e.message)
+    }
+  }
+
+  const nextConfig = useMemo(() => {
+    if (isGapMode) {
+      return {
+        label: 'Next: Review',
+        onNext: () => nav(`/finance/${slug}/finalize`),
+      }
+    }
+    if (leftViewMode === 'upload') {
+      if (hasUploadedFiles) {
+        return {
+          label: 'Gap Analysis',
+          onNext: handleProceedToGapAnalysis,
+        }
+      }
+      return {
+        label: 'Next: Review',
+        onNext: () => nav(`/finance/${slug}/finalize`),
+      }
+    }
+    // Business Input view -> navigates to Data Input view
+    return {
+      label: 'Next',
+      onNext: () => nav(`/finance/${slug}?mode=upload`),
+    }
+  }, [isGapMode, leftViewMode, hasUploadedFiles, slug, nav, handleProceedToGapAnalysis])
+
   return (
     <Layout
       wide
-      headerAction={
-        isGapMode ? (
-          <button
-            type="button"
-            onClick={() => nav(`/finance/${slug}/finalize`)}
-            className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
-            title="Proceed to Review & Validation"
-          >
-            <span>Next: Review</span>
-            <ArrowRight size={13} />
-          </button>
-        ) : null
-      }
+      nextLabel={nextConfig.label}
+      onNext={nextConfig.onNext}
     >
       {/* Top Header Navigation with Domain Tabs */}
       <div className="mb-4 rounded-2xl border border-line bg-surface/70 p-3 sm:p-3.5 backdrop-blur shadow-2xs">
@@ -630,40 +685,35 @@ export default function DomainGraph() {
               <span className="tracking-tight">All Domains</span>
             </Link>
 
-            {ORDER.filter((dKey) => !domainKey || domainKey === dKey).map((dKey) => {
-              const meta = DOMMETA[dKey]
-              const targetSlug = DOMAIN_SLUGS[dKey]
-              const isSelected = activeDomainFilter === dKey
-
-              return (
-                <button
-                  key={dKey}
-                  type="button"
-                  className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${isSelected
-                    ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
-                    : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
-                    }`}
-                  onClick={() => {
-                    setActiveDomainFilter(dKey)
-                    if (targetSlug && targetSlug !== slug) {
-                      nav(`/finance/${targetSlug}`)
-                    }
-                  }}
-                  title={meta.n}
-                >
-                  <span
-                    className="h-2 w-2 rounded-full shrink-0 transition-transform group-hover:scale-125"
-                    style={{
-                      backgroundColor: isSelected ? '#FFFFFF' : meta.c,
-                      boxShadow: isSelected ? '0 0 8px rgba(255,255,255,0.8)' : undefined,
-                    }}
-                  />
-                  <span className="font-semibold text-xs sm:text-[13px] tracking-tight whitespace-nowrap">
-                    {meta.n}
-                  </span>
-                </button>
-              )
-            })}
+            {/* Domain Dropdown Selector for All Domains */}
+            <div className="relative inline-flex items-center">
+              <select
+                value={domainKey || 'f1'}
+                onChange={(e) => {
+                  const targetKey = e.target.value
+                  const targetSlug = DOMAIN_SLUGS[targetKey]
+                  if (targetSlug && targetSlug !== slug) {
+                    nav(`/finance/${targetSlug}`)
+                  }
+                }}
+                className="appearance-none cursor-pointer rounded-xl pl-8 pr-7 py-1.5 text-xs sm:text-[13px] font-semibold border border-brand bg-brand text-white shadow-md shadow-brand/25 hover:bg-brand/90 transition"
+                title="Select active finance domain"
+              >
+                {ORDER.map((dKey) => (
+                  <option key={dKey} value={dKey} className="bg-surface text-ink py-1">
+                    {DOMMETA[dKey]?.n}
+                  </option>
+                ))}
+              </select>
+              <span
+                className="pointer-events-none absolute left-3 h-2 w-2 rounded-full"
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  boxShadow: '0 0 8px rgba(255,255,255,0.8)',
+                }}
+              />
+              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 text-white/80" />
+            </div>
 
             {/* Finance master-data spine button */}
             <button
@@ -701,22 +751,18 @@ export default function DomainGraph() {
             })()}
           </div>
 
-          {/* Action Buttons: Gap Analysis directly in top header */}
-          {hasUploadedFiles && leftViewMode !== 'upload' && (
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={handleProceedToGapAnalysis}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${isGapMode && leftViewMode === 'graph'
-                  ? 'bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-red-500/25 ring-2 ring-red-400/40'
-                  : 'btn-ghost border-[#ef4444] text-[#ef4444] hover:bg-[#ef4444]/10'
-                  }`}
-              >
-                <Sparkles size={14} />
-                <span>Gap Analysis</span>
-              </button>
-            </div>
-          )}
+          {/* Action Buttons: Permanent Save As button where Gap Analysis used to be */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleSaveAs}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs btn-ghost border-[#10b981]/50 text-[#10b981] hover:bg-[#10b981]/10 hover:border-[#10b981]"
+              title="Save current model snapshot"
+            >
+              <Save size={14} className="text-[#10b981]" />
+              <span>Save As</span>
+            </button>
+          </div>
         </div>
       </div>
 

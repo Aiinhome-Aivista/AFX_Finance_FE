@@ -161,17 +161,19 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
     const targetMeta = domMetas[activeDomain] || (activeDomain === 'spine' ? spineMeta : null)
     if (activeDomain && activeDomain !== 'all') {
       if (targetMeta) {
-        minX = Math.min(minX, targetMeta.cx - targetMeta.r)
-        maxX = Math.max(maxX, targetMeta.cx + targetMeta.r)
-        minY = Math.min(minY, targetMeta.cy - targetMeta.r)
-        maxY = Math.max(maxY, targetMeta.cy + targetMeta.r)
+        const tr = (targetMeta.r || 185) + 72
+        minX = Math.min(minX, targetMeta.cx - tr)
+        maxX = Math.max(maxX, targetMeta.cx + tr)
+        minY = Math.min(minY, targetMeta.cy - tr)
+        maxY = Math.max(maxY, targetMeta.cy + tr)
       }
       // If spine nodes exist or are visible, include spine cluster halo too
       if (spineMeta && (visibleSet?.has('spine') || visNodes.some((n) => n.d === 'spine' || n.group_key === 'spine'))) {
-        minX = Math.min(minX, spineMeta.cx - spineMeta.r)
-        maxX = Math.max(maxX, spineMeta.cx + spineMeta.r)
-        minY = Math.min(minY, spineMeta.cy - spineMeta.r)
-        maxY = Math.max(maxY, spineMeta.cy + spineMeta.r)
+        const sr = spineMeta.r || 255
+        minX = Math.min(minX, spineMeta.cx - sr)
+        maxX = Math.max(maxX, spineMeta.cx + sr)
+        minY = Math.min(minY, spineMeta.cy - sr)
+        maxY = Math.max(maxY, spineMeta.cy + sr)
       }
     } else {
       // All domains view: use canvas layout bounds
@@ -707,7 +709,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
             </>
           )}
 
-          {/* Satellite Sub-Domain Halos & Labels */}
+          {/* Satellite Sub-Domain Halos & Labels (Pure Circular Halos) */}
           {Object.entries(domMetas).map(([d, m]) => {
             if (!m) return null
             const isTargetDomain = activeDomain === d

@@ -14,32 +14,32 @@ import { useWorkflow } from '../../context/WorkflowContext'
 const STAGES = [
   {
     id: 1,
-    title: 'Domain',
-    subtitle: 'Prompts & Overview',
+    title: 'Template',
+    // subtitle: 'Prompts & Overview',
     getRoute: () => '/finance',
   },
   {
     id: 2,
-    title: 'Core Nuances',
-    subtitle: 'Discovery',
+    title: 'Business Input',
+    // subtitle: 'Discovery',
     getRoute: (slug) => (slug ? `/finance/${slug}` : '/finance'),
   },
   {
     id: 3,
-    title: 'Business Telemetry',
-    subtitle: 'Gap Analysis',
+    title: 'Data Input',
+    // subtitle: 'Gap Analysis',
     getRoute: (slug) => (slug ? `/finance/${slug}?mode=upload` : '/finance'),
   },
   {
     id: 4,
     title: 'Review',
-    subtitle: 'Validation & Diff',
+    // subtitle: 'Validation & Diff',
     getRoute: (slug) => (slug ? `/finance/${slug}/finalize` : '/finance'),
   },
   {
     id: 5,
     title: 'Finalize Digital Twin',
-    subtitle: 'Governed Console',
+    // subtitle: 'Governed Console',
     getRoute: (slug) => (slug ? `/finance/${slug}/twin` : '/finance'),
   },
 ]
@@ -60,15 +60,15 @@ export default function ChevronTracker() {
     const info = (extractedSlug && domainMap[extractedSlug]) || {}
     const finalized = Boolean(info.isFinalized)
     const isUploadView =
-      info.viewMode === 'upload' ||
-      info.isGapMode ||
+      location.search.includes('mode=upload') ||
+      location.search.includes('mode=gap') ||
       location.search.includes('upload') ||
       location.search.includes('gap')
     const twinPage = path.includes('/twin')
     const finalizePage = path.includes('/finalize')
 
     let step = 1
-    if (!extractedSlug || path === '/finance') {
+    if (!extractedSlug || path === '/finance' || path === '/apps') {
       step = 1
     } else if (twinPage) {
       step = 5
@@ -95,28 +95,24 @@ export default function ChevronTracker() {
       className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto py-1 scroll-none max-w-full"
     >
       {STAGES.map((stage) => {
-        // Dynamic Completion & Lock Calculation:
-        const isDomainSelected = Boolean(slug)
-        const isKG1Ready = Boolean(domainInfo.isKG1Ready || isFinalized || isTwinPage)
-        const hasFiles = Boolean(domainInfo.hasFiles || isFinalized || isTwinPage)
-
         let isCompleted = false
         let isLocked = false
 
         if (stage.id === 1) {
-          isCompleted = isDomainSelected
+          isCompleted = currentStep > 1
+          isLocked = false
         } else if (stage.id === 2) {
-          isCompleted = isKG1Ready && currentStep > 2
-          isLocked = !isDomainSelected
+          isCompleted = currentStep > 2
+          isLocked = !slug
         } else if (stage.id === 3) {
-          isCompleted = hasFiles && currentStep > 3
-          isLocked = !isDomainSelected || (!isKG1Ready && !hasFiles)
+          isCompleted = currentStep > 3
+          isLocked = !slug
         } else if (stage.id === 4) {
-          isCompleted = isFinalized || currentStep > 4
-          isLocked = !isDomainSelected || (!isKG1Ready && !isFinalized && !isTwinPage)
+          isCompleted = currentStep > 4
+          isLocked = !slug
         } else if (stage.id === 5) {
-          isCompleted = isFinalized && isTwinPage
-          isLocked = !isDomainSelected || (!isFinalized && !isTwinPage)
+          isCompleted = currentStep === 5 && isFinalized
+          isLocked = !slug
         }
 
         const isActive = stage.id === currentStep
@@ -125,7 +121,6 @@ export default function ChevronTracker() {
         let outerBg = 'bg-slate-200/90 dark:bg-slate-600/70'
         let innerBg = 'bg-slate-100/90 dark:bg-[#323944]'
         let titleColor = 'text-slate-600 dark:text-slate-200 font-semibold'
-        let subColor = 'text-slate-400 dark:text-slate-400'
         let containerShadow = ''
         let iconMarkup = (
           <span className="grid h-4 w-4 place-items-center rounded-full bg-slate-200 dark:bg-slate-700 text-[10px] text-slate-500 dark:text-slate-200 font-semibold">
@@ -138,7 +133,6 @@ export default function ChevronTracker() {
           outerBg = 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600'
           innerBg = 'bg-gradient-to-r from-[#059669] to-[#047857]'
           titleColor = 'text-white font-bold'
-          subColor = 'text-emerald-100/90'
           containerShadow = 'shadow-[0_2px_8px_rgba(5,150,105,0.2)]'
           iconMarkup = (
             <span className="grid h-4 w-4 place-items-center rounded-full bg-white/20 text-white border border-white/30 backdrop-blur-sm">
@@ -150,7 +144,6 @@ export default function ChevronTracker() {
           outerBg = 'bg-gradient-to-r from-[#10b981] via-[#22d3ee] to-[#10b981]'
           innerBg = 'bg-white/95 dark:bg-[#252B33] backdrop-blur-md'
           titleColor = 'text-emerald-800 dark:text-[#34d399] font-extrabold'
-          subColor = 'text-emerald-600 dark:text-[#6ee7b7] font-medium'
           containerShadow = 'shadow-[0_4px_16px_rgba(16,185,129,0.35)]'
           iconMarkup = (
             <span className="relative flex h-2.5 w-2.5">
@@ -160,34 +153,35 @@ export default function ChevronTracker() {
           )
         }
 
-        // Subtitle customization if Governed
-        const displaySubtitle =
-          stage.id === 4 && isFinalized
-            ? 'Governed'
-            : stage.id === 5 && isFinalized
-              ? 'Active Twin'
-              : stage.subtitle
-
         const content = (
           <div
             className={`chevron-arrow relative p-[1.5px] transition-all duration-300 ${outerBg} ${containerShadow}`}
           >
             <div
-              className={`chevron-arrow ${innerBg} px-3.5 sm:px-4 py-1.5 flex items-center gap-2 select-none min-w-[116px] sm:min-w-[140px] h-[38px]`}
+              className={`chevron-arrow ${innerBg} px-3.5 sm:px-4 py-1.5 flex items-center gap-2 select-none min-w-[110px] sm:min-w-[130px] h-[38px]`}
             >
               {/* Status Indicator Icon */}
               <span className="flex items-center justify-center shrink-0">
                 {iconMarkup}
               </span>
 
-              {/* Step Title & Subtitle */}
-              <div className="flex flex-col min-w-0 leading-tight">
-                <span className={`text-[11px] sm:text-xs whitespace-nowrap tracking-tight ${titleColor}`}>
+              {/* Step Title & Subtitle for Template */}
+              <div className="flex flex-col justify-center min-w-0 leading-tight">
+                <span className={`text-[11px] sm:text-xs whitespace-nowrap tracking-tight font-semibold ${titleColor}`}>
                   {stage.title}
                 </span>
-                <span className={`text-[9px] sm:text-[10px] whitespace-nowrap ${subColor}`}>
-                  {displaySubtitle}
-                </span>
+                {stage.id === 1 && (
+                  <span
+                    className={`text-[9.5px] whitespace-nowrap font-medium leading-none mt-0.5 ${isCompleted
+                        ? 'text-emerald-100/90'
+                        : isActive
+                          ? 'text-emerald-600 dark:text-[#6ee7b7]'
+                          : 'text-slate-400 dark:text-slate-400'
+                      }`}
+                  >
+                    Finance
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -212,7 +206,7 @@ export default function ChevronTracker() {
             key={stage.id}
             to={targetRoute}
             className="group cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-[#10b981] rounded block shrink-0"
-            title={`${stage.title} - ${displaySubtitle}`}
+            title={stage.title}
           >
             {content}
           </Link>

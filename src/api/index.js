@@ -10,17 +10,20 @@ export const auth = {
 }
 export const apps = {
   list: () => http.get('/apps').then(d),
+  subscribe: (app) => http.post('/apps/subscribe', { app }).then(d),
+  unsubscribe: (app) => http.post('/apps/unsubscribe', { app }).then(d),
   select: (app) => http.post('/apps/select', { app }).then(d),
 }
 export const domains = {
   list: (q) => http.get('/domains', { params: q ? { q } : {} }).then(d),
+  workspaceModels: () => http.get('/workspace/models').then(d),
   get: (slug) => http.get(`/domains/${slug}`).then(d),
   graph: (slug, neighbours = true) => http.get(`/domains/${slug}/graph`, { params: { neighbours: neighbours ? 1 : 0 } }).then(d),
   blocks: (slug) => http.get(`/domains/${slug}/blocks`).then(d),
   flows: (slug) => http.get(`/domains/${slug}/flows`).then(d),
   select: (slug) => http.post(`/domains/${slug}/select`).then(d),
   confirmBlocks: (slug, blocks) => http.post(`/domains/${slug}/blocks`, { blocks }).then(d),
-  workflow: (slug) => http.get(`/domains/${slug}/workflow`).then(d),
+  workflow: (slug, wf) => http.get(`/domains/${slug}/workflow`, { params: wf ? { wf } : {} }).then(d),
 }
 export const ontology = {
   overviewGraph: () => http.get('/ontology/overview-graph').then(d),
@@ -39,15 +42,15 @@ export const chat = {
   decision: (slug, action) => http.post(`/domains/${slug}/conversation/decision`, { action }).then(d),
 }
 export const graphs = {
-  versions: (slug) => http.get(`/domains/${slug}/versions`).then(d),
-  versionGraph: (slug, n) => http.get(`/domains/${slug}/versions/${n}/graph`).then(d),
+  versions: (slug, wf) => http.get(`/domains/${slug}/versions`, { params: wf ? { wf } : {} }).then(d),
+  versionGraph: (slug, n, wf) => http.get(`/domains/${slug}/versions/${n}/graph`, { params: wf ? { wf } : {} }).then(d),
   working: (slug) => http.get(`/domains/${slug}/working-graph`).then(d),
   graphHtml: (slug) => http.get(`/domains/${slug}/graph-html`).then(d),
   generateGraph: (slug, body) => http.post(`/domains/${slug}/generate-graph`, body).then(d),
-  compare: (slug, from, to) => http.get(`/domains/${slug}/compare`, { params: { from, to } }).then(d),
+  compare: (slug, from, to, wf) => http.get(`/domains/${slug}/compare`, { params: { from, to, ...(wf ? { wf } : {}) } }).then(d),
   proposals: (slug) => http.get(`/domains/${slug}/proposals`).then(d),
   decide: (slug, id, body) => http.post(`/domains/${slug}/proposals/${id}/decision`, body).then(d),
-  finalization: (slug) => http.get(`/domains/${slug}/finalization`).then(d),
+  finalization: (slug, wf) => http.get(`/domains/${slug}/finalization`, { params: wf ? { wf } : {} }).then(d),
   finalize: (slug, body) => http.post(`/domains/${slug}/finalize`, body).then(d),
   reopen: (slug) => http.post(`/domains/${slug}/reopen`).then(d),
   experience: (slug) => http.get(`/domains/${slug}/experience`).then(d),
@@ -75,6 +78,9 @@ export const files = {
   },
   gapAnalysis: (slug, opts = {}) => {
     const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
-    return http.get(`/domains/${clean}/telemetry/gap-analysis`, { params: opts.silent ? { silent: 1 } : {} }).then(d)
+    const params = {}
+    if (opts.silent) params.silent = 1
+    if (opts.wf) params.wf = opts.wf
+    return http.get(`/domains/${clean}/telemetry/gap-analysis`, { params }).then(d)
   },
 }

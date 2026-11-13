@@ -1,15 +1,27 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, CheckCircle2, History, Lock, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Bot,
+  CheckCircle2,
+  ChevronDown,
+  FileText,
+  History,
+  Lock,
+  Save,
+  X,
+} from 'lucide-react'
 import Layout from '../components/common/Layout'
 import Stepper from '../components/common/Stepper'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import { EmptyState, ErrorState, Loading } from '../components/common/States'
 import OntologyGraphCanvas from '../components/graph/OntologyGraphCanvas'
 import NodeDetailsPanel from '../components/graph/NodeDetailsPanel'
+import ChatPanel from '../components/chat/ChatPanel'
 import useAsync from '../components/common/useAsync'
-import { domains, files as filesApi, graphs } from '../api'
-import { DOMMETA, SLUG_TO_DOM } from '../lib/ontologyData'
+import { chat, domains, files as filesApi, graphs } from '../api'
+import { DOMAIN_SLUGS, DOMMETA, NODES, ORDER, SLUG_TO_DOM } from '../lib/ontologyData'
 import { timeAgo } from '../lib/format'
 import { SEVERITY_STYLES, annotateMissingGapNodes, buildDynamicBusinessInsight, describeEdgeChange } from '../lib/businessImpact'
 import { useToast } from '../context/ToastContext'
@@ -755,12 +767,15 @@ export default function Finalize() {
   const { slug } = useParams()
   const navigate = useNavigate()
   const toast = useToast()
-  const wf = useAsync(() => domains.workflow(slug), [slug])
-  const fin = useAsync(() => graphs.finalization(slug), [slug], { immediate: false })
 
   const cleanSlug = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
-  const domainKey = SLUG_TO_DOM[cleanSlug]
-  const domainMeta = domainKey ? DOMMETA[domainKey] : null
+  const domainKey = SLUG_TO_DOM[cleanSlug] || 'f1'
+  const domainMeta = DOMMETA[domainKey] || DOMMETA.f1
+
+  const wf = useAsync(() => domains.workflow(slug), [slug])
+  const fin = useAsync(() => graphs.finalization(slug), [slug], { immediate: true })
+  const g = useAsync(() => domains.graph(slug), [slug])
+
   const domainName =
     wf.data?.domain?.name ||
     (domainMeta?.n ? domainMeta.n.replace(/^F\d+\s+/, '') : null) ||
@@ -768,6 +783,7 @@ export default function Finalize() {
       .split('-')
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ')
+
   const [range, setRange] = useState({ from: 0, to: null })
   const [cmp, setCmp] = useState(null)
   const [gapGraph, setGapGraph] = useState(null)
@@ -775,11 +791,17 @@ export default function Finalize() {
   const [ack, setAck] = useState(false)
   const [busy, setBusy] = useState(false)
   const [selectedNode, setSelectedNode] = useState(null)
+  const [activeRightTab, setActiveRightTab] = useState('chat') // 'chat' | 'review' | 'details'
+  const [activeDomainFilter, setActiveDomainFilter] = useState(domainKey)
+  const [snap, setSnap] = useState(null)
+  const [proposal, setProposal] = useState(null)
+  const [updatingGraph, setUpdatingGraph] = useState(false)
   const { updateDomainWorkflow } = useWorkflow()
 
   useEffect(() => {
+    setActiveDomainFilter(domainKey)
     setGapGraph(null)
-  }, [slug])
+  }, [slug, domainKey])
 
   useEffect(() => {
     if (slug) {
@@ -791,15 +813,81 @@ export default function Finalize() {
     }
   }, [slug, wf.data?.finalized_version_number, updateDomainWorkflow])
 
-  useEffect(() => { if (wf.data?.steps?.[3]?.status === 'completed') fin.reload().catch(() => { }) }, [wf.data]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (fin.data && range.to === null) setRange({ from: 0, to: fin.data.version.number }) }, [fin.data]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (range.to !== null) graphs.compare(slug, range.from, range.to).then(setCmp, (e) => toast.error(e.message)) }, [range, slug]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!slug) return
+    chat
+      .get(slug)
+      .then(setSnap)
+      .catch(() => {
+        setSnap({
+          conversation_id: null,
+          messages: [],
+          open_question: null,
+          progress: { answered: 0, planned: 0, plan_complete: false },
+          pending_change_count: 0,
+          engine: 'Assistant',
+          llm_enabled: false,
+        })
+      })
 
-  const finalized = !!wf.data?.finalized_version_number
-  const d = fin.data
+    graphs
+      .proposals(slug)
+      .then((r) => {
+        const p = r.proposals?.find((x) => x.status === 'pending' && x.source === 'chat') || null
+        setProposal(p)
+      })
+      .catch(() => {})
+  }, [slug])
 
   useEffect(() => {
-    if (!slug || !d) return
+    if (fin.data && range.to === null && fin.data.version?.number) {
+      setRange({ from: 0, to: fin.data.version.number })
+    }
+  }, [fin.data]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (range.to !== null) {
+      graphs.compare(slug, range.from, range.to).then(setCmp, (e) => toast.error(e.message))
+    }
+  }, [range, slug]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const finalized = Boolean(wf.data?.finalized_version_number || snap?.finalized)
+
+  // Robust fallback to ensure Knowledge Graph is ALWAYS populated across all domains
+  const effectiveBaseGraph = useMemo(() => {
+    if (fin.data?.graph?.nodes?.length > 0) return fin.data.graph
+    if (g.data?.nodes?.length > 0) return g.data
+    const dKey = domainKey || 'f1'
+    const dm = DOMMETA[dKey] || DOMMETA.f1
+    const rawNodes = NODES.filter((n) => n.d === dKey || n.d === 'spine')
+    return {
+      nodes: rawNodes.map((n, idx) => ({
+        ...n,
+        id: String(n.id || `node-${idx}`),
+        key: String(n.id || `node-${idx}`),
+        name: n.n || n.id,
+        group_name: DOMMETA[n.d]?.n || dm.n,
+        color: DOMMETA[n.d]?.c || dm.c,
+        attributes: n.a?.map((attr) => ({ name: attr })) || [],
+        formulas: n.f?.map((frm) => ({ name: frm })) || [],
+      })),
+      edges: [],
+    }
+  }, [fin.data?.graph, g.data, domainKey])
+
+  const d = useMemo(() => {
+    if (fin.data) return fin.data
+    return {
+      domain: wf.data?.domain || { name: domainName, slug },
+      version: { number: 1, label: 'v1.0' },
+      graph: effectiveBaseGraph,
+      validation: { errors: [], warnings: [] },
+      history: [],
+    }
+  }, [fin.data, wf.data, domainName, slug, effectiveBaseGraph])
+
+  useEffect(() => {
+    if (!slug) return
     if (d.gap_graph?.nodes?.length > 0) {
       setGapGraph(d.gap_graph)
       return
@@ -810,31 +898,36 @@ export default function Finalize() {
       .then((res) => {
         if (!cancelled && res?.nodes?.length > 0) setGapGraph(res)
       })
-      .catch(() => { })
+      .catch(() => {})
     return () => {
       cancelled = true
     }
   }, [slug, d])
 
-  // Synthesize nodes & edges with missing/discrepancy indicators to match Telemetry Gap Analysis across all domains
   const graphDataWithGaps = useMemo(
-    () => annotateMissingGapNodes(d?.graph, cmp?.nodes_removed, gapGraph || d?.gap_graph),
-    [d?.graph, d?.gap_graph, cmp?.nodes_removed, gapGraph],
+    () => annotateMissingGapNodes(effectiveBaseGraph, cmp?.nodes_removed, gapGraph || d?.gap_graph),
+    [effectiveBaseGraph, cmp?.nodes_removed, gapGraph, d?.gap_graph],
   )
 
   const selectedGraphNode = useMemo(() => {
-    if (!selectedNode || !d?.graph?.nodes) return null
+    if (!selectedNode) return null
     return (
-      graphDataWithGaps.nodes.find((n) => n.id === selectedNode || n.key === selectedNode || n.name === selectedNode) ||
-      d.graph.nodes.find((n) => n.id === selectedNode || n.key === selectedNode || n.name === selectedNode) ||
+      graphDataWithGaps.nodes.find(
+        (n) => n.id === selectedNode || n.key === selectedNode || n.name === selectedNode
+      ) ||
+      effectiveBaseGraph.nodes.find(
+        (n) => n.id === selectedNode || n.key === selectedNode || n.name === selectedNode
+      ) ||
       null
     )
-  }, [selectedNode, d?.graph?.nodes, graphDataWithGaps.nodes])
+  }, [selectedNode, graphDataWithGaps.nodes, effectiveBaseGraph.nodes])
 
-  if (wf.data && !wf.data.started) return <Navigate to={`/finance/${slug}`} replace />
-  if (wf.loading && !wf.data) return <Layout wide><Loading /></Layout>
-  if (wf.error) return <Layout wide><ErrorState error={wf.error} onRetry={wf.reload} /></Layout>
-  const hasKg1 = wf.data.steps[3].status === 'completed'
+  const handleSelectNode = (nodeId) => {
+    setSelectedNode(nodeId)
+    if (nodeId) {
+      setActiveRightTab('details')
+    }
+  }
 
   const doFinalize = async () => {
     setBusy(true)
@@ -862,7 +955,7 @@ export default function Finalize() {
         isGapMode: false,
         viewMode: 'chat',
       })
-      await Promise.all([wf.reload(), fin.reload()])
+      await Promise.all([wf.reload(), fin.reload(), g.reload()])
       navigate(`/finance/${slug}`)
     } catch (e) {
       toast.error(e.message)
@@ -872,264 +965,501 @@ export default function Finalize() {
     }
   }
 
-  const finalizeHeaderAction =
-    hasKg1 && d ? (
-      finalized ? (
-        <Link
-          to={`/finance/${slug}/twin`}
-          className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 transition-all hover:scale-[1.02]"
-          title="Open Governed Digital Twin Console"
-        >
-          <span>Next: Digital Twin</span>
-          <ArrowRight size={13} />
-        </Link>
-      ) : (
-        <button
-          type="button"
-          onClick={() => { setAck(false); setDlg('finalize') }}
-          className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
-          title="Finalize & Govern Digital Twin"
-        >
-          <span>Next: Finalize Twin</span>
-          <ArrowRight size={13} />
-        </button>
-      )
-    ) : null
+  const handleSaveAs = () => {
+    try {
+      const now = new Date()
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      const formattedDate = `${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
+      const defaultName = `Finance_Model_${formattedDate}`
+
+      const modelName = window.prompt('Enter model name to Save As:', defaultName) || defaultName
+
+      const payload = {
+        name: modelName,
+        savedAt: now.toISOString(),
+        slug,
+        version: d?.version || { number: 1, label: 'v1.0' },
+        nodes: graphDataWithGaps.nodes || [],
+        edges: graphDataWithGaps.edges || [],
+        flows: g.data?.flows || [],
+      }
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${modelName.replace(/\s+/g, '_')}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      toast.success(`Model "${modelName}" saved successfully!`)
+    } catch (e) {
+      toast.error('Failed to save model: ' + e.message)
+    }
+  }
+
+  const nextConfig = useMemo(() => {
+    if (finalized) {
+      return {
+        label: 'Next: Digital Twin',
+        onNext: () => navigate(`/finance/${slug}/twin`),
+      }
+    }
+    return {
+      label: 'Next: Finalize Twin',
+      onNext: () => {
+        setAck(false)
+        setDlg('finalize')
+      },
+    }
+  }, [finalized, slug, navigate])
 
   return (
-    <Layout wide headerAction={finalizeHeaderAction}>
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-        <div>
-          <Link to={`/finance/${slug}`} className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink font-semibold mb-1">
-            <ArrowLeft size={14} /> Back to Knowledge Graph & Chatbot
-          </Link>
-          <h1 className="text-xl font-bold tracking-tight text-ink flex items-center gap-2">
-            <span>Enterprise Review & Validation Finalization</span>
-            {finalized && (
-              <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 text-xs font-bold border border-emerald-300/40">
-                Governed
+    <Layout
+      wide
+      nextLabel={nextConfig.label}
+      onNext={nextConfig.onNext}
+    >
+      {/* Top Header Navigation with Domain Tabs */}
+      <div className="mb-4 rounded-2xl border border-line bg-surface/70 p-3 sm:p-3.5 backdrop-blur shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 select-none">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            <Link
+              to={`/finance/${slug}`}
+              className="group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] font-semibold transition-all duration-200 cursor-pointer flex items-center gap-1.5 shrink-0 border border-line bg-surface/90 text-muted hover:text-ink hover:border-brand/40 hover:bg-surface2 shadow-2xs hover:-translate-y-0.5"
+            >
+              <ArrowLeft size={14} className="text-brand" />
+              <span className="tracking-tight">Back to Business Input</span>
+            </Link>
+
+            {/* Domain Dropdown Selector for All Domains */}
+            <div className="relative inline-flex items-center">
+              <select
+                value={domainKey}
+                onChange={(e) => {
+                  const targetKey = e.target.value
+                  const targetSlug = DOMAIN_SLUGS[targetKey]
+                  if (targetSlug && targetSlug !== slug) {
+                    navigate(`/finance/${targetSlug}/finalize`)
+                  }
+                }}
+                className="appearance-none cursor-pointer rounded-xl pl-8 pr-7 py-1.5 text-xs sm:text-[13px] font-semibold border border-brand bg-brand text-white shadow-md shadow-brand/25 hover:bg-brand/90 transition"
+                title="Select active finance domain"
+              >
+                {ORDER.map((dKey) => (
+                  <option key={dKey} value={dKey} className="bg-surface text-ink py-1">
+                    {DOMMETA[dKey]?.n}
+                  </option>
+                ))}
+              </select>
+              <span
+                className="pointer-events-none absolute left-3 h-2 w-2 rounded-full"
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  boxShadow: '0 0 8px rgba(255,255,255,0.8)',
+                }}
+              />
+              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 text-white/80" />
+            </div>
+
+            {/* Finance master-data spine button */}
+            <button
+              type="button"
+              onClick={() => setActiveDomainFilter(activeDomainFilter === 'spine' ? domainKey : 'spine')}
+              className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${
+                activeDomainFilter === 'spine'
+                  ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
+                  : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
+              }`}
+              title="Finance master-data spine"
+            >
+              <span
+                className="h-2 w-2 rounded-full shrink-0 transition-transform group-hover:scale-125"
+                style={{
+                  backgroundColor: activeDomainFilter === 'spine' ? '#FFFFFF' : '#38BDF8',
+                  boxShadow: activeDomainFilter === 'spine' ? '0 0 8px rgba(255,255,255,0.8)' : undefined,
+                }}
+              />
+              <span className="font-semibold text-xs sm:text-[13px] tracking-tight whitespace-nowrap">
+                Finance master-data spine
               </span>
-            )}
-          </h1>
+            </button>
+
+            {/* AgentForgeX Generated Badge */}
+            <span className="rounded-full bg-brand/15 px-3 py-1 text-xs font-semibold text-brand border border-brand/30 shrink-0">
+              AgentForgeX Generated ({graphDataWithGaps.nodes.length} nodes)
+            </span>
+          </div>
+
+          {/* Action Buttons: Save As button */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleSaveAs}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs btn-ghost border-[#10b981]/50 text-[#10b981] hover:bg-[#10b981]/10 hover:border-[#10b981]"
+              title="Save current model snapshot"
+            >
+              <Save size={14} className="text-[#10b981]" />
+              <span>Save As</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {!hasKg1 && (
-        <div className="card mt-3">
-          <EmptyState title="Nothing to finalise yet" hint="Answer the chatbot's questions and approve at least one set of changes to generate your digital twin model.">
-            <Link className="btn-primary mt-2" to={`/finance/${slug}`}>Go to the chatbot</Link>
-          </EmptyState>
-        </div>
-      )}
+      <div className="mt-2 space-y-4">
+        {/* Main 2-Column Grid: Left Knowledge Graph Canvas | Right AI Chatbot & Review */}
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_440px]">
+          {/* Left Column: Pixel-Perfect Ontology Graph Canvas */}
+          <div className="card relative h-[calc(100vh-120px)] min-h-[500px] overflow-hidden p-0 border border-line isolate flex flex-col">
+            <OntologyGraphCanvas
+              nodes={graphDataWithGaps.nodes}
+              edges={graphDataWithGaps.edges}
+              domainMeta={wf.data?.domain || { n: domainName, name: domainName, c: domainMeta?.c || '#10b981' }}
+              activeDomain={activeDomainFilter}
+              selectedNodeId={selectedNode}
+              onSelectNode={handleSelectNode}
+              className="w-full h-full"
+            />
+          </div>
 
-      {hasKg1 && fin.loading && !d && <Loading />}
-      {fin.error && <ErrorState error={fin.error} onRetry={fin.reload} />}
-
-      {d && (
-        <div className="mt-2 space-y-4">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] items-stretch">
-            {/* Left Column: Pixel-Perfect Ontology Graph Canvas (Same Celestial Radial Style) */}
-            <section className="card overflow-hidden p-0 border border-line isolate flex flex-col">
-              <div className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 select-none shrink-0">
-                <div>
-                  <h2 className="text-sm font-bold text-ink flex items-center gap-2">
-                    <span>Current "{domainName}" Template</span>
-                  </h2>
-                  <p className="text-[11px] text-muted">
-                    {graphDataWithGaps.nodes.length} entities · {graphDataWithGaps.edges.length} relationships
-                  </p>
-                </div>
-              </div>
-
-              <div className="h-[460px] min-h-[420px] w-full relative overflow-hidden bg-surface">
-                <OntologyGraphCanvas
-                  nodes={graphDataWithGaps.nodes}
-                  edges={graphDataWithGaps.edges}
-                  domainMeta={wf.data?.domain}
-                  selectedNodeId={selectedNode}
-                  onSelectNode={setSelectedNode}
-                  className="w-full h-full"
-                />
-              </div>
-            </section>
-
-            {/* Right Column: Review & Validation & Actions (or Node Properties when clicked) */}
-            <section className="card p-5 border border-line flex flex-col justify-between shadow-card">
-              {selectedGraphNode ? (
-                <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between pb-2.5 border-b border-line mb-3">
-                    <h2 className="text-sm font-bold text-ink">Entity Properties</h2>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedNode(null)}
-                      className="px-2 py-1 rounded-lg text-xs font-semibold text-muted hover:text-ink hover:bg-surface2/80 flex items-center gap-1 border border-line transition-colors cursor-pointer"
-                    >
-                      <X size={12} />
-                      <span>Back to Review</span>
-                    </button>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto pr-1 space-y-3 text-xs scroll-thin">
-                    <div className="p-3 rounded-xl bg-surface2/40 border border-line space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] uppercase font-bold text-muted">Entity Name</span>
-                        {selectedGraphNode.gap_status === 'missing' && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/10 text-red-600 border border-red-500/30">
-                            MISSING
-                          </span>
-                        )}
-                        {selectedGraphNode.gap_status === 'new' && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/10 text-red-600 border border-red-500/30">
-                            NEW TELEMETRY
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="text-base font-bold text-ink">
-                        {selectedGraphNode.name || selectedGraphNode.n || selectedGraphNode.id}
-                      </h3>
-                      {selectedGraphNode.description && (
-                        <p className="text-[11px] text-muted leading-relaxed">
-                          {selectedGraphNode.description}
-                        </p>
-                      )}
-                    </div>
-
-                    {selectedGraphNode.attributes && selectedGraphNode.attributes.length > 0 && (
-                      <div className="p-3 rounded-xl bg-surface2/30 border border-line space-y-2">
-                        <span className="text-[10px] uppercase font-bold text-muted">Attributes</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {selectedGraphNode.attributes.map((attr, idx) => (
-                            <span
-                              key={idx}
-                              className="px-2 py-0.5 rounded-md bg-surface border border-line/70 font-mono text-[10.5px] text-ink"
-                            >
-                              {typeof attr === 'string' ? attr : attr?.name}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedGraphNode.formulas && selectedGraphNode.formulas.length > 0 && (
-                      <div className="p-3 rounded-xl bg-surface2/30 border border-line space-y-2">
-                        <span className="text-[10px] uppercase font-bold text-muted">Execution Formulas & Rules</span>
-                        <div className="space-y-1">
-                          {selectedGraphNode.formulas.map((f, idx) => (
-                            <div key={idx} className="p-2 rounded-lg bg-surface font-mono text-[10.5px] text-[#10b981] border border-line/70">
-                              {typeof f === 'string' ? f : f?.name || f?.formula}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Domain Context & Relationships */}
-                    <div className="p-3 rounded-xl bg-surface2/30 border border-line space-y-2">
-                      <span className="text-[10px] uppercase font-bold text-muted">Domain Context & Relationships</span>
-                      <div className="text-[11px] text-muted space-y-1">
-                        <div>
-                          <span>Domain: </span>
-                          <b className="text-ink">Finance ({domainName})</b>
-                        </div>
-                        <div>
-                          <span>Architecture Role: </span>
-                          <b className="text-[#10b981]">Governed Digital Twin Component</b>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between pb-2.5 border-b border-line">
-                    <h2 className="text-sm font-bold text-ink">Review & Validation</h2>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${finalized
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300'
-                      : 'bg-[#10b981]/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
-                      }`}>
-                      {finalized ? 'Governed Digital Twin' : 'Ready to Finalize'}
+          {/* Right Column: AI Chatbot | Review & Validation | Entity Specs */}
+          <div className="card flex h-[calc(100vh-120px)] min-h-[500px] flex-col overflow-hidden shadow-card">
+            {/* Header Bar with Tabs */}
+            <div className="flex items-center justify-between border-b border-line bg-surface2/60 px-3.5 py-2.5 select-none shrink-0">
+              <div className="flex items-center gap-1.5 rounded-xl bg-surface p-1 border border-line/60">
+                <button
+                  type="button"
+                  onClick={() => setActiveRightTab('chat')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                    activeRightTab === 'chat'
+                      ? 'bg-brand text-white shadow-2xs'
+                      : 'text-muted hover:text-ink'
+                  }`}
+                >
+                  <Bot size={14} />
+                  <span>Chatbot</span>
+                  {snap?.messages?.length > 0 && (
+                    <span className="rounded-full bg-white/20 px-1.5 py-0.2 text-[10px] font-bold">
+                      {snap.messages.length}
                     </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveRightTab('review')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                    activeRightTab === 'review'
+                      ? 'bg-brand text-white shadow-2xs'
+                      : 'text-muted hover:text-ink'
+                  }`}
+                >
+                  <CheckCircle2 size={14} />
+                  <span>Review & Validation</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveRightTab('details')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                    activeRightTab === 'details'
+                      ? 'bg-brand text-white shadow-2xs'
+                      : 'text-muted hover:text-ink'
+                  }`}
+                >
+                  <FileText size={14} />
+                  <span>Entity Specs</span>
+                  {selectedNode && <span className="h-1.5 w-1.5 rounded-full bg-ok animate-pulse" />}
+                </button>
+              </div>
+
+              {finalized && (
+                <span className="hidden sm:inline-flex rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 text-[10.5px] font-bold border border-emerald-300/40">
+                  Governed
+                </span>
+              )}
+            </div>
+
+            {/* Panel Body */}
+            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+              {activeRightTab === 'chat' && (
+                <ChatPanel
+                  slug={slug}
+                  domainName={domainName}
+                  snap={snap}
+                  setSnap={setSnap}
+                  askNode={selectedNode}
+                  nodeName={selectedGraphNode?.name}
+                  onProposal={setProposal}
+                  onSwitchToDetails={() => setActiveRightTab('details')}
+                  onAnsweringChange={setUpdatingGraph}
+                  onNextToUpload={() => navigate(`/finance/${slug}?mode=upload`)}
+                  isUploadOpen={false}
+                  parsingProgress={null}
+                  locked={finalized}
+                  disabledReason={
+                    finalized
+                      ? 'This model is finalised and governed as an Enterprise Digital Twin. Re-open it if you wish to make further changes.'
+                      : undefined
+                  }
+                  onGraphUpdate={(res) => {
+                    if (res?.graph) {
+                      toast.success('Knowledge Graph automatically updated!')
+                    }
+                    Promise.allSettled([fin.reload(), wf.reload(), g.reload()]).finally(() => {
+                      setUpdatingGraph(false)
+                    })
+                  }}
+                />
+              )}
+
+              {activeRightTab === 'review' && (
+                <div className="p-4 overflow-y-auto flex-1 flex flex-col justify-between scroll-thin space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-line">
+                      <h2 className="text-sm font-bold text-ink">Review & Validation</h2>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                          finalized
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300'
+                            : 'bg-[#10b981]/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                        }`}
+                      >
+                        {finalized ? 'Governed Digital Twin' : 'Ready to Finalize'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <div className="rounded-xl border border-line bg-surface2/50 p-3 text-xs">
+                        <div className="flex items-center justify-between text-muted mb-1">
+                          <span className="font-semibold text-ink">Validation Check</span>
+                          <span className="font-semibold text-ok flex items-center gap-1">
+                            <CheckCircle2 size={13} />
+                            <span>Zero Errors</span>
+                          </span>
+                        </div>
+                        {(d.validation?.errors?.length || 0) === 0 && (d.validation?.warnings?.length || 0) === 0 ? (
+                          <p className="text-[11px] text-muted leading-relaxed">
+                            Ontology verified against Finance domain schema and business rules. Ready for enterprise governance.
+                          </p>
+                        ) : (
+                          <p className="text-[11px] text-warn">
+                            {d.validation?.warnings?.length || 0} warning(s) detected.
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-center">
+                        <div className="rounded-xl border border-line bg-surface2/30 p-2">
+                          <div className="text-base font-bold text-ink">
+                            {graphDataWithGaps.nodes.length}
+                          </div>
+                          <div className="text-[10px] text-muted uppercase font-semibold">Entities</div>
+                        </div>
+                        <div className="rounded-xl border border-line bg-surface2/30 p-2">
+                          <div className="text-base font-bold text-ink">
+                            {graphDataWithGaps.edges.length}
+                          </div>
+                          <div className="text-[10px] text-muted uppercase font-semibold">Relationships</div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-line bg-surface2/30 p-2.5 text-xs space-y-1 text-muted">
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="shrink-0">Ontology Version:</span>
+                          <b className="text-ink text-right">{domainName}</b>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Domain:</span>
+                          <b className="text-ink">Finance</b>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Status:</span>
+                          <b className={finalized ? 'text-ok' : 'text-brand'}>
+                            {finalized ? 'Governed' : 'Draft / Candidate'}
+                          </b>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="space-y-2.5">
-                    <div className="rounded-xl border border-line bg-surface2/50 p-3 text-xs">
-                      <div className="flex items-center justify-between text-muted mb-1">
-                        <span className="font-semibold text-ink">Validation Check</span>
-                        <span className="font-semibold text-ok flex items-center gap-1">
-                          <CheckCircle2 size={13} />
-                          <span>Zero Errors</span>
-                        </span>
+                  <div className="pt-3 border-t border-line">
+                    {finalized ? (
+                      <div className="space-y-3">
+                        <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/80 dark:bg-emerald-950/30 p-3 text-xs">
+                          <div className="flex items-center gap-2 font-bold text-emerald-800 dark:text-emerald-300">
+                            <Lock size={14} />
+                            <span>Governed Enterprise Digital Twin</span>
+                          </div>
+                          <p className="text-[11px] text-emerald-900/80 dark:text-emerald-400/90 mt-1">
+                            This model is locked and governed. It represents your active financial operating architecture.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Link
+                            to={`/finance/${slug}/twin`}
+                            className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold flex-1 text-xs py-2 rounded-xl text-center shadow-sm"
+                          >
+                            Explore Digital Twin →
+                          </Link>
+                          <button
+                            className="btn-ghost text-xs cursor-pointer py-2.5 px-4 rounded-xl flex items-center justify-center"
+                            onClick={() => setDlg('reopen')}
+                          >
+                            Re-open
+                          </button>
+                        </div>
                       </div>
-                      {d.validation.errors.length === 0 && d.validation.warnings.length === 0 ? (
-                        <p className="text-[11px] text-muted leading-relaxed">
-                          Ontology verified against Finance domain schema and business rules. Ready for enterprise governance.
-                        </p>
-                      ) : (
-                        <p className="text-[11px] text-warn">{d.validation.warnings.length} warning(s) detected.</p>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-center">
-                      <div className="rounded-xl border border-line bg-surface2/30 p-2">
-                        <div className="text-base font-bold text-ink">{d.graph.nodes.length}</div>
-                        <div className="text-[10px] text-muted uppercase font-semibold">Entities</div>
-                      </div>
-                      <div className="rounded-xl border border-line bg-surface2/30 p-2">
-                        <div className="text-base font-bold text-ink">{d.graph.edges.length}</div>
-                        <div className="text-[10px] text-muted uppercase font-semibold">Relationships</div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-line bg-surface2/30 p-2.5 text-xs space-y-1 text-muted">
-                      <div className="flex justify-between items-center gap-2">
-                        <span className="shrink-0">Ontology Version:</span>
-                        <b className="text-ink text-right">{domainName}</b>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Domain:</span>
-                        <b className="text-ink">Finance</b>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Status:</span>
-                        <b className={finalized ? 'text-ok' : 'text-brand'}>{finalized ? 'Governed' : 'Draft / Candidate'}</b>
-                      </div>
-                    </div>
+                    ) : (
+                      <button
+                        className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold w-full text-xs py-2.5 rounded-xl shadow-sm cursor-pointer"
+                        onClick={() => {
+                          setAck(false)
+                          setDlg('finalize')
+                        }}
+                      >
+                        <span>Finalise as Digital Twin</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
 
-              <div className="mt-4 pt-3 border-t border-line">
-                {finalized ? (
-                  <div className="space-y-3">
-                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/80 dark:bg-emerald-950/30 p-3 text-xs">
-                      <div className="flex items-center gap-2 font-bold text-emerald-800 dark:text-emerald-300">
-                        <Lock size={14} />
-                        <span>Governed Enterprise Digital Twin</span>
+              {activeRightTab === 'details' && (
+                <div className="h-full overflow-y-auto p-4 scroll-thin">
+                  {selectedGraphNode ? (
+                    <div className="flex flex-col h-full space-y-3 text-xs">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-line mb-1">
+                        <h2 className="text-sm font-bold text-ink">Entity Properties</h2>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedNode(null)}
+                          className="px-2 py-1 rounded-lg text-xs font-semibold text-muted hover:text-ink hover:bg-surface2/80 flex items-center gap-1 border border-line transition-colors cursor-pointer"
+                        >
+                          <X size={12} />
+                          <span>Clear Selection</span>
+                        </button>
                       </div>
-                      <p className="text-[11px] text-emerald-900/80 dark:text-emerald-400/90 mt-1">
-                        This model is locked and governed. It represents your active financial operating architecture.
+
+                      <div className="p-3 rounded-xl bg-surface2/40 border border-line space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase font-bold text-muted">Entity Name</span>
+                          {selectedGraphNode.gap_status === 'missing' && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/10 text-red-600 border border-red-500/30">
+                              MISSING
+                            </span>
+                          )}
+                          {selectedGraphNode.gap_status === 'new' && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/10 text-red-600 border border-red-500/30">
+                              NEW TELEMETRY
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-base font-bold text-ink">
+                          {selectedGraphNode.name || selectedGraphNode.n || selectedGraphNode.id}
+                        </h3>
+                        {selectedGraphNode.description && (
+                          <p className="text-[11px] text-muted leading-relaxed">
+                            {selectedGraphNode.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {selectedGraphNode.attributes && selectedGraphNode.attributes.length > 0 && (
+                        <div className="p-3 rounded-xl bg-surface2/30 border border-line space-y-2">
+                          <span className="text-[10px] uppercase font-bold text-muted">Attributes</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedGraphNode.attributes.map((attr, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 rounded-md bg-surface border border-line/70 font-mono text-[10.5px] text-ink"
+                              >
+                                {typeof attr === 'string' ? attr : attr?.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedGraphNode.formulas && selectedGraphNode.formulas.length > 0 && (
+                        <div className="p-3 rounded-xl bg-surface2/30 border border-line space-y-2">
+                          <span className="text-[10px] uppercase font-bold text-muted">Execution Formulas & Rules</span>
+                          <div className="space-y-1">
+                            {selectedGraphNode.formulas.map((f, idx) => (
+                              <div
+                                key={idx}
+                                className="p-2 rounded-lg bg-surface font-mono text-[10.5px] text-[#10b981] border border-line/70"
+                              >
+                                {typeof f === 'string' ? f : f?.name || f?.formula}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="p-3 rounded-xl bg-surface2/30 border border-line space-y-2">
+                        <span className="text-[10px] uppercase font-bold text-muted">Domain Context & Relationships</span>
+                        <div className="text-[11px] text-muted space-y-1">
+                          <div>
+                            <span>Domain: </span>
+                            <b className="text-ink">Finance ({domainName})</b>
+                          </div>
+                          <div>
+                            <span>Architecture Role: </span>
+                            <b className="text-[#10b981]">Governed Digital Twin Component</b>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setActiveRightTab('chat')}
+                          className="btn-ghost btn-sm text-xs cursor-pointer flex-1"
+                        >
+                          Back to Chatbot
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveRightTab('review')}
+                          className="btn-ghost btn-sm text-xs cursor-pointer flex-1"
+                        >
+                          Back to Review
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex h-full flex-col items-center justify-center p-6 text-center text-muted">
+                      <FileText size={32} className="mb-2 text-muted/60" />
+                      <p className="text-sm font-semibold text-ink">No Entity Selected</p>
+                      <p className="mt-1 text-xs text-muted max-w-xs leading-relaxed">
+                        Click any entity node in the graph on the left to inspect its governed definition, attributes, formulas, and connections.
                       </p>
+                      <div className="flex gap-2 mt-4">
+                        <button
+                          type="button"
+                          onClick={() => setActiveRightTab('chat')}
+                          className="btn-ghost btn-sm text-xs cursor-pointer"
+                        >
+                          Back to Chatbot
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveRightTab('review')}
+                          className="btn-ghost btn-sm text-xs cursor-pointer"
+                        >
+                          Back to Review
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Link to={`/finance/${slug}/twin`} className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold flex-1 text-xs py-2 rounded-xl text-center shadow-sm">
-                        Explore Digital Twin →
-                      </Link>
-                      <button className="btn-ghost text-xs cursor-pointer py-2.5 px-4 rounded-xl flex items-center justify-center" onClick={() => setDlg('reopen')}>
-                        Re-open
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold w-full text-xs py-2.5 rounded-xl shadow-sm cursor-pointer"
-                    onClick={() => { setAck(false); setDlg('finalize') }}
-                  >
-                    <span>Finalise as Digital Twin</span>
-                  </button>
-                )}
-              </div>
-            </section>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
+        </div>
 
           {/* Version Comparison Section */}
           <section className="card p-4 border border-line mt-6 mb-8">
@@ -1153,7 +1483,7 @@ export default function Finalize() {
                   <Stat label="links relabelled" v={cmp.counts.edges_modified} />
                   <Stat label="links removed" v={cmp.counts.edges_removed} tone="text-bad" />
                 </div>
-                <DiffLists d={cmp} domainName={domainName} slug={slug} graph={d.graph} history={d.history} />
+                <DiffLists d={cmp} domainName={domainName} slug={slug} graph={d?.graph || effectiveBaseGraph} history={d?.history || []} />
               </>
             ) : <Loading className="!p-4" />}
           </section>
@@ -1163,9 +1493,9 @@ export default function Finalize() {
             <h2 className="flex items-center gap-2 font-semibold text-sm text-ink">
               <History size={16} /> Change History
             </h2>
-            {d.history.length === 0 && <p className="mt-2 text-xs text-muted">No proposals yet.</p>}
+            {(d?.history?.length || 0) === 0 && <p className="mt-2 text-xs text-muted">No proposals yet.</p>}
             <ul className="mt-3 space-y-3">
-              {d.history.map((p) => (
+              {(d?.history || []).map((p) => (
                 <li key={p.id} className="rounded-xl border border-line bg-surface2/30 p-3 text-xs">
                   <div className="flex flex-wrap items-center gap-2">
                     <b className="text-ink">{p.title}</b>
@@ -1175,7 +1505,7 @@ export default function Finalize() {
                     <span className="text-[11px] text-muted">{p.source} · {timeAgo(p.created_at)}</span>
                   </div>
                   <ul className="mt-2 space-y-0.5 text-[11px] text-muted">
-                    {p.items.map((i, k) => (
+                    {(p.items || []).map((i, k) => (
                       <li key={k} className={i.status === 'rejected' ? 'line-through' : ''}>
                         {i.status === 'approved' ? '✓' : i.status === 'rejected' ? '✗' : '•'} {i.description}
                       </li>
@@ -1186,7 +1516,6 @@ export default function Finalize() {
             </ul>
           </section>
         </div>
-      )}
 
       {/* Confirmation Dialogs */}
       <ConfirmDialog
@@ -1200,7 +1529,7 @@ export default function Finalize() {
         <p className="text-xs leading-relaxed text-ink">
           This locks <strong>Current "{domainName}" Template</strong> as your official Enterprise Digital Twin. All discovered entities, business rules, and dimensions will be permanently governed for financial modeling.
         </p>
-        {d?.validation.warnings.length > 0 && (
+        {(d?.validation?.warnings?.length || 0) > 0 && (
           <label className="mt-3 flex items-start gap-2 text-xs text-ink">
             <input type="checkbox" className="mt-0.5 accent-[#10b981]" checked={ack} onChange={(e) => setAck(e.target.checked)} />
             <span>I have reviewed the {d.validation.warnings.length} warning(s) and want to finalise anyway.</span>

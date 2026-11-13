@@ -16,12 +16,16 @@ function generateCaptcha() {
   return { q: `What is ${a} ${op} ${b}?`, answer: String(ans) }
 }
 
+function defaultLandingForUser(u) {
+  return (u?.role || 'data_architect') === 'data_analyst' ? '/finance' : '/apps'
+}
+
 export default function AuthPage({ mode }) {
   const isReg = mode === 'register'
   const { user, login, register } = useAuth()
   const nav = useNavigate()
   const loc = useLocation()
-  const [f, setF] = useState({ email: '', name: '', password: '' })
+  const [f, setF] = useState({ email: '', name: '', password: '', role: 'data_architect' })
   const [captcha, setCaptcha] = useState(() => generateCaptcha())
   const [captchaInput, setCaptchaInput] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -33,7 +37,7 @@ export default function AuthPage({ mode }) {
     setCaptchaInput('')
   }
 
-  if (user) return <Navigate to={user.selected_app ? '/finance' : '/apps'} replace />
+  if (user) return <Navigate to={defaultLandingForUser(user)} replace />
 
   const submit = async (e) => {
     e.preventDefault()
@@ -53,8 +57,11 @@ export default function AuthPage({ mode }) {
     }
     setBusy(true)
     try {
-      const u = isReg ? await register(f.email, f.name, f.password) : await login(f.email, f.password)
-      nav(loc.state?.from || (u.selected_app ? '/finance' : '/apps'), { replace: true })
+      const u = isReg ? await register(f.email, f.name, f.password, f.role) : await login(f.email, f.password)
+      const isAnalyst = (u?.role || 'data_architect') === 'data_analyst'
+      const from = loc.state?.from
+      const safeFrom = from && from !== '/' && !(isAnalyst && from.startsWith('/apps')) ? from : null
+      nav(safeFrom || defaultLandingForUser(u), { replace: true })
     } catch (e2) {
       setErr(e2.message)
     } finally {
@@ -78,9 +85,9 @@ export default function AuthPage({ mode }) {
             </div>
           </div>
 
-          {/* Heading: 2 lines with 'Sign in' on line 1 and 'AgentForgeX Finance' on line 2 */}
+          {/* Heading: 2 lines with action on line 1 and 'AgentForgeX Finance' on line 2 */}
           <h1 className="text-2xl sm:text-[26px] font-bold tracking-tight text-white leading-tight">
-            <span>Sign in</span>
+            <span>{isReg ? 'Create account' : 'Sign in'}</span>
             <span className="block mt-1 bg-gradient-to-r from-[#34d399] via-[#2dd4bf] to-[#22d3ee] bg-clip-text text-transparent whitespace-nowrap">
               AgentForgeX Finance
             </span>
@@ -109,6 +116,34 @@ export default function AuthPage({ mode }) {
                   onChange={set('name')}
                   autoComplete="name"
                 />
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-medium text-neutral-300">
+                  Role
+                </label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {[
+                    { value: 'data_architect', label: 'Data Architect', desc: 'Build & publish models' },
+                    { value: 'data_analyst', label: 'Data Analyst', desc: 'Explore published models' },
+                  ].map((opt) => {
+                    const active = f.role === opt.value
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setF({ ...f, role: opt.value })}
+                        className={`rounded-xl border px-3 py-2.5 text-left transition ${active
+                            ? 'border-[#10b981] bg-[#10b981]/15 text-white'
+                            : 'border-[#333E52] bg-[#141821] text-neutral-300 hover:border-neutral-500'
+                          }`}
+                      >
+                        <div className="text-xs font-semibold">{opt.label}</div>
+                        <div className="text-[11px] text-neutral-400 mt-0.5">{opt.desc}</div>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -236,17 +271,15 @@ export default function AuthPage({ mode }) {
         </form>
 
         {/* Bottom Section */}
-        {isReg && (
-          <p className="mt-5 text-center text-xs text-neutral-400">
-            Already registered?{' '}
-            <Link
-              to="/login"
-              className="font-semibold text-[#10b981] hover:text-[#34d399] transition underline-offset-2 hover:underline ml-1"
-            >
-              Sign in
-            </Link>
-          </p>
-        )}
+        <p className="mt-5 text-center text-xs text-neutral-400">
+          {isReg ? 'Already registered?' : 'New to AgentForgeX Finance?'}{' '}
+          <Link
+            to={isReg ? '/login' : '/register'}
+            className="font-semibold text-[#10b981] hover:text-[#34d399] transition underline-offset-2 hover:underline ml-1"
+          >
+            {isReg ? 'Sign in' : 'Create account'}
+          </Link>
+        </p>
       </div>
     </div>
   )

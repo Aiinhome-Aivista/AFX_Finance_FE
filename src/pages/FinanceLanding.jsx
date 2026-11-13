@@ -2,14 +2,18 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
+  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   ChevronRight,
   Database,
   ExternalLink,
+  FolderKanban,
   Layers,
   Network,
+  PlusCircle,
   RotateCcw,
+  ShieldCheck,
   Sparkles,
   Workflow,
   X,
@@ -20,6 +24,7 @@ import {
 import Layout from '../components/common/Layout'
 import { ErrorState, Loading } from '../components/common/States'
 import useAsync from '../components/common/useAsync'
+import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { useWorkflow } from '../context/WorkflowContext'
 import { domains, ontology } from '../api'
@@ -34,8 +39,14 @@ import {
 export default function FinanceLanding() {
   const nav = useNavigate()
   const canvasRef = useRef(null)
+  const { isAnalyst } = useAuth()
   const { theme } = useTheme()
   const isDark = theme === 'dark'
+
+  // Role-based Workspace Tab: 'new' | 'my' | 'published'
+  // Data Analysts are strictly locked to 'published'.
+  const [workspaceTab, setWorkspaceTab] = useState(() => (isAnalyst ? 'published' : 'new'))
+  const effectiveTab = isAnalyst ? 'published' : workspaceTab
 
   // State
   const [selectedDomain, setSelectedDomain] = useState('all') // 'all' or 'f1'..'f8'
@@ -45,8 +56,16 @@ export default function FinanceLanding() {
   const [showNeighbours, setShowNeighbours] = useState(true)
   const [canonModalOpen, setCanonModalOpen] = useState(false)
 
-  // Fetch full dynamic ontology graph & domain workflow states from backend
-  const { data, loading, error, reload } = useAsync(() => ontology.overviewGraph(), [])
+  // Fetch workspace models (My Finance Models & Published Models)
+  const ws = useAsync(() => domains.workspaceModels(), [isAnalyst])
+  const myModels = ws.data?.my_models || []
+  const publishedModels = ws.data?.published_models || []
+
+  // Fetch full dynamic ontology graph & domain workflow states from backend (Architect 'New' builder only)
+  const { data, loading, error, reload } = useAsync(
+    () => (isAnalyst ? Promise.resolve(null) : ontology.overviewGraph()),
+    [isAnalyst]
+  )
   const progress = data?.progress || {}
   const { updateDomainWorkflow } = useWorkflow()
 
@@ -177,549 +196,768 @@ export default function FinanceLanding() {
   return (
     <Layout wide>
       {/* =========================================================================
-          HERO & EXECUTIVE INTRO
+          ROLE-BASED FINANCE MODELS WORKSPACE HEADER & TABS
          ========================================================================= */}
-      <div className="relative mb-5 overflow-hidden rounded-3xl border border-line bg-gradient-to-br from-surface via-surface to-surface2 p-6 sm:p-8 shadow-card">
-        {/* Ambient subtle glow background */}
-        <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-brand/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl" />
-
-        <div className="relative z-10 max-w-5xl">
-
-
-          {/* Main Title with high-contrast gradient */}
-          <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-4xl">
-            <span className="text-ink">Finance </span>
-            <span className="bg-gradient-to-r from-brand via-indigo-500 to-purple-600 bg-clip-text text-transparent">
-              Knowledge Graph
-            </span>
-          </h1>
-
-          {/* Subtext crafted to inspire and explain value clearly */}
-          <p className="mt-2.5 text-xs sm:text-[14px] leading-relaxed text-muted max-w-4xl">
-            An interactive multi-dimensional ontology mapping core financial planning, gross-to-net waterfalls,
-            activity-based costing, working capital, and enterprise governance to a conformed master-data spine.
-            Explore governed definitions, trace end-to-end operational cycles, or use the interactive assistant to
-            customize your enterprise graph.
-          </p>
-
-
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3 shadow-2xs">
+        <div className="flex items-center gap-3 flex-wrap">
+          {!isAnalyst && (
+            <Link
+              to="/apps"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface2 px-3 py-1.5 text-xs font-semibold text-mute hover:text-ink hover:border-[#10b981]/50 transition"
+            >
+              <ArrowLeft size={13} />
+              <span>Model Selection</span>
+            </Link>
+          )}
+          <div>
+            <h2 className="text-sm sm:text-base font-bold text-ink tracking-tight">
+              {isAnalyst ? 'Published Models' : 'Finance Models'}
+            </h2>
+            <p className="text-[11px] text-mute">
+              {isAnalyst
+                ? 'Explore finalized, governed Enterprise Digital Twin models.'
+                : 'Start a new domain graph, resume your active models, or inspect published twins.'}
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* =========================================================================
-          DOMAIN TABS & TOOLBAR CONTROLS
-         ========================================================================= */}
-      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-line bg-surface/70 p-3 sm:p-4 backdrop-blur shadow-2xs">
-        {/* Domain Tabs Navigation (Multi-row, full text, normal font size, single active color, no badges) */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 select-none">
-          {/* All Sub-Domains Master Tab */}
-          <button
-            id="tab-all"
-            type="button"
-            className={`group relative rounded-xl px-3.5 py-2 text-xs sm:text-[13px] font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${selectedDomain === 'all'
-                ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01]'
-                : 'border-line bg-surface/90 text-muted hover:text-ink hover:border-brand/40 hover:bg-surface2 shadow-2xs hover:-translate-y-0.5'
-              }`}
-            onClick={() => handleDomainSelect('all')}
-          >
-            <Compass size={15} className={selectedDomain === 'all' ? 'text-white' : 'text-brand'} />
-            <span className="tracking-tight">All Domains</span>
-          </button>
-
-          {/* Specific Domain Tabs (Only show all when 'all' is selected; otherwise show only selected domain) */}
-          {ORDER.filter((dKey) => selectedDomain === 'all' || selectedDomain === dKey).map((dKey) => {
-            const meta = DOMMETA[dKey]
-            const isSelected = selectedDomain === dKey
-
-            return (
+        <div className="flex items-center gap-2 flex-wrap" role="tablist" aria-label="Finance Models Views">
+          {!isAnalyst && (
+            <>
               <button
-                id={`tab-${dKey}`}
-                key={dKey}
                 type="button"
-                className={`group relative rounded-xl px-3.5 py-2 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${isSelected
-                    ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
-                    : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
+                role="tab"
+                aria-selected={effectiveTab === 'new'}
+                onClick={() => setWorkspaceTab('new')}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold border transition cursor-pointer ${effectiveTab === 'new'
+                    ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-sm'
+                    : 'bg-surface2 border-line text-mute hover:text-ink'
                   }`}
-                onClick={() => handleDomainSelect(dKey)}
-                title={meta.n}
               >
-                <span
-                  className="h-2 w-2 rounded-full shrink-0 transition-transform group-hover:scale-125"
-                  style={{
-                    backgroundColor: isSelected ? '#FFFFFF' : meta.c,
-                    boxShadow: isSelected ? '0 0 8px rgba(255,255,255,0.8)' : undefined,
-                  }}
-                />
-                <span className="font-semibold text-xs sm:text-[13px] tracking-tight whitespace-nowrap">
-                  {meta.n}
+                <PlusCircle size={14} />
+                <span>New</span>
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveTab === 'my'}
+                onClick={() => setWorkspaceTab('my')}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold border transition cursor-pointer ${effectiveTab === 'my'
+                    ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-sm'
+                    : 'bg-surface2 border-line text-mute hover:text-ink'
+                  }`}
+              >
+                <FolderKanban size={14} />
+                <span>My Finance Models</span>
+                <span className="ml-1 rounded-full bg-black/15 px-1.5 py-0.5 text-[10px] font-mono">
+                  {myModels.length}
                 </span>
               </button>
-            )
-          })}
+            </>
+          )}
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={effectiveTab === 'published'}
+            onClick={() => setWorkspaceTab('published')}
+            className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold border transition cursor-pointer ${effectiveTab === 'published'
+                ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-sm'
+                : 'bg-surface2 border-line text-mute hover:text-ink'
+              }`}
+          >
+            <ShieldCheck size={14} />
+            <span>Published Models</span>
+            <span className="ml-1 rounded-full bg-black/15 px-1.5 py-0.5 text-[10px] font-mono">
+              {publishedModels.length}
+            </span>
+          </button>
         </div>
       </div>
 
       {/* =========================================================================
-          MAIN INTERACTIVE CANVAS (SVG ONTOLOGY GRAPH) & DETAILS PANEL
+          MY FINANCE MODELS VIEW (DATA ARCHITECT ONLY)
          ========================================================================= */}
-      <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-        {/* Left: SVG Canvas / Loader / Error */}
-        <div className="flex-1 min-w-0 rounded-2xl border border-line bg-surface overflow-hidden relative min-h-[550px] h-[74vh] flex flex-col justify-center items-center shadow-card">
-          {loading && (
-            <div className="flex flex-col items-center justify-center gap-3 p-8">
-              <div className="relative flex items-center justify-center">
-                <div className="h-14 w-14 rounded-full border-4 border-brand/20 border-t-brand animate-spin" />
-                <Network className="absolute text-brand animate-pulse" size={20} />
-              </div>
-              <div className="text-center mt-2">
-                <p className="text-sm font-semibold text-ink">Fetching Knowledge Graph...</p>
-                <p className="text-xs text-muted mt-1">ontology nodes, edges and governance definitions</p>
-              </div>
-            </div>
-          )}
-
-          {!loading && error && (
-            <div className="flex flex-col items-center justify-center gap-3 p-8 max-w-lg text-center">
-              <div className="h-12 w-12 rounded-2xl bg-bad/10 text-bad flex items-center justify-center mb-1">
-                <AlertTriangle size={24} />
-              </div>
-              <h3 className="text-base font-bold text-ink">Failed to Load Knowledge Graph</h3>
-              <p className="text-xs text-muted leading-relaxed">
-                {error?.message || String(error) || 'Could not connect to the backend database server.'}
+      {!isAnalyst && effectiveTab === 'my' && (
+        <section className="space-y-4">
+          {ws.loading && !ws.data ? (
+            <Loading label="Loading your Finance models…" className="min-h-[240px]" />
+          ) : ws.error ? (
+            <ErrorState error={ws.error} onRetry={ws.reload} />
+          ) : myModels.length === 0 ? (
+            <div className="card p-10 text-center border border-line bg-surface">
+              <FolderKanban size={28} className="mx-auto text-mute mb-3" />
+              <h3 className="text-base font-bold text-ink">No Active Finance Models Yet</h3>
+              <p className="text-xs text-mute mt-1 max-w-md mx-auto">
+                Switch to the <strong className="text-ink">New</strong> tab to explore a Finance sub-domain template and start building your custom Knowledge Graph.
               </p>
-              <div className="mt-2 flex items-center gap-3">
-                <button
-                  onClick={reload}
-                  className="btn-primary btn-sm flex items-center gap-1.5 px-4 py-2 text-xs font-semibold shadow-sm"
-                >
-                  <RotateCcw size={13} />
-                  <span>Retry Connection</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {!loading && !error && activeNodes.length === 0 && (
-            <div className="flex flex-col items-center justify-center gap-2 p-8 text-center text-muted">
-              <Database size={28} className="text-muted/60 mb-1" />
-              <p className="text-sm font-semibold text-ink">No Graph Data Found</p>
-              <p className="text-xs max-w-md">The backend did not return any ontology nodes or edges from the database.</p>
-              <button onClick={reload} className="mt-2 btn-ghost btn-sm">Refresh</button>
-            </div>
-          )}
-
-          {!loading && !error && activeNodes.length > 0 && (
-            <OntologyGraphCanvas
-              ref={canvasRef}
-              selectedNodeId={selectedNodeId}
-              onSelectNode={handleSelectNode}
-              activeDomain={selectedDomain}
-              showNeighbours={showNeighbours}
-              activeFlowIdx={activeFlowIdx}
-              searchQuery={searchQuery}
-              nodes={activeNodes}
-              edges={activeEdges}
-              flows={activeFlows}
-              className="w-full h-full"
-            />
-          )}
-        </div>
-
-        {/* Right: Modern Side Details Panel */}
-        <aside className="w-full lg:w-[380px] lg:flex-none rounded-2xl border border-line bg-surface p-5 shadow-card h-[74vh] min-h-[550px] overflow-y-auto scroll-thin flex flex-col">
-          {!selectedNode ? (
-            /* Empty State: Platform Overview & Sub-Domain Directory */
-            <div className="flex flex-col h-full">
-              <div className="flex items-center gap-2 text-brand font-bold text-sm">
-                <Network size={16} />
-                <span>Ontology Architecture Overview</span>
-              </div>
-
-              <p className="mt-2 text-xs leading-relaxed text-muted">
-                Click any node on the graph to inspect its governed definition, verbatim formulas, conformed dimensions,
-                and cross-domain relationships.
-              </p>
-
-              <div className="mt-4 rounded-xl border border-line bg-surface2/60 p-3 text-xs leading-relaxed text-muted">
-                <b className="text-ink">Central Master-Data Spine:</b>
-                <p className="mt-1">
-                  The conformed core dimensions (Chart of Accounts, Legal Org Node, Fiscal Calendar, Currency FX, Product SKU, Customer Channel, Metric Dictionary, Source ERP).
-                </p>
-              </div>
-
-              {/* Sub-Domains List with Direct Launch */}
-              <div className="mt-5 pt-4 border-t border-line flex-1">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-muted mb-3 flex items-center justify-between">
-                  <span>Finance Sub-Domains</span>
-                  <span className="text-[10px] text-brand">8 Domains</span>
-                </div>
-
-                <div className="space-y-2">
-                  {ORDER.map((dKey) => {
-                    const meta = DOMMETA[dKey]
-                    const slug = DOMAIN_SLUGS[dKey]
-                    const p = progress[slug]
-                    const isCurrent = selectedDomain === dKey
-
-                    return (
-                      <div
-                        key={dKey}
-                        className={`flex items-center justify-between rounded-xl p-2.5 text-xs transition border cursor-pointer ${isCurrent
-                            ? 'border-brand bg-brand/5 shadow-sm'
-                            : 'border-transparent hover:border-line hover:bg-surface2'
-                          }`}
-                        onClick={() => handleDomainSelect(dKey)}
-                      >
-                        <div className="flex items-center gap-2.5 truncate pr-2">
-                          <span
-                            className="h-2.5 w-2.5 rounded-full shrink-0"
-                            style={{ backgroundColor: meta.c }}
-                          />
-                          <div className="truncate">
-                            <span className="font-semibold text-ink truncate block">
-                              {meta.n}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setWorkspaceTab('new')}
+                className="btn-primary btn-sm mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs"
+              >
+                <PlusCircle size={14} />
+                <span>Create New Model</span>
+              </button>
             </div>
           ) : (
-            /* Selected Node State: Comprehensive Governed Entity Card */
-            <div>
-              {/* Header */}
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h2 className="text-lg font-bold leading-tight text-ink">
-                    {selectedNode.n}
-                  </h2>
-                  <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider"
-                    style={{
-                      backgroundColor: `${DOMMETA[selectedNode.d]?.c}18`,
-                      color: DOMMETA[selectedNode.d]?.c,
-                      border: `1px solid ${DOMMETA[selectedNode.d]?.c}30`,
-                    }}
-                  >
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: DOMMETA[selectedNode.d]?.c }}
-                    />
-                    <span>{DOMMETA[selectedNode.d]?.n}</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setSelectedNodeId(null)}
-                  className="text-muted hover:text-ink shrink-0 p-1 rounded-lg hover:bg-surface2 transition"
-                  title="Close panel"
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {myModels.map((m) => (
+                <div
+                  key={m.workflow_id}
+                  className="card p-5 border border-line bg-surface flex flex-col justify-between gap-4 hover:border-[#10b981]/50 transition"
                 >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Definition */}
-              <div className="mt-3.5 text-xs leading-relaxed text-ink bg-surface2/50 border border-line rounded-xl p-3">
-                {selectedNode.def}
-              </div>
-
-              {/* Direct Workflow Launch Button */}
-              {selectedNode.d !== 'spine' && DOMAIN_SLUGS[selectedNode.d] && (
-                <div className="mt-3.5">
-                  <Link
-                    to={`/finance/${DOMAIN_SLUGS[selectedNode.d]}`}
-                    className="btn-primary btn-sm w-full flex items-center justify-center gap-2 text-xs font-semibold shadow-sm py-2"
-                  >
-                    <span>
-                      {getDomainProgress(selectedNode.d)
-                        ? `Continue ${DOMMETA[selectedNode.d]?.code} Workflow`
-                        : `Open ${DOMMETA[selectedNode.d]?.code} Knowledge Graph`}
-                    </span>
-                    <ArrowRight size={13} />
-                  </Link>
-                </div>
-              )}
-
-              {/* Governed Attributes */}
-              {selectedNode.a && selectedNode.a.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted mb-2 flex items-center justify-between">
-                    <span>Governed Attributes</span>
-                    <span className="font-mono text-[10px] text-brand">{selectedNode.a.length} fields</span>
-                  </h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedNode.a.map((attr, i) => (
-                      <span
-                        key={i}
-                        className="font-mono text-[11px] bg-surface2 border border-line rounded-lg px-2 py-0.5 text-ink leading-tight shadow-2xs"
-                      >
-                        {attr}
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-surface2 border border-line text-ink">
+                        {m.code || m.slug}
                       </span>
-                    ))}
+                      {m.finalized ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-500">
+                          <CheckCircle2 size={13} /> Published (KG{m.finalized_version_number})
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-mute">
+                          Step {m.current_step} · {m.completed_steps}/6 completed
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-sm font-bold text-ink">{m.name}</h3>
+                    <p className="text-xs text-mute mt-1 line-clamp-2">{m.description}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2 border-t border-line">
+                    <Link
+                      to={`/finance/${m.slug}`}
+                      className="btn-secondary flex-1 text-center py-2 text-xs font-semibold rounded-xl"
+                    >
+                      Continue Workflow
+                    </Link>
+                    {m.finalized && (
+                      <Link
+                        to={`/finance/${m.slug}/twin?wf=${m.workflow_id}`}
+                        className="btn-primary flex-1 text-center py-2 text-xs font-semibold rounded-xl"
+                      >
+                        Digital Twin
+                      </Link>
+                    )}
                   </div>
                 </div>
-              )}
-
-              {/* Semantic Relationships */}
-              {nodeRelationships.all.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-line">
-                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted mb-2">
-                    Semantic Relationships ({nodeRelationships.all.length})
-                  </h3>
-                  <ul className="space-y-1.5 text-xs text-muted">
-                    {nodeRelationships.all.map((rel, i) => (
-                      <li
-                        key={i}
-                        className="rounded-lg p-2 bg-surface2/50 border border-line leading-relaxed flex flex-wrap items-center gap-1.5"
-                      >
-                        {rel.dir === 'out' ? (
-                          <>
-                            <b className="text-ink font-semibold">{selectedNode.n}</b>
-                            <span className="text-[11px] font-semibold text-brand bg-brand/10 px-1.5 py-0.2 rounded border border-brand/20">
-                              {rel.label}
-                            </span>
-                            <span className="text-muted">──▶</span>
-                            <button
-                              onClick={() => handleSelectNode(rel.otherId)}
-                              className="text-brand hover:underline font-semibold"
-                            >
-                              {rel.otherName}
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => handleSelectNode(rel.otherId)}
-                              className="text-brand hover:underline font-semibold"
-                            >
-                              {rel.otherName}
-                            </button>
-                            <span className="text-[11px] font-semibold text-brand bg-brand/10 px-1.5 py-0.2 rounded border border-brand/20">
-                              {rel.label}
-                            </span>
-                            <span className="text-muted">──▶</span>
-                            <b className="text-ink font-semibold">{selectedNode.n}</b>
-                          </>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Conformed Joins */}
-              {nodeRelationships.joins.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-line">
-                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted mb-2">
-                    Conformed Joins ({nodeRelationships.joins.length})
-                  </h3>
-                  <div className="flex flex-wrap gap-1.5 text-xs">
-                    {nodeRelationships.joins.map((jn) => (
-                      <button
-                        key={jn.id}
-                        onClick={() => handleSelectNode(jn.id)}
-                        className="rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-medium text-brand hover:border-brand hover:bg-brand/5 transition shadow-2xs"
-                      >
-                        {jn.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Evidence & Corpus Citations */}
-              {selectedNode.ev && (
-                <div className="mt-4 pt-3 border-t border-line">
-                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted mb-1.5">
-                    Corpus Evidence &amp; Governance
-                  </h3>
-                  <p className="text-[11.5px] italic text-muted leading-relaxed bg-surface2/40 p-2.5 rounded-xl border border-line">
-                    “{selectedNode.ev}”
-                  </p>
-                </div>
-              )}
+              ))}
             </div>
           )}
-        </aside>
-      </div>
+        </section>
+      )}
 
       {/* =========================================================================
-          END-TO-END OPERATIONAL CYCLES (BOTTOM SECTION)
+          PUBLISHED MODELS VIEW (BOTH ROLES; ONLY VISIBLE SECTION FOR DATA ANALYST)
          ========================================================================= */}
-      {activeFlows.length > 0 && (
-        <details className="mt-5 rounded-2xl border border-line bg-surface shadow-card overflow-hidden group" open>
-          <summary className="cursor-pointer px-5 py-4 text-sm sm:text-base font-bold text-ink flex items-center justify-between select-none hover:bg-surface2 transition">
-            <div className="flex items-center gap-2.5">
-              <span className="grid h-6 w-6 place-items-center rounded-md bg-brand/10 text-brand text-xs font-bold transition-transform group-open:rotate-90">
-                ▸
-              </span>
-              <span className="text-brand">End-to-End Operational Cycles</span>
-              <span className="text-xs text-muted font-normal hidden sm:inline">
-                — Click any cycle to trace and animate its path across the graph
-              </span>
+      {effectiveTab === 'published' && (
+        <section className="space-y-4">
+          {ws.loading && !ws.data ? (
+            <Loading label="Loading published Finance models…" className="min-h-[240px]" />
+          ) : ws.error ? (
+            <ErrorState error={ws.error} onRetry={ws.reload} />
+          ) : publishedModels.length === 0 ? (
+            <div className="card p-10 text-center border border-line bg-surface">
+              <ShieldCheck size={28} className="mx-auto text-[#10b981] mb-3" />
+              <h3 className="text-base font-bold text-ink">No Published Models Yet</h3>
+              <p className="text-xs text-mute mt-1 max-w-md mx-auto">
+                Finalized Enterprise Digital Twins will appear here once a Data Architect completes review and finalization.
+              </p>
             </div>
-            {activeFlowIdx >= 0 && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault()
-                  setActiveFlowIdx(-1)
-                }}
-                className="text-xs text-muted hover:text-bad font-medium px-2.5 py-1 rounded-lg border border-line bg-surface hover:bg-bad/5 transition"
-              >
-                Clear active trace
-              </button>
-            )}
-          </summary>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 p-5 pt-3 border-t border-line bg-surface2/30">
-            {activeFlows.map((f, i) => {
-              const isActive = activeFlowIdx === i
-              const isLast = i === activeFlows.length - 1
-
-              // Dynamic arrow color: Pure black in light theme, pure white in dark theme, brand when active
-              const arrowColor = isActive
-                ? (isDark ? '#818CF8' : '#4F46E5')
-                : (isDark ? '#FFFFFF' : '#000000')
-
-              // Serpentine snake placement on desktop XL:
-              // Row 1 (left to right): Col 1, Col 2, Col 3, Col 4
-              // Row 2 (right to left): Col 4, Col 3, Col 2
-              const SNAKE_GRID_XL = [
-                'xl:col-start-1 xl:row-start-1',
-                'xl:col-start-2 xl:row-start-1',
-                'xl:col-start-3 xl:row-start-1',
-                'xl:col-start-4 xl:row-start-1',
-                'xl:col-start-4 xl:row-start-2',
-                'xl:col-start-3 xl:row-start-2',
-                'xl:col-start-2 xl:row-start-2',
-              ]
-
-              // Serpentine snake placement on tablet MD:
-              const SNAKE_GRID_MD = [
-                'md:col-start-1 md:row-start-1',
-                'md:col-start-2 md:row-start-1',
-                'md:col-start-2 md:row-start-2',
-                'md:col-start-1 md:row-start-2',
-                'md:col-start-1 md:row-start-3',
-                'md:col-start-2 md:row-start-3',
-                'md:col-start-2 md:row-start-4',
-              ]
-
-              return (
-                <div key={f.key || f.t || i} className={`relative flex flex-col ${SNAKE_GRID_XL[i] || ''} ${SNAKE_GRID_MD[i] || ''}`}>
-                  <div
-                    onClick={() => handleFlowToggle(i)}
-                    className={`rounded-2xl border p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between h-[178px] ${isActive
-                        ? 'border-brand ring-2 ring-brand/30 bg-surface shadow-md scale-[1.01]'
-                        : 'border-line bg-surface hover:border-brand/60 hover:shadow-sm'
-                      }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <b className={`text-xs font-bold truncate pr-2 ${isActive ? 'text-brand' : 'text-ink'}`} title={f.t || f.title}>
-                          {f.t || f.title}
-                        </b>
-                        {isActive ? (
-                          <span className="text-[10px] uppercase font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full border border-brand/20 shrink-0">
-                            Tracing
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-muted font-mono shrink-0">
-                            {(f.ids || f.steps || []).length} steps
-                          </span>
-                        )}
-                      </div>
-                      <p
-                        className="font-mono text-[10.5px] text-muted leading-relaxed break-words line-clamp-4 h-[4.25rem] overflow-hidden"
-                        style={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 4,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        }}
-                        title={f.x || f.narrative}
-                      >
-                        {f.x || f.narrative}
-                      </p>
-                    </div>
-
-                    <div className="mt-3 pt-2.5 border-t border-line/60 flex items-center justify-between text-[11px] shrink-0">
-                      <span className={isActive ? 'font-semibold text-brand' : 'text-muted'}>
-                        {isActive ? 'Click to deactivate' : 'Click to trace path'}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {publishedModels.map((m) => (
+                <div
+                  key={m.workflow_id}
+                  className="card p-5 border border-line bg-surface flex flex-col justify-between gap-4 hover:border-[#10b981]/60 transition shadow-2xs"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-surface2 border border-line text-ink">
+                        {m.code || m.slug}
                       </span>
-                      <ChevronRight size={13} className={isActive ? 'text-brand' : 'text-muted'} />
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                        <ShieldCheck size={12} /> KG{m.finalized_version_number}
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-ink">{m.name}</h3>
+                    <p className="text-xs text-mute mt-1 line-clamp-2">{m.description}</p>
+                    <div className="mt-3 text-[11px] text-mute">
+                      Published by <strong className="text-ink">{m.owner_name}</strong>
+                      {m.finalized_at && (
+                        <span> · {new Date(m.finalized_at).toLocaleDateString()}</span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Arrow connecting to the next card in serpentine flow */}
-                  {!isLast && (
-                    <>
-                      {/* Desktop XL: 0->1->2->3 (right), 3->4 (down), 4->5->6 (left) */}
-                      <div className="hidden xl:flex">
-                        {(i === 0 || i === 1 || i === 2) && (
-                          <div className="absolute left-full top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
-                            <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
-                              <path d="M1 6H15M10.5 1.5L15 6L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </div>
-                        )}
-                        {i === 3 && (
-                          <div className="absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 flex items-center justify-center pointer-events-none">
-                            <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
-                              <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </div>
-                        )}
-                        {(i === 4 || i === 5) && (
-                          <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
-                            <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
-                              <path d="M17 6H3M7.5 1.5L3 6L7.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
+                  <Link
+                    to={`/finance/${m.slug}/twin?wf=${m.workflow_id}`}
+                    className="btn-primary w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl"
+                  >
+                    <span>Explore Digital Twin</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
-                      {/* Tablet MD: 0->1 (right), 1->2 (down), 2->3 (left), 3->4 (down), 4->5 (right), 5->6 (down) */}
-                      <div className="hidden md:flex xl:hidden">
-                        {(i === 0 || i === 4) && (
-                          <div className="absolute left-full top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
-                            <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
-                              <path d="M1 6H15M10.5 1.5L15 6L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </div>
-                        )}
-                        {(i === 1 || i === 3 || i === 5) && (
-                          <div className="absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 flex items-center justify-center pointer-events-none">
-                            <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
-                              <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </div>
-                        )}
-                        {i === 2 && (
-                          <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
-                            <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
-                              <path d="M17 6H3M7.5 1.5L3 6L7.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
+      {/* =========================================================================
+          NEW MODEL EXPLORER VIEW (DATA ARCHITECT ONLY)
+         ========================================================================= */}
+      {!isAnalyst && effectiveTab === 'new' && (
+        <>
+          {/* =========================================================================
+          HERO & EXECUTIVE INTRO
+         ========================================================================= */}
+          <div className="relative mb-5 overflow-hidden rounded-3xl border border-line bg-gradient-to-br from-surface via-surface to-surface2 p-6 sm:p-8 shadow-card">
+            {/* Ambient subtle glow background */}
+            <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-brand/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl" />
 
-                      {/* Mobile (1 column): all down */}
-                      <div className="flex md:hidden absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 items-center justify-center pointer-events-none">
-                        <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
-                          <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+            <div className="relative z-10 max-w-5xl">
+
+
+              {/* Main Title with high-contrast gradient */}
+              <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-4xl">
+                <span className="text-ink">Finance </span>
+                <span className="bg-gradient-to-r from-brand via-indigo-500 to-purple-600 bg-clip-text text-transparent">
+                  Knowledge Graph
+                </span>
+              </h1>
+
+              {/* Subtext crafted to inspire and explain value clearly */}
+              <p className="mt-2.5 text-xs sm:text-[14px] leading-relaxed text-muted max-w-4xl">
+                An interactive multi-dimensional ontology mapping core financial planning, gross-to-net waterfalls,
+                activity-based costing, working capital, and enterprise governance to a conformed master-data spine.
+                Explore governed definitions, trace end-to-end operational cycles, or use the interactive assistant to
+                customize your enterprise graph.
+              </p>
+
+
+            </div>
+          </div>
+
+          {/* =========================================================================
+          DOMAIN TABS & TOOLBAR CONTROLS
+         ========================================================================= */}
+          <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-line bg-surface/70 p-3 sm:p-4 backdrop-blur shadow-2xs">
+            {/* Domain Tabs Navigation (Multi-row, full text, normal font size, single active color, no badges) */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 select-none">
+              {/* All Sub-Domains Master Tab */}
+              <button
+                id="tab-all"
+                type="button"
+                className={`group relative rounded-xl px-3.5 py-2 text-xs sm:text-[13px] font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${selectedDomain === 'all'
+                  ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01]'
+                  : 'border-line bg-surface/90 text-muted hover:text-ink hover:border-brand/40 hover:bg-surface2 shadow-2xs hover:-translate-y-0.5'
+                  }`}
+                onClick={() => handleDomainSelect('all')}
+              >
+                <Compass size={15} className={selectedDomain === 'all' ? 'text-white' : 'text-brand'} />
+                <span className="tracking-tight">All Domains</span>
+              </button>
+
+              {/* Specific Domain Tabs (Only show all when 'all' is selected; otherwise show only selected domain) */}
+              {ORDER.filter((dKey) => selectedDomain === 'all' || selectedDomain === dKey).map((dKey) => {
+                const meta = DOMMETA[dKey]
+                const isSelected = selectedDomain === dKey
+
+                return (
+                  <button
+                    id={`tab-${dKey}`}
+                    key={dKey}
+                    type="button"
+                    className={`group relative rounded-xl px-3.5 py-2 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${isSelected
+                      ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
+                      : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
+                      }`}
+                    onClick={() => handleDomainSelect(dKey)}
+                    title={meta.n}
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full shrink-0 transition-transform group-hover:scale-125"
+                      style={{
+                        backgroundColor: isSelected ? '#FFFFFF' : meta.c,
+                        boxShadow: isSelected ? '0 0 8px rgba(255,255,255,0.8)' : undefined,
+                      }}
+                    />
+                    <span className="font-semibold text-xs sm:text-[13px] tracking-tight whitespace-nowrap">
+                      {meta.n}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* =========================================================================
+          MAIN INTERACTIVE CANVAS (SVG ONTOLOGY GRAPH) & DETAILS PANEL
+         ========================================================================= */}
+          <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+            {/* Left: SVG Canvas / Loader / Error */}
+            <div className="flex-1 min-w-0 rounded-2xl border border-line bg-surface overflow-hidden relative min-h-[550px] h-[74vh] flex flex-col justify-center items-center shadow-card">
+              {loading && (
+                <div className="flex flex-col items-center justify-center gap-3 p-8">
+                  <div className="relative flex items-center justify-center">
+                    <div className="h-14 w-14 rounded-full border-4 border-brand/20 border-t-brand animate-spin" />
+                    <Network className="absolute text-brand animate-pulse" size={20} />
+                  </div>
+                  <div className="text-center mt-2">
+                    <p className="text-sm font-semibold text-ink">Fetching Knowledge Graph...</p>
+                    <p className="text-xs text-muted mt-1">ontology nodes, edges and governance definitions</p>
+                  </div>
+                </div>
+              )}
+
+              {!loading && error && (
+                <div className="flex flex-col items-center justify-center gap-3 p-8 max-w-lg text-center">
+                  <div className="h-12 w-12 rounded-2xl bg-bad/10 text-bad flex items-center justify-center mb-1">
+                    <AlertTriangle size={24} />
+                  </div>
+                  <h3 className="text-base font-bold text-ink">Failed to Load Knowledge Graph</h3>
+                  <p className="text-xs text-muted leading-relaxed">
+                    {error?.message || String(error) || 'Could not connect to the backend database server.'}
+                  </p>
+                  <div className="mt-2 flex items-center gap-3">
+                    <button
+                      onClick={reload}
+                      className="btn-primary btn-sm flex items-center gap-1.5 px-4 py-2 text-xs font-semibold shadow-sm"
+                    >
+                      <RotateCcw size={13} />
+                      <span>Retry Connection</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!loading && !error && activeNodes.length === 0 && (
+                <div className="flex flex-col items-center justify-center gap-2 p-8 text-center text-muted">
+                  <Database size={28} className="text-muted/60 mb-1" />
+                  <p className="text-sm font-semibold text-ink">No Graph Data Found</p>
+                  <p className="text-xs max-w-md">The backend did not return any ontology nodes or edges from the database.</p>
+                  <button onClick={reload} className="mt-2 btn-ghost btn-sm">Refresh</button>
+                </div>
+              )}
+
+              {!loading && !error && activeNodes.length > 0 && (
+                <OntologyGraphCanvas
+                  ref={canvasRef}
+                  selectedNodeId={selectedNodeId}
+                  onSelectNode={handleSelectNode}
+                  activeDomain={selectedDomain}
+                  showNeighbours={showNeighbours}
+                  activeFlowIdx={activeFlowIdx}
+                  searchQuery={searchQuery}
+                  nodes={activeNodes}
+                  edges={activeEdges}
+                  flows={activeFlows}
+                  className="w-full h-full"
+                />
+              )}
+            </div>
+
+            {/* Right: Modern Side Details Panel */}
+            <aside className="w-full lg:w-[380px] lg:flex-none rounded-2xl border border-line bg-surface p-5 shadow-card h-[74vh] min-h-[550px] overflow-y-auto scroll-thin flex flex-col">
+              {!selectedNode ? (
+                /* Empty State: Platform Overview & Sub-Domain Directory */
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center gap-2 text-brand font-bold text-sm">
+                    <Network size={16} />
+                    <span>Ontology Architecture Overview</span>
+                  </div>
+
+                  <p className="mt-2 text-xs leading-relaxed text-muted">
+                    Click any node on the graph to inspect its governed definition, verbatim formulas, conformed dimensions,
+                    and cross-domain relationships.
+                  </p>
+
+                  <div className="mt-4 rounded-xl border border-line bg-surface2/60 p-3 text-xs leading-relaxed text-muted">
+                    <b className="text-ink">Central Master-Data Spine:</b>
+                    <p className="mt-1">
+                      The conformed core dimensions (Chart of Accounts, Legal Org Node, Fiscal Calendar, Currency FX, Product SKU, Customer Channel, Metric Dictionary, Source ERP).
+                    </p>
+                  </div>
+
+                  {/* Sub-Domains List with Direct Launch */}
+                  <div className="mt-5 pt-4 border-t border-line flex-1">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-muted mb-3 flex items-center justify-between">
+                      <span>Finance Sub-Domains</span>
+                      <span className="text-[10px] text-brand">8 Domains</span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {ORDER.map((dKey) => {
+                        const meta = DOMMETA[dKey]
+                        const slug = DOMAIN_SLUGS[dKey]
+                        const p = progress[slug]
+                        const isCurrent = selectedDomain === dKey
+
+                        return (
+                          <div
+                            key={dKey}
+                            className={`flex items-center justify-between rounded-xl p-2.5 text-xs transition border cursor-pointer ${isCurrent
+                              ? 'border-brand bg-brand/5 shadow-sm'
+                              : 'border-transparent hover:border-line hover:bg-surface2'
+                              }`}
+                            onClick={() => handleDomainSelect(dKey)}
+                          >
+                            <div className="flex items-center gap-2.5 truncate pr-2">
+                              <span
+                                className="h-2.5 w-2.5 rounded-full shrink-0"
+                                style={{ backgroundColor: meta.c }}
+                              />
+                              <div className="truncate">
+                                <span className="font-semibold text-ink truncate block">
+                                  {meta.n}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Selected Node State: Comprehensive Governed Entity Card */
+                <div>
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h2 className="text-lg font-bold leading-tight text-ink">
+                        {selectedNode.n}
+                      </h2>
+                      <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider"
+                        style={{
+                          backgroundColor: `${DOMMETA[selectedNode.d]?.c}18`,
+                          color: DOMMETA[selectedNode.d]?.c,
+                          border: `1px solid ${DOMMETA[selectedNode.d]?.c}30`,
+                        }}
+                      >
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: DOMMETA[selectedNode.d]?.c }}
+                        />
+                        <span>{DOMMETA[selectedNode.d]?.n}</span>
                       </div>
-                    </>
+                    </div>
+
+                    <button
+                      onClick={() => setSelectedNodeId(null)}
+                      className="text-muted hover:text-ink shrink-0 p-1 rounded-lg hover:bg-surface2 transition"
+                      title="Close panel"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  {/* Definition */}
+                  <div className="mt-3.5 text-xs leading-relaxed text-ink bg-surface2/50 border border-line rounded-xl p-3">
+                    {selectedNode.def}
+                  </div>
+
+                  {/* Direct Workflow Launch Button */}
+                  {selectedNode.d !== 'spine' && DOMAIN_SLUGS[selectedNode.d] && (
+                    <div className="mt-3.5">
+                      <Link
+                        to={`/finance/${DOMAIN_SLUGS[selectedNode.d]}`}
+                        className="btn-primary btn-sm w-full flex items-center justify-center gap-2 text-xs font-semibold shadow-sm py-2"
+                      >
+                        <span>
+                          {getDomainProgress(selectedNode.d)
+                            ? `Continue ${DOMMETA[selectedNode.d]?.code} Workflow`
+                            : `Open ${DOMMETA[selectedNode.d]?.code} Knowledge Graph`}
+                        </span>
+                        <ArrowRight size={13} />
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Governed Attributes */}
+                  {selectedNode.a && selectedNode.a.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted mb-2 flex items-center justify-between">
+                        <span>Governed Attributes</span>
+                        <span className="font-mono text-[10px] text-brand">{selectedNode.a.length} fields</span>
+                      </h3>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedNode.a.map((attr, i) => (
+                          <span
+                            key={i}
+                            className="font-mono text-[11px] bg-surface2 border border-line rounded-lg px-2 py-0.5 text-ink leading-tight shadow-2xs"
+                          >
+                            {attr}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Semantic Relationships */}
+                  {nodeRelationships.all.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-line">
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted mb-2">
+                        Semantic Relationships ({nodeRelationships.all.length})
+                      </h3>
+                      <ul className="space-y-1.5 text-xs text-muted">
+                        {nodeRelationships.all.map((rel, i) => (
+                          <li
+                            key={i}
+                            className="rounded-lg p-2 bg-surface2/50 border border-line leading-relaxed flex flex-wrap items-center gap-1.5"
+                          >
+                            {rel.dir === 'out' ? (
+                              <>
+                                <b className="text-ink font-semibold">{selectedNode.n}</b>
+                                <span className="text-[11px] font-semibold text-brand bg-brand/10 px-1.5 py-0.2 rounded border border-brand/20">
+                                  {rel.label}
+                                </span>
+                                <span className="text-muted">──▶</span>
+                                <button
+                                  onClick={() => handleSelectNode(rel.otherId)}
+                                  className="text-brand hover:underline font-semibold"
+                                >
+                                  {rel.otherName}
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleSelectNode(rel.otherId)}
+                                  className="text-brand hover:underline font-semibold"
+                                >
+                                  {rel.otherName}
+                                </button>
+                                <span className="text-[11px] font-semibold text-brand bg-brand/10 px-1.5 py-0.2 rounded border border-brand/20">
+                                  {rel.label}
+                                </span>
+                                <span className="text-muted">──▶</span>
+                                <b className="text-ink font-semibold">{selectedNode.n}</b>
+                              </>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Conformed Joins */}
+                  {nodeRelationships.joins.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-line">
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted mb-2">
+                        Conformed Joins ({nodeRelationships.joins.length})
+                      </h3>
+                      <div className="flex flex-wrap gap-1.5 text-xs">
+                        {nodeRelationships.joins.map((jn) => (
+                          <button
+                            key={jn.id}
+                            onClick={() => handleSelectNode(jn.id)}
+                            className="rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-medium text-brand hover:border-brand hover:bg-brand/5 transition shadow-2xs"
+                          >
+                            {jn.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Evidence & Corpus Citations */}
+                  {selectedNode.ev && (
+                    <div className="mt-4 pt-3 border-t border-line">
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted mb-1.5">
+                        Corpus Evidence &amp; Governance
+                      </h3>
+                      <p className="text-[11.5px] italic text-muted leading-relaxed bg-surface2/40 p-2.5 rounded-xl border border-line">
+                        “{selectedNode.ev}”
+                      </p>
+                    </div>
                   )}
                 </div>
-              )
-            })}
+              )}
+            </aside>
           </div>
-        </details>
+
+          {/* =========================================================================
+          END-TO-END OPERATIONAL CYCLES (BOTTOM SECTION)
+         ========================================================================= */}
+          {activeFlows.length > 0 && (
+            <details className="mt-5 rounded-2xl border border-line bg-surface shadow-card overflow-hidden group" open>
+              <summary className="cursor-pointer px-5 py-4 text-sm sm:text-base font-bold text-ink flex items-center justify-between select-none hover:bg-surface2 transition">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid h-6 w-6 place-items-center rounded-md bg-brand/10 text-brand text-xs font-bold transition-transform group-open:rotate-90">
+                    ▸
+                  </span>
+                  <span className="text-brand">End-to-End Operational Cycles</span>
+                  <span className="text-xs text-muted font-normal hidden sm:inline">
+                    — Click any cycle to trace and animate its path across the graph
+                  </span>
+                </div>
+                {activeFlowIdx >= 0 && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setActiveFlowIdx(-1)
+                    }}
+                    className="text-xs text-muted hover:text-bad font-medium px-2.5 py-1 rounded-lg border border-line bg-surface hover:bg-bad/5 transition"
+                  >
+                    Clear active trace
+                  </button>
+                )}
+              </summary>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 p-5 pt-3 border-t border-line bg-surface2/30">
+                {activeFlows.map((f, i) => {
+                  const isActive = activeFlowIdx === i
+                  const isLast = i === activeFlows.length - 1
+
+                  // Dynamic arrow color: Pure black in light theme, pure white in dark theme, brand when active
+                  const arrowColor = isActive
+                    ? (isDark ? '#818CF8' : '#4F46E5')
+                    : (isDark ? '#FFFFFF' : '#000000')
+
+                  // Serpentine snake placement on desktop XL:
+                  // Row 1 (left to right): Col 1, Col 2, Col 3, Col 4
+                  // Row 2 (right to left): Col 4, Col 3, Col 2
+                  const SNAKE_GRID_XL = [
+                    'xl:col-start-1 xl:row-start-1',
+                    'xl:col-start-2 xl:row-start-1',
+                    'xl:col-start-3 xl:row-start-1',
+                    'xl:col-start-4 xl:row-start-1',
+                    'xl:col-start-4 xl:row-start-2',
+                    'xl:col-start-3 xl:row-start-2',
+                    'xl:col-start-2 xl:row-start-2',
+                  ]
+
+                  // Serpentine snake placement on tablet MD:
+                  const SNAKE_GRID_MD = [
+                    'md:col-start-1 md:row-start-1',
+                    'md:col-start-2 md:row-start-1',
+                    'md:col-start-2 md:row-start-2',
+                    'md:col-start-1 md:row-start-2',
+                    'md:col-start-1 md:row-start-3',
+                    'md:col-start-2 md:row-start-3',
+                    'md:col-start-2 md:row-start-4',
+                  ]
+
+                  return (
+                    <div key={f.key || f.t || i} className={`relative flex flex-col ${SNAKE_GRID_XL[i] || ''} ${SNAKE_GRID_MD[i] || ''}`}>
+                      <div
+                        onClick={() => handleFlowToggle(i)}
+                        className={`rounded-2xl border p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between h-[178px] ${isActive
+                          ? 'border-brand ring-2 ring-brand/30 bg-surface shadow-md scale-[1.01]'
+                          : 'border-line bg-surface hover:border-brand/60 hover:shadow-sm'
+                          }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <b className={`text-xs font-bold truncate pr-2 ${isActive ? 'text-brand' : 'text-ink'}`} title={f.t || f.title}>
+                              {f.t || f.title}
+                            </b>
+                            {isActive ? (
+                              <span className="text-[10px] uppercase font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full border border-brand/20 shrink-0">
+                                Tracing
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-muted font-mono shrink-0">
+                                {(f.ids || f.steps || []).length} steps
+                              </span>
+                            )}
+                          </div>
+                          <p
+                            className="font-mono text-[10.5px] text-muted leading-relaxed break-words line-clamp-4 h-[4.25rem] overflow-hidden"
+                            style={{
+                              display: '-webkit-box',
+                              WebkitLineClamp: 4,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                            }}
+                            title={f.x || f.narrative}
+                          >
+                            {f.x || f.narrative}
+                          </p>
+                        </div>
+
+                        <div className="mt-3 pt-2.5 border-t border-line/60 flex items-center justify-between text-[11px] shrink-0">
+                          <span className={isActive ? 'font-semibold text-brand' : 'text-muted'}>
+                            {isActive ? 'Click to deactivate' : 'Click to trace path'}
+                          </span>
+                          <ChevronRight size={13} className={isActive ? 'text-brand' : 'text-muted'} />
+                        </div>
+                      </div>
+
+                      {/* Arrow connecting to the next card in serpentine flow */}
+                      {!isLast && (
+                        <>
+                          {/* Desktop XL: 0->1->2->3 (right), 3->4 (down), 4->5->6 (left) */}
+                          <div className="hidden xl:flex">
+                            {(i === 0 || i === 1 || i === 2) && (
+                              <div className="absolute left-full top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
+                                <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                                  <path d="M1 6H15M10.5 1.5L15 6L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </div>
+                            )}
+                            {i === 3 && (
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 flex items-center justify-center pointer-events-none">
+                                <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                                  <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </div>
+                            )}
+                            {(i === 4 || i === 5) && (
+                              <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
+                                <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                                  <path d="M17 6H3M7.5 1.5L3 6L7.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Tablet MD: 0->1 (right), 1->2 (down), 2->3 (left), 3->4 (down), 4->5 (right), 5->6 (down) */}
+                          <div className="hidden md:flex xl:hidden">
+                            {(i === 0 || i === 4) && (
+                              <div className="absolute left-full top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
+                                <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                                  <path d="M1 6H15M10.5 1.5L15 6L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </div>
+                            )}
+                            {(i === 1 || i === 3 || i === 5) && (
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 flex items-center justify-center pointer-events-none">
+                                <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                                  <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </div>
+                            )}
+                            {i === 2 && (
+                              <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-5 z-10 flex items-center justify-center pointer-events-none">
+                                <svg width="18" height="12" viewBox="0 0 18 12" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                                  <path d="M17 6H3M7.5 1.5L3 6L7.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Mobile (1 column): all down */}
+                          <div className="flex md:hidden absolute top-full left-1/2 -translate-x-1/2 h-5 z-10 items-center justify-center pointer-events-none">
+                            <svg width="12" height="18" viewBox="0 0 12 18" fill="none" className={`transition-colors duration-200 ${isActive ? 'text-brand' : 'text-black dark:text-white'}`}>
+                              <path d="M6 1V15M1.5 10.5L6 15L10.5 10.5" stroke={arrowColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </details>
+          )}
+        </>
       )}
 
       {/* =========================================================================
