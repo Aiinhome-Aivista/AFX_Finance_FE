@@ -17,7 +17,17 @@ function generateCaptcha() {
 }
 
 function defaultLandingForUser(u) {
-  return (u?.role || 'data_architect') === 'data_analyst' ? '/finance' : '/apps'
+  if (u?.role === 'data_analyst') return '/finance'
+  // If user has already selected or subscribed to an app (e.g. Finance), take them directly to that workspace
+  if (u?.selected_app) {
+    return u.selected_app === 'fmcg' || u.selected_app === 'supply_chain' ? '/fmcg' : `/${u.selected_app}`
+  }
+  const subApps = u?.subscribed_apps || []
+  if (subApps.length > 0) {
+    const first = subApps[0]
+    return first === 'fmcg' || first === 'supply_chain' ? '/fmcg' : `/${first}`
+  }
+  return '/apps'
 }
 
 export default function AuthPage({ mode }) {

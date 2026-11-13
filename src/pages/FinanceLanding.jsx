@@ -211,68 +211,12 @@ export default function FinanceLanding() {
           )}
           <div>
             <h2 className="text-sm sm:text-base font-bold text-ink tracking-tight">
-              {isAnalyst ? 'Published Models' : 'Finance Models'}
+              Finance Knowledge Graph
             </h2>
             <p className="text-[11px] text-mute">
-              {isAnalyst
-                ? 'Explore finalized, governed Enterprise Digital Twin models.'
-                : 'Start a new domain graph, resume your active models, or inspect published twins.'}
+              Interactive multi-dimensional ontology mapping core financial planning, costing, and governance.
             </p>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap" role="tablist" aria-label="Finance Models Views">
-          {!isAnalyst && (
-            <>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={effectiveTab === 'new'}
-                onClick={() => setWorkspaceTab('new')}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold border transition cursor-pointer ${effectiveTab === 'new'
-                    ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-sm'
-                    : 'bg-surface2 border-line text-mute hover:text-ink'
-                  }`}
-              >
-                <PlusCircle size={14} />
-                <span>New</span>
-              </button>
-
-              <button
-                type="button"
-                role="tab"
-                aria-selected={effectiveTab === 'my'}
-                onClick={() => setWorkspaceTab('my')}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold border transition cursor-pointer ${effectiveTab === 'my'
-                    ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-sm'
-                    : 'bg-surface2 border-line text-mute hover:text-ink'
-                  }`}
-              >
-                <FolderKanban size={14} />
-                <span>My Finance Models</span>
-                <span className="ml-1 rounded-full bg-black/15 px-1.5 py-0.5 text-[10px] font-mono">
-                  {myModels.length}
-                </span>
-              </button>
-            </>
-          )}
-
-          <button
-            type="button"
-            role="tab"
-            aria-selected={effectiveTab === 'published'}
-            onClick={() => setWorkspaceTab('published')}
-            className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold border transition cursor-pointer ${effectiveTab === 'published'
-                ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-sm'
-                : 'bg-surface2 border-line text-mute hover:text-ink'
-              }`}
-          >
-            <ShieldCheck size={14} />
-            <span>Published Models</span>
-            <span className="ml-1 rounded-full bg-black/15 px-1.5 py-0.5 text-[10px] font-mono">
-              {publishedModels.length}
-            </span>
-          </button>
         </div>
       </div>
 
