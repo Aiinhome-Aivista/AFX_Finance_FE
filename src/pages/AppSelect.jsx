@@ -169,6 +169,10 @@ export default function AppSelect() {
     try {
       await appsApi.select(selectedSubscribed).catch(() => { })
       await refreshUser().catch(() => { })
+      if (selectedSubscribed === 'finance') {
+        nav('/finance/models')
+        return
+      }
       const target =
         subscribed.find((a) => a.key === selectedSubscribed)?.route ||
         (selectedSubscribed === 'supply_chain' ? '/supply-chain' : `/${selectedSubscribed}`)
