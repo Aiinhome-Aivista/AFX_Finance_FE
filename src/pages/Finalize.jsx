@@ -792,7 +792,7 @@ export default function Finalize() {
   const [ack, setAck] = useState(false)
   const [busy, setBusy] = useState(false)
   const [selectedNode, setSelectedNode] = useState(null)
-  const [activeRightTab, setActiveRightTab] = useState('chat') // 'chat' | 'review' | 'details'
+  const [activeRightTab, setActiveRightTab] = useState('chat') // 'chat' | 'details'
   const [activeDomainFilter, setActiveDomainFilter] = useState(domainKey)
   const [snap, setSnap] = useState(null)
   const [proposal, setProposal] = useState(null)
@@ -1042,12 +1042,12 @@ export default function Finalize() {
             </Link>
 
             {/* Active Domain Pill */}
-            <div className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs sm:text-[13px] font-semibold border border-brand bg-brand text-white shadow-md shadow-brand/25">
+            <div className="inline-flex items-center gap-2.5 rounded-xl px-4 py-2 text-sm font-semibold border border-brand bg-brand text-white shadow-md shadow-brand/25">
               <span
-                className="h-2 w-2 rounded-full shrink-0"
+                className="h-2.5 w-2.5 rounded-full shrink-0"
                 style={{
                   backgroundColor: '#FFFFFF',
-                  boxShadow: '0 0 8px rgba(255,255,255,0.8)',
+                  boxShadow: '0 0 8px rgba(255,255,255,0.85)',
                 }}
               />
               <span className="tracking-tight whitespace-nowrap">
@@ -1140,19 +1140,6 @@ export default function Finalize() {
 
                 <button
                   type="button"
-                  onClick={() => setActiveRightTab('review')}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
-                    activeRightTab === 'review'
-                      ? 'bg-brand text-white shadow-2xs'
-                      : 'text-muted hover:text-ink'
-                  }`}
-                >
-                  <CheckCircle2 size={14} />
-                  <span>Review & Validation</span>
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => setActiveRightTab('details')}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
                     activeRightTab === 'details'
@@ -1204,118 +1191,6 @@ export default function Finalize() {
                     })
                   }}
                 />
-              )}
-
-              {activeRightTab === 'review' && (
-                <div className="p-4 overflow-y-auto flex-1 flex flex-col justify-between scroll-thin space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between pb-2.5 border-b border-line">
-                      <h2 className="text-sm font-bold text-ink">Review & Validation</h2>
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                          finalized
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300'
-                            : 'bg-[#10b981]/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
-                        }`}
-                      >
-                        {finalized ? 'Governed Digital Twin' : 'Ready to Finalize'}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      <div className="rounded-xl border border-line bg-surface2/50 p-3 text-xs">
-                        <div className="flex items-center justify-between text-muted mb-1">
-                          <span className="font-semibold text-ink">Validation Check</span>
-                          <span className="font-semibold text-ok flex items-center gap-1">
-                            <CheckCircle2 size={13} />
-                            <span>Zero Errors</span>
-                          </span>
-                        </div>
-                        {(d.validation?.errors?.length || 0) === 0 && (d.validation?.warnings?.length || 0) === 0 ? (
-                          <p className="text-[11px] text-muted leading-relaxed">
-                            Ontology verified against Finance domain schema and business rules. Ready for enterprise governance.
-                          </p>
-                        ) : (
-                          <p className="text-[11px] text-warn">
-                            {d.validation?.warnings?.length || 0} warning(s) detected.
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-center">
-                        <div className="rounded-xl border border-line bg-surface2/30 p-2">
-                          <div className="text-base font-bold text-ink">
-                            {graphDataWithGaps.nodes.length}
-                          </div>
-                          <div className="text-[10px] text-muted uppercase font-semibold">Entities</div>
-                        </div>
-                        <div className="rounded-xl border border-line bg-surface2/30 p-2">
-                          <div className="text-base font-bold text-ink">
-                            {graphDataWithGaps.edges.length}
-                          </div>
-                          <div className="text-[10px] text-muted uppercase font-semibold">Relationships</div>
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl border border-line bg-surface2/30 p-2.5 text-xs space-y-1 text-muted">
-                        <div className="flex justify-between items-center gap-2">
-                          <span className="shrink-0">Ontology Version:</span>
-                          <b className="text-ink text-right">{domainName}</b>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Domain:</span>
-                          <b className="text-ink">Finance</b>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Status:</span>
-                          <b className={finalized ? 'text-ok' : 'text-brand'}>
-                            {finalized ? 'Governed' : 'Draft / Candidate'}
-                          </b>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-line">
-                    {finalized ? (
-                      <div className="space-y-3">
-                        <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/80 dark:bg-emerald-950/30 p-3 text-xs">
-                          <div className="flex items-center gap-2 font-bold text-emerald-800 dark:text-emerald-300">
-                            <Lock size={14} />
-                            <span>Governed Enterprise Digital Twin</span>
-                          </div>
-                          <p className="text-[11px] text-emerald-900/80 dark:text-emerald-400/90 mt-1">
-                            This model is locked and governed. It represents your active financial operating architecture.
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Link
-                            to={`/finance/${slug}/twin`}
-                            className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold flex-1 text-xs py-2 rounded-xl text-center shadow-sm"
-                          >
-                            Explore Digital Twin →
-                          </Link>
-                          <button
-                            className="btn-ghost text-xs cursor-pointer py-2.5 px-4 rounded-xl flex items-center justify-center"
-                            onClick={() => setDlg('reopen')}
-                          >
-                            Re-open
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold w-full text-xs py-2.5 rounded-xl shadow-sm cursor-pointer"
-                        onClick={() => {
-                          setAck(false)
-                          setDlg('finalize')
-                        }}
-                      >
-                        <span>Finalise as Digital Twin</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
               )}
 
               {activeRightTab === 'details' && (
@@ -1408,16 +1283,9 @@ export default function Finalize() {
                         <button
                           type="button"
                           onClick={() => setActiveRightTab('chat')}
-                          className="btn-ghost btn-sm text-xs cursor-pointer flex-1"
+                          className="btn-ghost btn-sm text-xs cursor-pointer w-full"
                         >
                           Back to Chatbot
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setActiveRightTab('review')}
-                          className="btn-ghost btn-sm text-xs cursor-pointer flex-1"
-                        >
-                          Back to Review
                         </button>
                       </div>
                     </div>
@@ -1428,22 +1296,13 @@ export default function Finalize() {
                       <p className="mt-1 text-xs text-muted max-w-xs leading-relaxed">
                         Click any entity node in the graph on the left to inspect its governed definition, attributes, formulas, and connections.
                       </p>
-                      <div className="flex gap-2 mt-4">
-                        <button
-                          type="button"
-                          onClick={() => setActiveRightTab('chat')}
-                          className="btn-ghost btn-sm text-xs cursor-pointer"
-                        >
-                          Back to Chatbot
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setActiveRightTab('review')}
-                          className="btn-ghost btn-sm text-xs cursor-pointer"
-                        >
-                          Back to Review
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveRightTab('chat')}
+                        className="btn-ghost btn-sm mt-4 text-xs cursor-pointer"
+                      >
+                        Back to Chatbot
+                      </button>
                     </div>
                   )}
                 </div>

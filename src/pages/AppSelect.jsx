@@ -34,14 +34,14 @@ const DEFAULT_APPS = [
     key: 'finance',
     name: 'Finance',
     description: 'Finance & EPM knowledge graphs — built from scratch for enterprise finance functions.',
-    route: '/finance',
+    route: '/finance/planning_budgeting_forecasting',
     active: true,
   },
   {
     key: 'fmcg',
     name: 'FMCG',
     description: 'Fast-moving consumer goods supply-chain, trade promotions, route-to-market, and retail execution models.',
-    route: '/fmcg',
+    route: '/supply-chain',
     active: true,
   },
   {
@@ -69,19 +69,21 @@ export default function AppSelect() {
   const [err, setErr] = useState('')
 
   const syncFromPayload = (res) => {
-    const rawAvail = Array.isArray(res?.available_apps) ? res.available_apps : null
-    const rawSub = Array.isArray(res?.subscribed_apps) ? res.subscribed_apps : null
+    // Keep all available models visible in Available Models at all times
+    setAvailable(DEFAULT_APPS)
 
-    if (rawAvail && rawSub) {
-      setAvailable(rawAvail.filter((a) => VALID_KEYS.has(a.key)))
-      setSubscribed(rawSub.filter((a) => VALID_KEYS.has(a.key)))
+    const rawSub = Array.isArray(res?.subscribed_apps) ? res.subscribed_apps : null
+    if (rawSub) {
+      const subList = rawSub
+        .map((s) => {
+          const found = DEFAULT_APPS.find((a) => a.key === s.key)
+          return found ? { ...found, ...s } : s
+        })
+        .filter((a) => VALID_KEYS.has(a.key))
+      setSubscribed(subList)
       return
     }
 
-    const rawApps = (Array.isArray(res?.apps) ? res.apps : DEFAULT_APPS).filter((a) =>
-      VALID_KEYS.has(a.key)
-    )
-    setAvailable(rawApps)
     setSubscribed([])
   }
 
@@ -110,7 +112,9 @@ export default function AppSelect() {
 
   const handleSubscribe = async () => {
     if (!selectedAvailable || busy) return
-    const appToSub = available.find((a) => a.key === selectedAvailable)
+    const appToSub =
+      available.find((a) => a.key === selectedAvailable) ||
+      DEFAULT_APPS.find((a) => a.key === selectedAvailable)
     if (appToSub && appToSub.active === false) {
       setErr("The 'Others' domain is currently disabled.")
       return
@@ -118,17 +122,22 @@ export default function AppSelect() {
     setErr('')
     const key = selectedAvailable
 
-    // Immediate state update
-    setAvailable((prev) => prev.filter((a) => a.key !== key))
-    setSubscribed((prev) => [...prev.filter((a) => a.key !== key), appToSub])
-    setSelectedSubscribed(key)
+    // Keep Available Models intact (do not remove) and add to Subscribed Models
+    setAvailable(DEFAULT_APPS)
+    setSubscribed((prev) => {
+      if (prev.some((a) => a.key === key)) return prev
+      return [...prev, appToSub]
+    })
+    // Do NOT automatically select it in Subscribed Models - user must explicitly click it to activate Go
+    setSelectedSubscribed(null)
     setSelectedAvailable(null)
 
     setBusy(true)
     try {
       const res = await appsApi.subscribe(key)
       syncFromPayload(res)
-      setSelectedSubscribed(key)
+      // Ensure it remains unselected until user clicks it
+      setSelectedSubscribed(null)
     } catch (e) {
       console.warn('Subscription API warning:', e.message)
     } finally {
@@ -140,21 +149,17 @@ export default function AppSelect() {
     if (!selectedSubscribed || busy) return
     setErr('')
     const key = selectedSubscribed
-    const appToUnsub = subscribed.find((a) => a.key === key)
 
-    // Immediate state update
+    // Immediate state update: remove from subscribed, available models stays intact
     setSubscribed((prev) => prev.filter((a) => a.key !== key))
-    if (appToUnsub) {
-      setAvailable((prev) => [...prev.filter((a) => a.key !== key), appToUnsub])
-    }
-    setSelectedAvailable(key)
+    setAvailable(DEFAULT_APPS)
     setSelectedSubscribed(null)
 
     setBusy(true)
     try {
       const res = await appsApi.unsubscribe(key)
       syncFromPayload(res)
-      setSelectedAvailable(key)
+      setSelectedSubscribed(null)
     } catch (e) {
       console.warn('Unsubscription API warning:', e.message)
     } finally {
@@ -169,9 +174,14 @@ export default function AppSelect() {
     try {
       await appsApi.select(selectedSubscribed).catch(() => { })
       await refreshUser().catch(() => { })
+      const sub = subscribed.find((a) => a.key === selectedSubscribed)
       const target =
-        subscribed.find((a) => a.key === selectedSubscribed)?.route ||
-        (selectedSubscribed === 'supply_chain' ? '/supply-chain' : `/${selectedSubscribed}`)
+        sub?.route ||
+        (selectedSubscribed === 'finance'
+          ? '/finance/planning_budgeting_forecasting'
+          : selectedSubscribed === 'supply_chain'
+            ? '/supply-chain'
+            : `/${selectedSubscribed}`)
       nav(target)
     } catch (e) {
       setErr(e.message || 'Could not open workspace for the selected model.')

@@ -28,7 +28,7 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
 
     const parts = path.split('/').filter(Boolean)
     if (parts.length === 1 && parts[0] === 'finance') {
-      nav('/finance/cost-and-profitability-management')
+      nav('/finance/planning_budgeting_forecasting')
       return
     }
 

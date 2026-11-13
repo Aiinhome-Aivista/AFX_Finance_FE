@@ -267,20 +267,6 @@ export default function TelemetryUploadZone({
           </div>
         )}
 
-        {/* Action Button: Proceed to Gap Analysis - Placed below upload section, centered */}
-        {onProceedToGapAnalysis && processedCount > 0 && (
-          <div className="flex justify-center py-1">
-            <button
-              type="button"
-              onClick={onProceedToGapAnalysis}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-white shadow-md shadow-emerald-500/25 hover:scale-[1.02] transition-all cursor-pointer"
-
-            >
-              <span>Proceed to Gap Analysis</span>
-            </button>
-          </div>
-        )}
-
         {/* Uploaded Files Table */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">

@@ -24,12 +24,16 @@ export default function App() {
   const isAnalyst = (user?.role || 'data_architect') === 'data_analyst'
   const fallback = user
     ? isAnalyst
-      ? '/finance'
+      ? '/finance/planning_budgeting_forecasting'
       : user.selected_app
-        ? (user.selected_app === 'fmcg' || user.selected_app === 'supply_chain' ? '/fmcg' : `/${user.selected_app}`)
+        ? (user.selected_app === 'finance'
+          ? '/finance/planning_budgeting_forecasting'
+          : (user.selected_app === 'fmcg' || user.selected_app === 'supply_chain' ? '/fmcg' : `/${user.selected_app}`))
         : user.subscribed_apps && user.subscribed_apps.length > 0
-          ? (user.subscribed_apps[0] === 'fmcg' || user.subscribed_apps[0] === 'supply_chain' ? '/fmcg' : `/${user.subscribed_apps[0]}`)
-          : '/apps'
+          ? (user.subscribed_apps[0] === 'finance'
+            ? '/finance/planning_budgeting_forecasting'
+            : (user.subscribed_apps[0] === 'fmcg' || user.subscribed_apps[0] === 'supply_chain' ? '/fmcg' : `/${user.subscribed_apps[0]}`))
+          : '/finance/planning_budgeting_forecasting'
     : '/login'
 
   return (
