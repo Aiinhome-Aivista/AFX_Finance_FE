@@ -145,16 +145,7 @@ function SuggestionCard({ guidance, decision, onDecision, slug, variant = 'modif
     : isAdded
       ? 'text-emerald-700 dark:text-emerald-400'
       : 'text-ink'
-  const btnPrimaryCls = isRemoved
-    ? 'bg-amber-600 hover:bg-amber-700'
-    : 'bg-[#10b981] hover:bg-[#059669]'
   const sug = guidance.suggestions || null
-
-  const altLinkText = isRemoved
-    ? `Open Chatbot to restore “${guidance.entityName}” →`
-    : isAdded
-      ? `Open Chatbot to refine “${guidance.entityName}” →`
-      : 'Refine in Chatbot →'
 
   return (
     <div className={`rounded-xl border p-4 text-xs space-y-2.5 shadow-2xs h-full flex flex-col justify-between transition ${cardCls}`}>
@@ -229,53 +220,6 @@ function SuggestionCard({ guidance, decision, onDecision, slug, variant = 'modif
           <div className="rounded-lg bg-emerald-500/8 border border-emerald-500/25 p-2.5 text-[11px] text-ink leading-relaxed">
             <span className="font-semibold text-ink">Expected Governance Outcome:</span>{' '}
             {sug.expected_outcome}
-          </div>
-        )}
-      </div>
-
-      <div className="pt-2 border-t border-line/60">
-        <p className="text-[11px] font-semibold text-ink mb-2">{guidance.prompt}</p>
-        {decision ? (
-          decision === 'confirmed' ? (
-            <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-2.5 text-[11px] font-medium flex items-center justify-between text-emerald-800 dark:text-emerald-300">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#10b981]" />
-                <span><b>✓ {guidance.actionConfirm}:</b> Validated for your Domain Digital Twin.</span>
-              </span>
-              <button type="button" onClick={() => onDecision(guidance.key, null)} className="text-[10px] text-ink underline cursor-pointer ml-2">Edit</button>
-            </div>
-          ) : (
-            <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-2.5 text-[11px] font-medium text-amber-800 dark:text-amber-300 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <b>↺ {guidance.actionAlternative} Requested</b>
-                <button type="button" onClick={() => onDecision(guidance.key, null)} className="text-[10px] text-ink underline cursor-pointer">Reset</button>
-              </div>
-              <p className="text-[10px] text-ink leading-relaxed">
-                {isRemoved
-                  ? `Ask the Domain Chatbot to reinstate “${guidance.entityName}” or remap its downstream links.`
-                  : 'Marked for fine-tuning. Prompt the Domain Chatbot to adjust formulas, attributes, or entity links.'}
-              </p>
-              <Link to={`/finance/${slug}`} className="inline-block text-[10px] font-bold text-amber-700 dark:text-amber-400 hover:underline">
-                {altLinkText}
-              </Link>
-            </div>
-          )
-        ) : (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onDecision(guidance.key, 'confirmed')}
-              className={`flex-1 py-1.5 px-2.5 rounded-lg text-white font-bold text-[11px] transition shadow-xs cursor-pointer text-center ${btnPrimaryCls}`}
-            >
-              {guidance.actionConfirm}
-            </button>
-            <button
-              type="button"
-              onClick={() => onDecision(guidance.key, 'alternative')}
-              className="py-1.5 px-2.5 rounded-lg border border-line hover:bg-surface2 text-ink font-semibold text-[11px] transition cursor-pointer"
-            >
-              {guidance.actionAlternative}
-            </button>
           </div>
         )}
       </div>
@@ -837,7 +781,7 @@ export default function Finalize() {
         const p = r.proposals?.find((x) => x.status === 'pending' && x.source === 'chat') || null
         setProposal(p)
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [slug])
 
   useEffect(() => {
@@ -899,7 +843,7 @@ export default function Finalize() {
       .then((res) => {
         if (!cancelled && res?.nodes?.length > 0) setGapGraph(res)
       })
-      .catch(() => {})
+      .catch(() => { })
     return () => {
       cancelled = true
     }
@@ -1059,11 +1003,10 @@ export default function Finalize() {
             <button
               type="button"
               onClick={() => setActiveDomainFilter(activeDomainFilter === 'spine' ? domainKey : 'spine')}
-              className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${
-                activeDomainFilter === 'spine'
+              className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${activeDomainFilter === 'spine'
                   ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
                   : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
-              }`}
+                }`}
               title="Finance master-data spine"
             >
               <span
@@ -1123,11 +1066,10 @@ export default function Finalize() {
                 <button
                   type="button"
                   onClick={() => setActiveRightTab('chat')}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
-                    activeRightTab === 'chat'
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${activeRightTab === 'chat'
                       ? 'bg-brand text-white shadow-2xs'
                       : 'text-muted hover:text-ink'
-                  }`}
+                    }`}
                 >
                   <Bot size={14} />
                   <span>Chatbot</span>
@@ -1141,11 +1083,10 @@ export default function Finalize() {
                 <button
                   type="button"
                   onClick={() => setActiveRightTab('details')}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
-                    activeRightTab === 'details'
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${activeRightTab === 'details'
                       ? 'bg-brand text-white shadow-2xs'
                       : 'text-muted hover:text-ink'
-                  }`}
+                    }`}
                 >
                   <FileText size={14} />
                   <span>Entity Specs</span>
@@ -1311,61 +1252,61 @@ export default function Finalize() {
           </div>
         </div>
 
-          {/* Version Comparison Section */}
-          <section className="card p-4 border border-line mt-6 mb-8">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-semibold text-sm text-ink">Compare Versions</h2>
-              <span className="inline-flex items-center rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-2xs">
-                Model "{domainName}" Template
-              </span>
-              <span className="text-xs font-semibold text-ink px-0.5">vs</span>
-              <span className="inline-flex items-center rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-2xs">
-                Current "{domainName}" Template
-              </span>
-            </div>
-            {cmp ? (
-              <>
-                <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
-                  <Stat label="entities added" v={cmp.counts.nodes_added} tone="text-ok" />
-                  <Stat label="entities modified" v={cmp.counts.nodes_modified} tone="text-warn" />
-                  <Stat label="entities removed" v={cmp.counts.nodes_removed} tone="text-bad" />
-                  <Stat label="links added" v={cmp.counts.edges_added} tone="text-ok" />
-                  <Stat label="links relabelled" v={cmp.counts.edges_modified} />
-                  <Stat label="links removed" v={cmp.counts.edges_removed} tone="text-bad" />
-                </div>
-                <DiffLists d={cmp} domainName={domainName} slug={slug} graph={d?.graph || effectiveBaseGraph} history={d?.history || []} />
-              </>
-            ) : <Loading className="!p-4" />}
-          </section>
+        {/* Version Comparison Section */}
+        <section className="card p-4 border border-line mt-6 mb-8">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-semibold text-sm text-ink">Compare Versions</h2>
+            <span className="inline-flex items-center rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-2xs">
+              Model "{domainName}" Template
+            </span>
+            <span className="text-xs font-semibold text-ink px-0.5">vs</span>
+            <span className="inline-flex items-center rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-2xs">
+              Current "{domainName}" Template
+            </span>
+          </div>
+          {cmp ? (
+            <>
+              <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
+                <Stat label="entities added" v={cmp.counts.nodes_added} tone="text-ok" />
+                <Stat label="entities modified" v={cmp.counts.nodes_modified} tone="text-warn" />
+                <Stat label="entities removed" v={cmp.counts.nodes_removed} tone="text-bad" />
+                <Stat label="links added" v={cmp.counts.edges_added} tone="text-ok" />
+                <Stat label="links relabelled" v={cmp.counts.edges_modified} />
+                <Stat label="links removed" v={cmp.counts.edges_removed} tone="text-bad" />
+              </div>
+              <DiffLists d={cmp} domainName={domainName} slug={slug} graph={d?.graph || effectiveBaseGraph} history={d?.history || []} />
+            </>
+          ) : <Loading className="!p-4" />}
+        </section>
 
-          {/* Change History Section */}
-          <section className="card p-4 border border-line">
-            <h2 className="flex items-center gap-2 font-semibold text-sm text-ink">
-              <History size={16} /> Change History
-            </h2>
-            {(d?.history?.length || 0) === 0 && <p className="mt-2 text-xs text-muted">No proposals yet.</p>}
-            <ul className="mt-3 space-y-3">
-              {(d?.history || []).map((p) => (
-                <li key={p.id} className="rounded-xl border border-line bg-surface2/30 p-3 text-xs">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <b className="text-ink">{p.title}</b>
-                    <span className={`badge text-[10px] font-semibold ${p.status === 'approved' ? 'bg-ok/15 text-ok' : p.status === 'pending' ? 'bg-warn/15 text-warn' : 'bg-surface2 text-muted'}`}>
-                      {p.status}{p.result_version ? ` → KG${p.result_version}` : ''}
-                    </span>
-                    <span className="text-[11px] text-muted">{p.source} · {timeAgo(p.created_at)}</span>
-                  </div>
-                  <ul className="mt-2 space-y-0.5 text-[11px] text-muted">
-                    {(p.items || []).map((i, k) => (
-                      <li key={k} className={i.status === 'rejected' ? 'line-through' : ''}>
-                        {i.status === 'approved' ? '✓' : i.status === 'rejected' ? '✗' : '•'} {i.description}
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ul>
-          </section>
-        </div>
+        {/* Change History Section */}
+        <section className="card p-4 border border-line">
+          <h2 className="flex items-center gap-2 font-semibold text-sm text-ink">
+            <History size={16} /> Change History
+          </h2>
+          {(d?.history?.length || 0) === 0 && <p className="mt-2 text-xs text-muted">No proposals yet.</p>}
+          <ul className="mt-3 space-y-3">
+            {(d?.history || []).map((p) => (
+              <li key={p.id} className="rounded-xl border border-line bg-surface2/30 p-3 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <b className="text-ink">{p.title}</b>
+                  <span className={`badge text-[10px] font-semibold ${p.status === 'approved' ? 'bg-ok/15 text-ok' : p.status === 'pending' ? 'bg-warn/15 text-warn' : 'bg-surface2 text-muted'}`}>
+                    {p.status}{p.result_version ? ` → KG${p.result_version}` : ''}
+                  </span>
+                  <span className="text-[11px] text-muted">{p.source} · {timeAgo(p.created_at)}</span>
+                </div>
+                <ul className="mt-2 space-y-0.5 text-[11px] text-muted">
+                  {(p.items || []).map((i, k) => (
+                    <li key={k} className={i.status === 'rejected' ? 'line-through' : ''}>
+                      {i.status === 'approved' ? '✓' : i.status === 'rejected' ? '✗' : '•'} {i.description}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
 
       {/* Confirmation Dialogs */}
       <ConfirmDialog

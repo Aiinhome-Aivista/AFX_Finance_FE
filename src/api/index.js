@@ -17,6 +17,11 @@ export const apps = {
 export const domains = {
   list: (q) => http.get('/domains', { params: q ? { q } : {} }).then(d),
   workspaceModels: () => http.get('/workspace/models').then(d),
+  customModels: () => http.get('/workspace/custom-models').then(d),
+  saveCustomModel: (body) => http.post('/workspace/custom-models/save', body).then(d),
+  publishCustomModel: (body) => http.post('/workspace/custom-models/publish', body).then(d),
+  deleteCustomModel: (name) => http.delete(`/workspace/custom-models/${encodeURIComponent(name)}`).then(d),
+  syncCustomModels: (body) => http.post('/workspace/custom-models/sync', body).then(d),
   get: (slug) => http.get(`/domains/${slug}`).then(d),
   graph: (slug, neighbours = true) => http.get(`/domains/${slug}/graph`, { params: { neighbours: neighbours ? 1 : 0 } }).then(d),
   blocks: (slug) => http.get(`/domains/${slug}/blocks`).then(d),

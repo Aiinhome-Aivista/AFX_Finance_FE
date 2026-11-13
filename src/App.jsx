@@ -3,6 +3,7 @@ import ProtectedRoute from './components/common/ProtectedRoute'
 import { useAuth } from './context/AuthContext'
 import AuthPage from './pages/AuthPage'
 import AppSelect from './pages/AppSelect'
+import FinanceWorkspaceSelection from './pages/FinanceWorkspaceSelection'
 import FinanceLanding from './pages/FinanceLanding'
 import FmcgWorkspace from './pages/FmcgWorkspace'
 import SupplyChainWorkspace from './pages/SupplyChainWorkspace'
@@ -21,20 +22,7 @@ const P = ({ children, allowedRoles, redirectTo }) => (
 
 export default function App() {
   const { user } = useAuth()
-  const isAnalyst = (user?.role || 'data_architect') === 'data_analyst'
-  const fallback = user
-    ? isAnalyst
-      ? '/finance/planning_budgeting_forecasting'
-      : user.selected_app
-        ? (user.selected_app === 'finance'
-          ? '/finance/planning_budgeting_forecasting'
-          : (user.selected_app === 'fmcg' || user.selected_app === 'supply_chain' ? '/fmcg' : `/${user.selected_app}`))
-        : user.subscribed_apps && user.subscribed_apps.length > 0
-          ? (user.subscribed_apps[0] === 'finance'
-            ? '/finance/planning_budgeting_forecasting'
-            : (user.subscribed_apps[0] === 'fmcg' || user.subscribed_apps[0] === 'supply_chain' ? '/fmcg' : `/${user.subscribed_apps[0]}`))
-          : '/finance/planning_budgeting_forecasting'
-    : '/login'
+  const fallback = user ? '/apps' : '/login'
 
   return (
     <Routes>
@@ -43,8 +31,16 @@ export default function App() {
       <Route
         path="/apps"
         element={
-          <P allowedRoles={['data_architect']} redirectTo="/finance">
+          <P allowedRoles={['data_architect', 'data_analyst']} redirectTo="/finance">
             <AppSelect />
+          </P>
+        }
+      />
+      <Route
+        path="/finance/models"
+        element={
+          <P allowedRoles={['data_architect', 'data_analyst']} redirectTo="/finance">
+            <FinanceWorkspaceSelection />
           </P>
         }
       />

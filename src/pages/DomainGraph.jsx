@@ -631,13 +631,22 @@ export default function DomainGraph() {
         flows: g.data?.flows || [],
       }
 
-      // Persist saved model snapshot to application storage (no file download)
+      // Persist saved model snapshot to application storage and backend database dynamically
       try {
         const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
         const filtered = savedRegistry.filter((m) => m.name !== modelName)
         filtered.unshift(payload)
         localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
         localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
+        localStorage.setItem(`afx_custom_name_${slug}`, modelName)
+
+        domains.saveCustomModel({
+          name: modelName,
+          slug,
+          domainName: domain?.name || 'Planning, Budgeting and Forecasting',
+          nodes: payload.nodes,
+          edges: payload.edges,
+        }).catch((err) => console.warn('Backend custom model save warning:', err))
       } catch (err) {
         console.warn('Storage save warning:', err)
       }

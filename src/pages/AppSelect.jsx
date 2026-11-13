@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, CheckCircle2, Landmark, Package, Layers, Ban } from 'lucide-react'
 import { apps as appsApi } from '../api'
@@ -57,7 +57,8 @@ const VALID_KEYS = new Set(['finance', 'supply_chain', 'fmcg', 'others'])
 
 export default function AppSelect() {
   const nav = useNavigate()
-  const { refreshUser } = useAuth()
+  const { user, refreshUser } = useAuth()
+  const isAnalyst = (user?.role || 'data_architect') === 'data_analyst'
 
   const [available, setAvailable] = useState([])
   const [subscribed, setSubscribed] = useState([])
@@ -67,6 +68,21 @@ export default function AppSelect() {
   const [busy, setBusy] = useState(false)
   const [goBusy, setGoBusy] = useState(false)
   const [err, setErr] = useState('')
+
+  const effectiveSubscribed = useMemo(() => {
+    if (subscribed.length > 0) return subscribed
+    if (isAnalyst) {
+      const fin = DEFAULT_APPS.find((a) => a.key === 'finance')
+      return fin ? [fin] : []
+    }
+    return []
+  }, [subscribed, isAnalyst])
+
+  useEffect(() => {
+    if (isAnalyst && effectiveSubscribed.length > 0 && !selectedSubscribed) {
+      setSelectedSubscribed(effectiveSubscribed[0].key)
+    }
+  }, [isAnalyst, effectiveSubscribed, selectedSubscribed])
 
   const syncFromPayload = (res) => {
     // Keep all available models visible in Available Models at all times
@@ -174,14 +190,13 @@ export default function AppSelect() {
     try {
       await appsApi.select(selectedSubscribed).catch(() => { })
       await refreshUser().catch(() => { })
-      const sub = subscribed.find((a) => a.key === selectedSubscribed)
+      if (selectedSubscribed === 'finance') {
+        nav('/finance/models')
+        return
+      }
       const target =
-        sub?.route ||
-        (selectedSubscribed === 'finance'
-          ? '/finance/planning_budgeting_forecasting'
-          : selectedSubscribed === 'supply_chain'
-            ? '/supply-chain'
-            : `/${selectedSubscribed}`)
+        (subscribed.find((a) => a.key === selectedSubscribed) || effectiveSubscribed.find((a) => a.key === selectedSubscribed))?.route ||
+        (selectedSubscribed === 'supply_chain' ? '/supply-chain' : `/${selectedSubscribed}`)
       nav(target)
     } catch (e) {
       setErr(e.message || 'Could not open workspace for the selected model.')
@@ -263,13 +278,21 @@ export default function AppSelect() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
         <div className="mb-6">
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#10b981]/10 border border-[#10b981]/25 text-[11px] font-semibold text-[#10b981] mb-2">
-            Data Architect Workspace
+            {isAnalyst ? 'Data Analyst Workspace' : 'Data Architect Workspace'}
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-ink tracking-tight">Model Selection</h1>
           <p className="text-sm text-mute mt-1">
-            Select an active domain from <strong className="text-ink">Available Models</strong> (Finance, FMCG, Others) and move it to{' '}
-            <strong className="text-ink">Subscribed Models</strong>, then select a subscribed model and click{' '}
-            <strong className="text-ink">Go</strong>.
+            {isAnalyst ? (
+              <>
+                Select an active domain from <strong className="text-ink">Subscribed Models</strong>, then click <strong className="text-ink">Go</strong>.
+              </>
+            ) : (
+              <>
+                Select an active domain from <strong className="text-ink">Available Models</strong> (Finance, FMCG, Others) and move it to{' '}
+                <strong className="text-ink">Subscribed Models</strong>, then select a subscribed model and click{' '}
+                <strong className="text-ink">Go</strong>.
+              </>
+            )}
           </p>
         </div>
 
@@ -289,110 +312,151 @@ export default function AppSelect() {
           <Loading label="Loading domain models…" className="min-h-[280px]" />
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-stretch mt-4">
-              {/* Left Panel: Available Models */}
-              <section
-                aria-label="Available Models"
-                className="card p-5 border border-line bg-surface flex flex-col min-h-[300px]"
-              >
-                <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
-                  <div>
-                    <h2 className="text-sm font-bold text-ink">Available Models</h2>
-                    <p className="text-xs text-mute mt-0.5">Available domains to select and subscribe</p>
-                  </div>
-                  <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
-                    {available.length}
-                  </span>
-                </div>
-
-                {available.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center text-center px-4">
-                    <p className="text-xs text-mute">
-                      All available domain models have been moved to Subscribed Models.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {available.map((app) =>
-                      renderCard(app, {
-                        isSelected: selectedAvailable === app.key,
-                        variant: 'available',
-                        onClick: () => {
-                          setSelectedAvailable((prev) => (prev === app.key ? null : app.key))
-                        },
-                      })
-                    )}
-                  </div>
-                )}
-              </section>
-
-              {/* Center Arrow Transfer Controls */}
-              <div className="flex md:flex-col items-center justify-center gap-3 py-2">
-                <button
-                  type="button"
-                  onClick={handleSubscribe}
-                  disabled={!selectedAvailable || busy}
-                  aria-label="Move selected model to Subscribed Models"
-                  title="Move to Subscribed Models"
-                  className={`h-11 w-11 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${selectedAvailable && !busy
-                    ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-md shadow-[#10b981]/25 hover:bg-[#34d399]'
-                    : 'bg-surface border-line text-mute opacity-50 cursor-not-allowed'
-                    }`}
+            {isAnalyst ? (
+              /* For Data Analyst: ONLY Subscribed Models panel is shown */
+              <div className="max-w-2xl mx-auto mt-4">
+                <section
+                  aria-label="Subscribed Models"
+                  className="card p-5 border border-line bg-surface flex flex-col min-h-[300px] shadow-2xs"
                 >
-                  {busy && selectedAvailable ? <Spinner /> : <ArrowRight size={18} />}
-                </button>
+                  <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
+                    <div>
+                      <h2 className="text-sm font-bold text-ink">Subscribed Models</h2>
+                      <p className="text-xs text-mute mt-0.5">Click a subscribed model to highlight Go</p>
+                    </div>
+                    <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
+                      {effectiveSubscribed.length}
+                    </span>
+                  </div>
 
-                <button
-                  type="button"
-                  onClick={handleUnsubscribe}
-                  disabled={!selectedSubscribed || busy}
-                  aria-label="Move selected model back to Available Models"
-                  title="Move back to Available Models"
-                  className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${selectedSubscribed && !busy
-                    ? 'bg-surface2 border-line text-ink hover:border-[#10b981]/60'
-                    : 'bg-surface border-line text-mute opacity-40 cursor-not-allowed'
-                    }`}
-                >
-                  <ArrowLeft size={15} />
-                </button>
+                  {effectiveSubscribed.length === 0 ? (
+                    <div className="flex-1 flex items-center justify-center text-center px-4">
+                      <p className="text-xs text-mute">
+                        No subscribed models available yet. Contact your Data Architect to subscribe to domains.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {effectiveSubscribed.map((app) =>
+                        renderCard(app, {
+                          isSelected: selectedSubscribed === app.key,
+                          variant: 'subscribed',
+                          onClick: () => {
+                            setSelectedSubscribed((prev) => (prev === app.key ? null : app.key))
+                          },
+                        })
+                      )}
+                    </div>
+                  )}
+                </section>
               </div>
-
-              {/* Right Panel: Subscribed Models */}
-              <section
-                aria-label="Subscribed Models"
-                className="card p-5 border border-line bg-surface flex flex-col min-h-[300px]"
-              >
-                <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
-                  <div>
-                    <h2 className="text-sm font-bold text-ink">Subscribed Models</h2>
-                    <p className="text-xs text-mute mt-0.5">Click a subscribed model to highlight Go</p>
+            ) : (
+              /* For Data Architect: 3-column Available -> Arrow -> Subscribed layout */
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-stretch mt-4">
+                {/* Left Panel: Available Models */}
+                <section
+                  aria-label="Available Models"
+                  className="card p-5 border border-line bg-surface flex flex-col min-h-[300px]"
+                >
+                  <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
+                    <div>
+                      <h2 className="text-sm font-bold text-ink">Available Models</h2>
+                      <p className="text-xs text-mute mt-0.5">Available domains to select and subscribe</p>
+                    </div>
+                    <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
+                      {available.length}
+                    </span>
                   </div>
-                  <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
-                    {subscribed.length}
-                  </span>
+
+                  {available.length === 0 ? (
+                    <div className="flex-1 flex items-center justify-center text-center px-4">
+                      <p className="text-xs text-mute">
+                        All available domain models have been moved to Subscribed Models.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {available.map((app) =>
+                        renderCard(app, {
+                          isSelected: selectedAvailable === app.key,
+                          variant: 'available',
+                          onClick: () => {
+                            setSelectedAvailable((prev) => (prev === app.key ? null : app.key))
+                          },
+                        })
+                      )}
+                    </div>
+                  )}
+                </section>
+
+                {/* Center Arrow Transfer Controls */}
+                <div className="flex md:flex-col items-center justify-center gap-3 py-2">
+                  <button
+                    type="button"
+                    onClick={handleSubscribe}
+                    disabled={!selectedAvailable || busy}
+                    aria-label="Move selected model to Subscribed Models"
+                    title="Move to Subscribed Models"
+                    className={`h-11 w-11 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${selectedAvailable && !busy
+                      ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-md shadow-[#10b981]/25 hover:bg-[#34d399]'
+                      : 'bg-surface border-line text-mute opacity-50 cursor-not-allowed'
+                      }`}
+                  >
+                    {busy && selectedAvailable ? <Spinner /> : <ArrowRight size={18} />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleUnsubscribe}
+                    disabled={!selectedSubscribed || busy}
+                    aria-label="Move selected model back to Available Models"
+                    title="Move back to Available Models"
+                    className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${selectedSubscribed && !busy
+                      ? 'bg-surface2 border-line text-ink hover:border-[#10b981]/60'
+                      : 'bg-surface border-line text-mute opacity-40 cursor-not-allowed'
+                      }`}
+                  >
+                    <ArrowLeft size={15} />
+                  </button>
                 </div>
 
-                {subscribed.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center text-center px-4">
-                    <p className="text-xs text-mute">
-                      No subscribed models yet. Select a domain from Available Models and click the arrow button.
-                    </p>
+                {/* Right Panel: Subscribed Models */}
+                <section
+                  aria-label="Subscribed Models"
+                  className="card p-5 border border-line bg-surface flex flex-col min-h-[300px]"
+                >
+                  <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
+                    <div>
+                      <h2 className="text-sm font-bold text-ink">Subscribed Models</h2>
+                      <p className="text-xs text-mute mt-0.5">Click a subscribed model to highlight Go</p>
+                    </div>
+                    <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
+                      {subscribed.length}
+                    </span>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {subscribed.map((app) =>
-                      renderCard(app, {
-                        isSelected: selectedSubscribed === app.key,
-                        variant: 'subscribed',
-                        onClick: () => {
-                          setSelectedSubscribed((prev) => (prev === app.key ? null : app.key))
-                        },
-                      })
-                    )}
-                  </div>
-                )}
-              </section>
-            </div>
+
+                  {subscribed.length === 0 ? (
+                    <div className="flex-1 flex items-center justify-center text-center px-4">
+                      <p className="text-xs text-mute">
+                        No subscribed models yet. Select a domain from Available Models and click the arrow button.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {subscribed.map((app) =>
+                        renderCard(app, {
+                          isSelected: selectedSubscribed === app.key,
+                          variant: 'subscribed',
+                          onClick: () => {
+                            setSelectedSubscribed((prev) => (prev === app.key ? null : app.key))
+                          },
+                        })
+                      )}
+                    </div>
+                  )}
+                </section>
+              </div>
+            )}
 
             {/* Bottom Go Bar */}
             <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-line bg-surface px-5 py-4">
@@ -401,7 +465,7 @@ export default function AppSelect() {
                   <span>
                     Selected workspace:{' '}
                     <strong className="text-ink">
-                      {subscribed.find((a) => a.key === selectedSubscribed)?.name || selectedSubscribed}
+                      {(effectiveSubscribed.find((a) => a.key === selectedSubscribed) || subscribed.find((a) => a.key === selectedSubscribed))?.name || selectedSubscribed}
                     </strong>
                   </span>
                 ) : (

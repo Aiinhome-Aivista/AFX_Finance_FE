@@ -8,7 +8,6 @@ import {
   Layers,
   Play,
   Share2,
-  ShieldCheck,
   Sliders,
   Workflow,
   X,
@@ -187,25 +186,21 @@ export default function DigitalTwinExplorer() {
               className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink font-semibold transition"
             >
               <ArrowLeft size={14} />
-              <span>{isAnalyst ? 'Back to Published Models' : 'Back to Review & Governance'}</span>
+              <span>{isAnalyst ? 'Back to Published Models' : 'Back to Review'}</span>
             </Link>
 
             <div className="flex flex-wrap items-center gap-2.5">
               <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-ink flex items-center gap-2">
-                <span>Enterprise Digital Twin Console</span>
+                <span>Digital Twin Console</span>
                 <span className="text-[#10b981]">·</span>
                 <span className="text-slate-600 dark:text-slate-300 font-semibold text-lg">
                   {domainName}
                 </span>
               </h1>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 px-3 py-0.5 text-xs font-bold shadow-2xs">
-                <ShieldCheck size={14} className="text-[#10b981]" />
-                <span>Governed & Active Twin</span>
-              </span>
             </div>
-            <p className="text-xs text-muted">
+            {/* <p className="text-xs text-muted">
               Live enterprise operating architecture. Fully synchronized with your calibrated costing ladders, organizational center hierarchies, and operational telemetry.
-            </p>
+            </p> */}
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -231,7 +226,7 @@ export default function DigitalTwinExplorer() {
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-ink">
-                    Production Architecture Graph (Locked & Governed)
+                    Production Architecture Graph
                   </h2>
                   <p className="text-[11px] text-muted">
                     {productionGraph.nodes.length || d?.graph?.nodes?.length || 0} verified entities · {productionGraph.edges.length || d?.graph?.edges?.length || 0} certified relationships

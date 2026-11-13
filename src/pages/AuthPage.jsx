@@ -17,19 +17,7 @@ function generateCaptcha() {
 }
 
 function defaultLandingForUser(u) {
-  if (u?.role === 'data_analyst') return '/finance/planning_budgeting_forecasting'
-  // Direct directly to Step 2 Business Input for Finance
-  if (u?.selected_app) {
-    if (u.selected_app === 'finance') return '/finance/planning_budgeting_forecasting'
-    return u.selected_app === 'fmcg' || u.selected_app === 'supply_chain' ? '/fmcg' : `/${u.selected_app}`
-  }
-  const subApps = u?.subscribed_apps || []
-  if (subApps.length > 0) {
-    const first = subApps[0]
-    if (first === 'finance') return '/finance/planning_budgeting_forecasting'
-    return first === 'fmcg' || first === 'supply_chain' ? '/fmcg' : `/${first}`
-  }
-  return '/finance/planning_budgeting_forecasting'
+  return '/apps'
 }
 
 export default function AuthPage({ mode }) {
@@ -72,7 +60,7 @@ export default function AuthPage({ mode }) {
       const u = isReg ? await register(f.email, f.name, f.password, f.role) : await login(f.email, f.password)
       const isAnalyst = (u?.role || 'data_architect') === 'data_analyst'
       const from = loc.state?.from
-      const safeFrom = from && from !== '/' && from !== '/finance' && !(isAnalyst && from.startsWith('/apps')) ? from : null
+      const safeFrom = from && from !== '/' && from !== '/finance' && from !== '/login' ? from : null
       nav(safeFrom || defaultLandingForUser(u), { replace: true })
     } catch (e2) {
       setErr(e2.message)
