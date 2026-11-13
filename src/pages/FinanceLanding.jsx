@@ -200,15 +200,13 @@ export default function FinanceLanding() {
          ========================================================================= */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3 shadow-2xs">
         <div className="flex items-center gap-3 flex-wrap">
-          {!isAnalyst && (
-            <Link
-              to="/apps"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface2 px-3 py-1.5 text-xs font-semibold text-mute hover:text-ink hover:border-[#10b981]/50 transition"
-            >
-              <ArrowLeft size={13} />
-              <span>Model Selection</span>
-            </Link>
-          )}
+          <Link
+            to="/finance/models"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface2 px-3 py-1.5 text-xs font-semibold text-mute hover:text-ink hover:border-[#10b981]/50 transition"
+          >
+            <ArrowLeft size={13} />
+            <span>Finance Workspace</span>
+          </Link>
           <div>
             <h2 className="text-sm sm:text-base font-bold text-ink tracking-tight">
               Finance Knowledge Graph

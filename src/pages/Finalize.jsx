@@ -937,6 +937,31 @@ export default function Finalize() {
       toast.success('Digital Twin finalised & governed! Enterprise workflow complete.')
       setDlg(null)
       updateDomainWorkflow(slug, { isFinalized: true })
+
+      // Mark model as published in local registry and backend database dynamically
+      try {
+        const customName = localStorage.getItem(`afx_custom_name_${slug}`)
+        const publishedRegistry = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
+        const item = {
+          slug,
+          name: customName || `Finance_Model_${domainName}`,
+          publishedAt: new Date().toISOString(),
+          governed: true,
+          domainName,
+        }
+        const filtered = publishedRegistry.filter((p) => p.slug !== slug)
+        filtered.unshift(item)
+        localStorage.setItem('afx_published_models', JSON.stringify(filtered))
+
+        domains.publishCustomModel({
+          name: item.name,
+          slug: item.slug,
+          domainName: item.domainName,
+        }).catch((err) => console.warn('Backend custom model publish warning:', err))
+      } catch (err) {
+        console.warn('Published save warning:', err)
+      }
+
       navigate(`/finance/${slug}/twin`)
     } catch (e) {
       toast.error(e.message)
