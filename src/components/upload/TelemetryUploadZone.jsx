@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   X,
   Sparkles,
+  Loader2,
 } from 'lucide-react'
 import { Spinner, Loading, EmptyState } from '../common/States'
 import { files as filesApi } from '../../api'
@@ -23,6 +24,8 @@ const MAX_MB = 25
 
 export default function TelemetryUploadZone({
   slug,
+  initialFiles,
+  initialLoading = false,
   onBackToGraph,
   onProceedToGapAnalysis,
   onFileUploaded,
@@ -32,10 +35,20 @@ export default function TelemetryUploadZone({
   const inputRef = useRef(null)
   const [drag, setDrag] = useState(false)
   const [queue, setQueue] = useState([]) // in-flight uploads: { id, name, pct, error }
-  const [fileList, setFileList] = useState([])
-  const [loadingFiles, setLoadingFiles] = useState(true)
+  const [fileList, setFileList] = useState(initialFiles || [])
+  const [loadingFiles, setLoadingFiles] = useState(
+    initialLoading || (!initialFiles && initialFiles !== undefined)
+  )
   const [previewFile, setPreviewFile] = useState(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+
+  // Keep fileList synced with initialFiles if provided by parent
+  useEffect(() => {
+    if (Array.isArray(initialFiles)) {
+      setFileList(initialFiles)
+      setLoadingFiles(false)
+    }
+  }, [initialFiles])
 
   const processedCount = fileList.filter((f) => f.status === 'processed').length
 
@@ -271,10 +284,17 @@ export default function TelemetryUploadZone({
         {/* Uploaded Files Table */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">
-              Uploaded Documents & Schemas ({fileList.length})
+            <h3 className="text-xs font-semibold text-muted uppercase tracking-wider flex items-center gap-2">
+              <span>Uploaded Documents & Schemas</span>
+              {loadingFiles ? (
+                <span className="text-[10px] text-muted font-normal lowercase tracking-normal flex items-center gap-1.5">
+                  <Loader2 size={11} className="animate-spin text-[#10b981]" /> checking…
+                </span>
+              ) : (
+                <span>({fileList.length})</span>
+              )}
             </h3>
-            {fileList.length > 0 && (
+            {!loadingFiles && fileList.length > 0 && (
               <span className="text-[11px] text-muted">
                 {fileList.filter((f) => f.status === 'processed').length} processed
               </span>
@@ -282,8 +302,12 @@ export default function TelemetryUploadZone({
           </div>
 
           {loadingFiles ? (
-            <div className="py-8">
-              <Loading />
+            <div className="rounded-xl border border-line bg-surface p-6 flex flex-col items-center justify-center gap-2 text-xs text-muted shadow-2xs">
+              <div className="flex items-center gap-2 font-semibold text-ink">
+                <Loader2 size={16} className="animate-spin text-[#10b981]" />
+                <span>Checking uploaded documents…</span>
+              </div>
+              <p className="text-[11px] text-muted">Scanning verified files and schema mappings</p>
             </div>
           ) : fileList.length === 0 ? (
             <div className="rounded-xl border border-dashed border-line p-6 text-center text-xs text-muted">

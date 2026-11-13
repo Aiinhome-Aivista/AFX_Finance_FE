@@ -1,3 +1,4 @@
+import React from 'react'
 import { AlertTriangle, Inbox, Loader2 } from 'lucide-react'
 
 export function Loading({ label = 'Loading…', className = '' }) {
