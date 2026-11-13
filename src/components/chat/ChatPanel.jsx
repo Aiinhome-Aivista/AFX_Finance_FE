@@ -401,7 +401,7 @@ export default function ChatPanel({
           />
         </div>
 
-        {/* Status indicator with 'Next: Upload Data' Action Button (MOM Step 3) */}
+        {/* Status indicator (Model Ready) */}
         {(isComplete || answeredCount >= 1) && (
           <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/30 px-3 py-2 text-xs">
             <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-semibold truncate">
@@ -410,16 +410,6 @@ export default function ChatPanel({
                 {isComplete ? 'Discovery Complete · Model Ready' : 'Nuances Captured · Model Ready'}
               </span>
             </div>
-            {onNextToUpload && !isUploadOpen && (
-              <button
-                type="button"
-                onClick={onNextToUpload}
-                className="btn text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer font-bold shadow-sm transition-all bg-[#10b981] hover:bg-[#059669] text-white shadow-emerald-500/25 hover:scale-105"
-              >
-                <span>Next: Upload Data</span>
-                <ArrowRight size={13} />
-              </button>
-            )}
           </div>
         )}
       </div>

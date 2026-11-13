@@ -672,6 +672,17 @@ export default function DomainGraph() {
     return {
       label: 'Next',
       onNext: () => nav(`/finance/${slug}?mode=upload`),
+      secondaryAction: (
+        <button
+          type="button"
+          onClick={() => nav(`/finance/${slug}?mode=upload`)}
+          className="btn text-xs px-3 py-1.5 rounded-xl font-bold transition shadow-xs cursor-pointer bg-[#10b981] hover:bg-[#059669] text-white flex items-center gap-1.5"
+          title="Upload business telemetry data"
+        >
+          <span>Next: Upload Data</span>
+          <ArrowRight size={13} />
+        </button>
+      ),
     }
   }, [isGapMode, leftViewMode, hasUploadedFiles, slug, nav, handleProceedToGapAnalysis])
 
@@ -680,6 +691,7 @@ export default function DomainGraph() {
       wide
       nextLabel={nextConfig.label}
       onNext={nextConfig.onNext}
+      headerAction={nextConfig.secondaryAction}
     >
       {/* Top Header Navigation with Domain Tabs */}
       <div className="mb-4 rounded-2xl border border-line bg-surface/70 p-3 sm:p-3.5 backdrop-blur shadow-2xs">
