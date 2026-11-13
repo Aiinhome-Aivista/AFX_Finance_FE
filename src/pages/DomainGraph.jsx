@@ -27,6 +27,7 @@ import BlockSelector from '../components/graph/BlockSelector'
 import ChatPanel from '../components/chat/ChatPanel'
 import ProposalReview from '../components/chat/ProposalReview'
 import TelemetryUploadZone from '../components/upload/TelemetryUploadZone'
+import SaveAsModal from '../components/common/SaveAsModal'
 import useAsync from '../components/common/useAsync'
 import { chat, domains, files as filesApi, graphs, ontology } from '../api'
 import { edgeId, cleanMojibake } from '../lib/format'
@@ -176,6 +177,7 @@ export default function DomainGraph() {
   const [parsingProgress, setParsingProgress] = useState(null) // { fileName, stage, timestamp } (MOM Step 4)
   const [gapData, setGapData] = useState(null) // MOM Step 5 Gap Analysis (KG2)
   const [isGapMode, setIsGapMode] = useState(false)
+  const [saveAsOpen, setSaveAsOpen] = useState(false)
   const [showAiModal, setShowAiModal] = useState(false)
   const [aiGraph, setAiGraph] = useState(null)
   const [aiPrompt, setAiPrompt] = useState('')
@@ -222,7 +224,7 @@ export default function DomainGraph() {
   }
 
   const wf = useAsync(() => domains.workflow(slug), [slug])
-  const finalized = Boolean(wf.data?.finalized_version_number || snap?.finalized)
+  const finalized = Boolean(wf.data?.finalized_version_number)
   const dom = useAsync(() => domains.list(), [])
   const g = useAsync(() => domains.graph(slug, neighbours), [slug, neighbours])
   const blocks = useAsync(() => domains.blocks(slug), [slug])
@@ -606,15 +608,19 @@ export default function DomainGraph() {
     }
   }
 
+  const defaultSaveName = useMemo(() => {
+    const now = new Date()
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
+  }, [])
+
   const handleSaveAs = () => {
+    setSaveAsOpen(true)
+  }
+
+  const executeSaveAs = (modelName) => {
     try {
       const now = new Date()
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-      const formattedDate = `${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
-      const defaultName = `Finance_Model_${formattedDate}`
-
-      const modelName = window.prompt('Enter model name to Save As:', defaultName) || defaultName
-
       const payload = {
         name: modelName,
         savedAt: now.toISOString(),
@@ -625,17 +631,19 @@ export default function DomainGraph() {
         flows: g.data?.flows || [],
       }
 
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${modelName.replace(/\s+/g, '_')}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      // Persist saved model snapshot to application storage (no file download)
+      try {
+        const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
+        const filtered = savedRegistry.filter((m) => m.name !== modelName)
+        filtered.unshift(payload)
+        localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+        localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
+      } catch (err) {
+        console.warn('Storage save warning:', err)
+      }
 
       toast.success(`Model "${modelName}" saved successfully!`)
+      setSaveAsOpen(false)
     } catch (e) {
       toast.error('Failed to save model: ' + e.message)
     }
@@ -697,34 +705,18 @@ export default function DomainGraph() {
               <span className="tracking-tight">All Domains</span>
             </Link>
 
-            {/* Domain Dropdown Selector for All Domains */}
-            <div className="relative inline-flex items-center">
-              <select
-                value={domainKey || 'f1'}
-                onChange={(e) => {
-                  const targetKey = e.target.value
-                  const targetSlug = DOMAIN_SLUGS[targetKey]
-                  if (targetSlug && targetSlug !== slug) {
-                    nav(`/finance/${targetSlug}`)
-                  }
-                }}
-                className="appearance-none cursor-pointer rounded-xl pl-8 pr-7 py-1.5 text-xs sm:text-[13px] font-semibold border border-brand bg-brand text-white shadow-md shadow-brand/25 hover:bg-brand/90 transition"
-                title="Select active finance domain"
-              >
-                {ORDER.map((dKey) => (
-                  <option key={dKey} value={dKey} className="bg-surface text-ink py-1">
-                    {DOMMETA[dKey]?.n}
-                  </option>
-                ))}
-              </select>
+            {/* Active Domain Pill */}
+            <div className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs sm:text-[13px] font-semibold border border-brand bg-brand text-white shadow-md shadow-brand/25">
               <span
-                className="pointer-events-none absolute left-3 h-2 w-2 rounded-full"
+                className="h-2 w-2 rounded-full shrink-0"
                 style={{
                   backgroundColor: '#FFFFFF',
                   boxShadow: '0 0 8px rgba(255,255,255,0.8)',
                 }}
               />
-              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 text-white/80" />
+              <span className="tracking-tight whitespace-nowrap">
+                {DOMMETA[domainKey]?.n || domain?.name || 'Finance Domain'}
+              </span>
             </div>
 
             {/* Finance master-data spine button */}
@@ -788,6 +780,8 @@ export default function DomainGraph() {
           <div className="h-[calc(100vh-90px)] min-h-[500px]">
             <TelemetryUploadZone
               slug={slug}
+              initialFiles={domainFiles.data?.files}
+              initialLoading={domainFiles.loading}
               onBackToGraph={() => setLeftViewMode('graph')}
               onProceedToGapAnalysis={handleProceedToGapAnalysis}
               onProcessingUpdate={(fileName, stage) =>
@@ -899,8 +893,8 @@ export default function DomainGraph() {
           </div>
 
           {/* Panel Body */}
-          <div className="flex-1 overflow-hidden">
-            {activeRightTab === 'chat' ? (
+          <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+            {activeRightTab === 'chat' && (
               <ChatPanel
                 slug={slug}
                 domainName={domain?.name}
@@ -924,12 +918,24 @@ export default function DomainGraph() {
                   } else {
                     setAiGraph(null)
                   }
-                  Promise.allSettled([g.reload(), wf.reload(), flows.reload(), blocks.reload()]).finally(() => {
+                  if (res?.reopened) {
+                    setIsGapMode(false)
+                    setGapData(null)
+                  }
+                  Promise.allSettled([
+                    g.reload(),
+                    wf.reload(),
+                    flows.reload(),
+                    blocks.reload(),
+                    chat.get(slug).then(setSnap).catch(() => { }),
+                  ]).finally(() => {
                     setUpdatingGraph(false)
                   })
                 }}
               />
-            ) : (
+            )}
+
+            {activeRightTab === 'details' && (
               <div className="h-full overflow-y-auto p-4 scroll-thin">
                 {selected ? (
                   <NodeDetailsPanel
@@ -1074,6 +1080,16 @@ export default function DomainGraph() {
           </div>
         </div>
       )}
+
+      {/* Save As In-Window Modal */}
+      <SaveAsModal
+        open={saveAsOpen}
+        defaultName={defaultSaveName}
+        domainName={domain?.name || 'Finance Model'}
+        entityCount={base?.nodes?.length || 0}
+        onSave={executeSaveAs}
+        onClose={() => setSaveAsOpen(false)}
+      />
     </Layout>
   )
 }

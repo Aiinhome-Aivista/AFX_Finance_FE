@@ -84,3 +84,17 @@ export const files = {
     return http.get(`/domains/${clean}/telemetry/gap-analysis`, { params }).then(d)
   },
 }
+export const evaluation = {
+  summary: (slug) => {
+    const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
+    return http.get(`/domains/${clean}/evaluation`).then(d)
+  },
+  validate: (slug, prompt) => {
+    const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
+    return http.post(`/domains/${clean}/evaluation/validate`, { prompt }).then(d)
+  },
+  runBenchmark: (slug) => {
+    const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
+    return http.post(`/domains/${clean}/evaluation/run-benchmark`).then(d)
+  },
+}

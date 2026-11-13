@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, CheckCircle2, Landmark, Package, Layers, Ban } from 'lucide-react'
 import { apps as appsApi } from '../api'
@@ -198,10 +198,10 @@ export default function AppSelect() {
         aria-disabled={isDisabled}
         data-testid={`model-card-${variant}-${app.key}`}
         className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none ${isDisabled
-            ? 'border-line/60 bg-surface2/30 opacity-60 cursor-not-allowed select-none'
-            : isSelected
-              ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md cursor-pointer'
-              : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2 cursor-pointer'
+          ? 'border-line/60 bg-surface2/30 opacity-60 cursor-not-allowed select-none'
+          : isSelected
+            ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md cursor-pointer'
+            : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2 cursor-pointer'
           }`}
       >
         <div className="flex items-start justify-between gap-3">
@@ -231,8 +231,8 @@ export default function AppSelect() {
                 </h3>
                 <span
                   className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${isDisabled
-                      ? 'bg-neutral-800/40 border-neutral-700 text-neutral-400'
-                      : 'bg-surface border-line text-mute'
+                    ? 'bg-neutral-800/40 border-neutral-700 text-neutral-400'
+                    : 'bg-surface border-line text-mute'
                     }`}
                 >
                   {isDisabled ? 'Disabled' : meta.badge}
@@ -329,8 +329,8 @@ export default function AppSelect() {
                   aria-label="Move selected model to Subscribed Models"
                   title="Move to Subscribed Models"
                   className={`h-11 w-11 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${selectedAvailable && !busy
-                      ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-md shadow-[#10b981]/25 hover:bg-[#34d399]'
-                      : 'bg-surface border-line text-mute opacity-50 cursor-not-allowed'
+                    ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-md shadow-[#10b981]/25 hover:bg-[#34d399]'
+                    : 'bg-surface border-line text-mute opacity-50 cursor-not-allowed'
                     }`}
                 >
                   {busy && selectedAvailable ? <Spinner /> : <ArrowRight size={18} />}
@@ -343,8 +343,8 @@ export default function AppSelect() {
                   aria-label="Move selected model back to Available Models"
                   title="Move back to Available Models"
                   className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${selectedSubscribed && !busy
-                      ? 'bg-surface2 border-line text-ink hover:border-[#10b981]/60'
-                      : 'bg-surface border-line text-mute opacity-40 cursor-not-allowed'
+                    ? 'bg-surface2 border-line text-ink hover:border-[#10b981]/60'
+                    : 'bg-surface border-line text-mute opacity-40 cursor-not-allowed'
                     }`}
                 >
                   <ArrowLeft size={15} />
@@ -409,8 +409,8 @@ export default function AppSelect() {
                 disabled={!selectedSubscribed || goBusy}
                 data-testid="model-select-go"
                 className={`inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold transition-all cursor-pointer ${selectedSubscribed && !goBusy
-                    ? 'bg-[#10b981] text-[#0b1320] shadow-lg shadow-[#10b981]/30 ring-2 ring-[#10b981]/50 hover:bg-[#34d399]'
-                    : 'bg-surface2 border border-line text-mute opacity-55 cursor-not-allowed'
+                  ? 'bg-[#10b981] text-[#0b1320] shadow-lg shadow-[#10b981]/30 ring-2 ring-[#10b981]/50 hover:bg-[#34d399]'
+                  : 'bg-surface2 border border-line text-mute opacity-55 cursor-not-allowed'
                   }`}
               >
                 {goBusy ? (

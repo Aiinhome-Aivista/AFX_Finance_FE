@@ -5,7 +5,6 @@ import {
   ArrowRight,
   Bot,
   CheckCircle2,
-  ChevronDown,
   FileText,
   History,
   Lock,
@@ -19,6 +18,7 @@ import { EmptyState, ErrorState, Loading } from '../components/common/States'
 import OntologyGraphCanvas from '../components/graph/OntologyGraphCanvas'
 import NodeDetailsPanel from '../components/graph/NodeDetailsPanel'
 import ChatPanel from '../components/chat/ChatPanel'
+import SaveAsModal from '../components/common/SaveAsModal'
 import useAsync from '../components/common/useAsync'
 import { chat, domains, files as filesApi, graphs } from '../api'
 import { DOMAIN_SLUGS, DOMMETA, NODES, ORDER, SLUG_TO_DOM } from '../lib/ontologyData'
@@ -788,6 +788,7 @@ export default function Finalize() {
   const [cmp, setCmp] = useState(null)
   const [gapGraph, setGapGraph] = useState(null)
   const [dlg, setDlg] = useState(null)
+  const [saveAsOpen, setSaveAsOpen] = useState(false)
   const [ack, setAck] = useState(false)
   const [busy, setBusy] = useState(false)
   const [selectedNode, setSelectedNode] = useState(null)
@@ -965,15 +966,19 @@ export default function Finalize() {
     }
   }
 
+  const defaultSaveName = useMemo(() => {
+    const now = new Date()
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
+  }, [])
+
   const handleSaveAs = () => {
+    setSaveAsOpen(true)
+  }
+
+  const executeSaveAs = (modelName) => {
     try {
       const now = new Date()
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-      const formattedDate = `${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
-      const defaultName = `Finance_Model_${formattedDate}`
-
-      const modelName = window.prompt('Enter model name to Save As:', defaultName) || defaultName
-
       const payload = {
         name: modelName,
         savedAt: now.toISOString(),
@@ -984,17 +989,19 @@ export default function Finalize() {
         flows: g.data?.flows || [],
       }
 
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${modelName.replace(/\s+/g, '_')}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      // Persist saved model snapshot to application storage (no file download)
+      try {
+        const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
+        const filtered = savedRegistry.filter((m) => m.name !== modelName)
+        filtered.unshift(payload)
+        localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+        localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
+      } catch (err) {
+        console.warn('Storage save warning:', err)
+      }
 
       toast.success(`Model "${modelName}" saved successfully!`)
+      setSaveAsOpen(false)
     } catch (e) {
       toast.error('Failed to save model: ' + e.message)
     }
@@ -1034,34 +1041,18 @@ export default function Finalize() {
               <span className="tracking-tight">Back to Business Input</span>
             </Link>
 
-            {/* Domain Dropdown Selector for All Domains */}
-            <div className="relative inline-flex items-center">
-              <select
-                value={domainKey}
-                onChange={(e) => {
-                  const targetKey = e.target.value
-                  const targetSlug = DOMAIN_SLUGS[targetKey]
-                  if (targetSlug && targetSlug !== slug) {
-                    navigate(`/finance/${targetSlug}/finalize`)
-                  }
-                }}
-                className="appearance-none cursor-pointer rounded-xl pl-8 pr-7 py-1.5 text-xs sm:text-[13px] font-semibold border border-brand bg-brand text-white shadow-md shadow-brand/25 hover:bg-brand/90 transition"
-                title="Select active finance domain"
-              >
-                {ORDER.map((dKey) => (
-                  <option key={dKey} value={dKey} className="bg-surface text-ink py-1">
-                    {DOMMETA[dKey]?.n}
-                  </option>
-                ))}
-              </select>
+            {/* Active Domain Pill */}
+            <div className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs sm:text-[13px] font-semibold border border-brand bg-brand text-white shadow-md shadow-brand/25">
               <span
-                className="pointer-events-none absolute left-3 h-2 w-2 rounded-full"
+                className="h-2 w-2 rounded-full shrink-0"
                 style={{
                   backgroundColor: '#FFFFFF',
                   boxShadow: '0 0 8px rgba(255,255,255,0.8)',
                 }}
               />
-              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 text-white/80" />
+              <span className="tracking-tight whitespace-nowrap">
+                {DOMMETA[domainKey]?.n || domainName || 'Finance Domain'}
+              </span>
             </div>
 
             {/* Finance master-data spine button */}
@@ -1549,6 +1540,16 @@ export default function Finalize() {
           Re-opening unlocks this ontology for chatbot customization. Your uploaded business telemetry files will be safely preserved so you can re-run gap analysis after refining your model.
         </p>
       </ConfirmDialog>
+
+      {/* Save As In-Window Modal */}
+      <SaveAsModal
+        open={saveAsOpen}
+        defaultName={defaultSaveName}
+        domainName={domainName || 'Finance Model'}
+        entityCount={graphDataWithGaps?.nodes?.length || 0}
+        onSave={executeSaveAs}
+        onClose={() => setSaveAsOpen(false)}
+      />
     </Layout>
   )
 }
