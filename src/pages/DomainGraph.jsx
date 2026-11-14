@@ -173,7 +173,7 @@ export default function DomainGraph() {
   const [proposal, setProposal] = useState(null)
   const [deciding, setDeciding] = useState(false)
   const [activeRightTab, setActiveRightTab] = useState('chat') // 'chat' | 'details'
-  const [leftViewMode, setLeftViewMode] = useState('graph') // 'graph' | 'upload' (MOM Step 3)
+  const [leftViewMode, setLeftViewMode] = useState(() => (new URLSearchParams(window.location.search).get('mode') === 'upload' ? 'upload' : 'graph')) // 'graph' | 'upload' (MOM Step 3)
   const [parsingProgress, setParsingProgress] = useState(null) // { fileName, stage, timestamp } (MOM Step 4)
   const [gapData, setGapData] = useState(null) // MOM Step 5 Gap Analysis (KG2)
   const [isGapMode, setIsGapMode] = useState(false)
@@ -278,7 +278,12 @@ export default function DomainGraph() {
   useEffect(() => {
     setIsGapMode(false)
     setGapData(null)
-    setLeftViewMode('graph')
+    const mode = searchParams.get('mode')
+    if (mode === 'upload') {
+      setLeftViewMode('upload')
+    } else {
+      setLeftViewMode('graph')
+    }
     setParsingProgress(null)
     setActiveDomainFilter(domainKey)
     setSelected(null)
@@ -659,13 +664,15 @@ export default function DomainGraph() {
   }
 
   const nextConfig = useMemo(() => {
-    if (isGapMode) {
+    const isUpload = leftViewMode === 'upload' || searchParams.get('mode') === 'upload'
+
+    if (isGapMode || searchParams.get('mode') === 'gap') {
       return {
         label: 'Next: Review',
         onNext: () => nav(`/finance/${slug}/finalize`),
       }
     }
-    if (leftViewMode === 'upload') {
+    if (isUpload) {
       if (hasUploadedFiles) {
         return {
           label: 'Gap Analysis',
@@ -680,9 +687,12 @@ export default function DomainGraph() {
     // Business Input view -> navigates to Data Input view
     return {
       label: 'Next',
-      onNext: () => nav(`/finance/${slug}?mode=upload`),
+      onNext: () => {
+        setLeftViewMode('upload')
+        nav(`/finance/${slug}?mode=upload`)
+      },
     }
-  }, [isGapMode, leftViewMode, hasUploadedFiles, slug, nav, handleProceedToGapAnalysis])
+  }, [isGapMode, leftViewMode, hasUploadedFiles, slug, nav, handleProceedToGapAnalysis, searchParams])
 
   return (
     <Layout
