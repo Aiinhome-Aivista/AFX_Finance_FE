@@ -250,203 +250,200 @@ export default function FinanceWorkspaceSelection() {
                 <span>New</span>
               </button>
             )}
-          </div>
         </div>
+      </div>
 
-        {/* Toast Feedback */}
-        {toastMsg && (
-          <div
-            role="status"
-            className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs text-emerald-500 dark:text-emerald-400 animate-fadeIn"
+      {/* Toast Feedback */}
+      {toastMsg && (
+        <div
+          role="status"
+          className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs text-emerald-500 dark:text-emerald-400 animate-fadeIn"
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={16} className="text-[#10b981]" />
+            <span className="font-semibold">{toastMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setToastMsg('')}
+            className="text-xs font-bold underline cursor-pointer"
           >
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-[#10b981]" />
-              <span className="font-semibold">{toastMsg}</span>
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {isAnalyst ? (
+        /* Data Analyst View: ONLY Published Models */
+        <div className="max-w-2xl mx-auto mt-4">
+          <section
+            aria-label="Published Models"
+            className="card p-5 border border-line bg-surface flex flex-col min-h-[380px] shadow-2xs"
+          >
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-[#10b981] flex items-center justify-center">
+                  <ShieldCheck size={16} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-ink">Published Models</h2>
+                  <p className="text-xs text-mute">Enterprise Governed Digital Twins</p>
+                </div>
+              </div>
+              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
+                {publishedModels.length}
+              </span>
             </div>
-            <button
-              type="button"
-              onClick={() => setToastMsg('')}
-              className="text-xs font-bold underline cursor-pointer"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
 
-        {isAnalyst ? (
-          /* Data Analyst View: ONLY Published Models */
-          <div className="max-w-2xl mx-auto mt-4">
-            <section
-              aria-label="Published Models"
-              className="card p-5 border border-line bg-surface flex flex-col min-h-[380px] shadow-2xs"
-            >
-              <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-[#10b981] flex items-center justify-center">
-                    <ShieldCheck size={16} />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-ink">Published Models</h2>
-                    <p className="text-xs text-mute">Enterprise Governed Digital Twins</p>
-                  </div>
-                </div>
-                <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
-                  {publishedModels.length}
-                </span>
+            {publishedModels.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center text-center p-6">
+                <p className="text-xs text-mute">
+                  No certified digital twin models published yet.
+                </p>
               </div>
-
-              {publishedModels.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-center p-6">
-                  <p className="text-xs text-mute">
-                    No certified digital twin models published yet.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
-                  {publishedModels.map((m) => {
-                    const isSelected = selectedPublishedModel === m.name
-                    return (
-                      <div
-                        key={m.name}
-                        onClick={() => {
-                          setSelectedPublishedModel(m.name)
-                          setSelectedMyModel(null)
-                        }}
-                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer ${
-                          isSelected
-                            ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
-                            : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
+            ) : (
+              <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
+                {publishedModels.map((m) => {
+                  const isSelected = selectedPublishedModel === m.name
+                  return (
+                    <div
+                      key={m.name}
+                      onClick={() => {
+                        setSelectedPublishedModel(m.name)
+                        setSelectedMyModel(null)
+                      }}
+                      className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer ${isSelected
+                          ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
+                          : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
                         }`}
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
-                          <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
-                            {m.name}
-                          </span>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
-                            <ShieldCheck size={12} /> Certified Twin
-                          </span>
-                        </div>
-                        <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
-                        <p className="text-xs text-mute mt-1">
-                          Domain: {m.domainName || m.slug?.replace(/-/g, ' ')} · Governed Architecture
-                        </p>
-                        <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
-                          <span>Published on {m.publishedAt ? new Date(m.publishedAt).toLocaleDateString() : 'Recent'}</span>
-                          <span className="text-[#10b981] font-semibold">Explore Digital Twin →</span>
-                        </div>
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
+                          {m.name}
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                          <ShieldCheck size={12} /> Certified Twin
+                        </span>
                       </div>
-                    )
-                  })}
-                </div>
-              )}
-            </section>
-          </div>
-        ) : (
-          /* Data Architect View: 2-Column Side-by-Side View with Center Arrow Transfer */
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-stretch mt-4">
-            {/* Left Column: My Finance Models (Only Saved Models) */}
-            <section
-              aria-label="My Finance Models"
-              className="card p-5 border border-line bg-surface flex flex-col min-h-[380px] shadow-2xs"
-            >
-              <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-[#10b981] flex items-center justify-center">
-                    <FolderKanban size={15} />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-ink">My Finance Models</h2>
-                    <p className="text-xs text-mute">Models saved via "Save As"</p>
-                  </div>
-                </div>
-                <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
-                  {savedModels.length}
-                </span>
+                      <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
+                      <p className="text-xs text-mute mt-1">
+                        Domain: {m.domainName || m.slug?.replace(/-/g, ' ')} · Governed Architecture
+                      </p>
+                      <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
+                        <span>Published on {m.publishedAt ? new Date(m.publishedAt).toLocaleDateString() : 'Recent'}</span>
+                        <span className="text-[#10b981] font-semibold">Explore Digital Twin →</span>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
+            )}
+          </section>
+        </div>
+      ) : (
+        /* Data Architect View: 2-Column Side-by-Side View with Center Arrow Transfer */
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-stretch mt-4">
+          {/* Left Column: My Finance Models (Only Saved Models) */}
+          <section
+            aria-label="My Finance Models"
+            className="card p-5 border border-line bg-surface flex flex-col min-h-[380px] shadow-2xs"
+          >
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-[#10b981] flex items-center justify-center">
+                  <FolderKanban size={15} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-ink">My Finance Models</h2>
+                  <p className="text-xs text-mute">Models saved via "Save As"</p>
+                </div>
+              </div>
+              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
+                {savedModels.length}
+              </span>
+            </div>
 
-              {savedModels.length === 0 ? (
-                <div className="flex-1" />
-              ) : (
-                <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
-                  {savedModels.map((m) => {
-                    const isSelected = selectedMyModel === m.name
-                    const nodeCount = m.nodes?.length || 9
-                    const edgeCount = m.edges?.length || 0
+            {savedModels.length === 0 ? (
+              <div className="flex-1" />
+            ) : (
+              <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
+                {savedModels.map((m) => {
+                  const isSelected = selectedMyModel === m.name
+                  const nodeCount = m.nodes?.length || 9
+                  const edgeCount = m.edges?.length || 0
 
-                    return (
-                      <div
-                        key={m.name}
-                        onClick={() => {
-                          setSelectedMyModel(m.name)
-                          setSelectedPublishedModel(null)
-                        }}
-                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer relative group ${
-                          isSelected
-                            ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
-                            : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
+                  return (
+                    <div
+                      key={m.name}
+                      onClick={() => {
+                        setSelectedMyModel(m.name)
+                        setSelectedPublishedModel(null)
+                      }}
+                      className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer relative group ${isSelected
+                          ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
+                          : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
                         }`}
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
-                          <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
-                            {m.name}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
+                          {m.name}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/10 text-amber-600 border-amber-500/30">
+                            Saved Snapshot
                           </span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/10 text-amber-600 border-amber-500/30">
-                              Saved Snapshot
-                            </span>
-                            <button
-                              type="button"
-                              onClick={(e) => handleDeleteSavedModel(e, m.name)}
-                              className="p-1 text-muted hover:text-red-500 hover:bg-surface rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
-                              title="Delete saved snapshot"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        </div>
-                        <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
-                        <p className="text-xs text-mute mt-1">
-                          Domain: {m.slug ? m.slug.replace(/-/g, ' ') : 'Planning, Budgeting and Forecasting'} · {nodeCount} entities · {edgeCount} relationships
-                        </p>
-                        <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
-                          <span>Saved on {m.savedAt ? new Date(m.savedAt).toLocaleDateString() : 'Recent'}</span>
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handlePublishModel(m.name)
-                            }}
-                            className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#10b981]/15 text-[#10b981] hover:bg-[#10b981] hover:text-[#0b1320] border border-[#10b981]/40 transition inline-flex items-center gap-1 cursor-pointer"
-                            title="Directly publish this model into Published Models"
+                            onClick={(e) => handleDeleteSavedModel(e, m.name)}
+                            className="p-1 text-muted hover:text-red-500 hover:bg-surface rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                            title="Delete saved snapshot"
                           >
-                            <ShieldCheck size={11} />
-                            <span>Publish →</span>
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-              )}
-            </section>
+                      <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
+                      <p className="text-xs text-mute mt-1">
+                        Domain: {m.slug ? m.slug.replace(/-/g, ' ') : 'Planning, Budgeting and Forecasting'} · {nodeCount} entities · {edgeCount} relationships
+                      </p>
+                      <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
+                        <span>Saved on {m.savedAt ? new Date(m.savedAt).toLocaleDateString() : 'Recent'}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handlePublishModel(m.name)
+                          }}
+                          className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#10b981]/15 text-[#10b981] hover:bg-[#10b981] hover:text-[#0b1320] border border-[#10b981]/40 transition inline-flex items-center gap-1 cursor-pointer"
+                          title="Directly publish this model into Published Models"
+                        >
+                          <ShieldCheck size={11} />
+                          <span>Publish →</span>
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </section>
 
-            {/* Center Arrow Transfer Control (Directly matching sketch: [Finance Model] -> [Published Models]) */}
-            <div className="flex md:flex-col items-center justify-center gap-3 py-4">
-              <button
-                type="button"
-                onClick={() => handlePublishModel(selectedMyModel)}
-                disabled={!selectedMyModel}
-                aria-label="Publish selected model to Published Models"
-                title={selectedMyModel ? `Publish "${selectedMyModel.replace(/_/g, ' ')}" to Published Models` : 'Select a saved model on the left to publish'}
-                className={`h-11 w-11 rounded-xl border flex items-center justify-center transition-all ${
-                  selectedMyModel
-                    ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-md shadow-[#10b981]/25 hover:bg-[#34d399] cursor-pointer'
-                    : 'bg-surface border-line text-mute opacity-40 cursor-not-allowed'
+          {/* Center Arrow Transfer Control (Directly matching sketch: [Finance Model] -> [Published Models]) */}
+          <div className="flex md:flex-col items-center justify-center gap-3 py-4">
+            <button
+              type="button"
+              onClick={() => handlePublishModel(selectedMyModel)}
+              disabled={!selectedMyModel}
+              aria-label="Publish selected model to Published Models"
+              title={selectedMyModel ? `Publish "${selectedMyModel.replace(/_/g, ' ')}" to Published Models` : 'Select a saved model on the left to publish'}
+              className={`h-11 w-11 rounded-xl border flex items-center justify-center transition-all ${selectedMyModel
+                  ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-md shadow-[#10b981]/25 hover:bg-[#34d399] cursor-pointer'
+                  : 'bg-surface border-line text-mute opacity-40 cursor-not-allowed'
                 }`}
-              >
-                <ArrowRight size={18} />
-              </button>
-            </div>
+            >
+              <ArrowRight size={18} />
+            </button>
+          </div>
 
             {/* Right Column: Published Models (Only Finalized / Published Models) */}
             <section
@@ -469,51 +466,50 @@ export default function FinanceWorkspaceSelection() {
               </div>
 
               {publishedModels.length === 0 ? (
-                <div className="flex-1" />
-              ) : (
-                <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
-                  {publishedModels.map((m) => {
-                    const isSelected = selectedPublishedModel === m.name
-                    return (
-                      <div
-                        key={m.name}
-                        onClick={() => {
-                          setSelectedPublishedModel(m.name)
-                          setSelectedMyModel(null)
-                        }}
-                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer ${
-                          isSelected
-                            ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
-                            : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
-                          <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
-                            {m.name}
-                          </span>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
-                            <ShieldCheck size={12} /> Certified Twin
-                          </span>
-                        </div>
-                        <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
-                        <p className="text-xs text-mute mt-1">
-                          Domain: {m.domainName || m.slug?.replace(/-/g, ' ')} · Governed Architecture
-                        </p>
-                        <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
-                          <span>Published on {m.publishedAt ? new Date(m.publishedAt).toLocaleDateString() : 'Recent'}</span>
-                          <span className="text-[#10b981] font-semibold">Explore Digital Twin →</span>
-                        </div>
-                      </div>
-                    )
-                  })}
+          <div className="flex-1" />
+        ) : (
+          <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
+            {publishedModels.map((m) => {
+              const isSelected = selectedPublishedModel === m.name
+              return (
+                <div
+                  key={m.name}
+                  onClick={() => {
+                    setSelectedPublishedModel(m.name)
+                    setSelectedMyModel(null)
+                  }}
+                  className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer ${isSelected
+                      ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
+                      : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
+                    }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
+                      {m.name}
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                      <ShieldCheck size={12} /> Certified Twin
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
+                  <p className="text-xs text-mute mt-1">
+                    Domain: {m.domainName || m.slug?.replace(/-/g, ' ')} · Governed Architecture
+                  </p>
+                  <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
+                    <span>Published on {m.publishedAt ? new Date(m.publishedAt).toLocaleDateString() : 'Recent'}</span>
+                    <span className="text-[#10b981] font-semibold">Explore Digital Twin →</span>
+                  </div>
                 </div>
-              )}
-            </section>
+              )
+            })}
+          </div>
+        )}
+      </section>
           </div>
         )}
 
-        {/* Bottom Bar: Selected Workspace Model and Go Action Button */}
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface px-5 py-4 shadow-sm">
+  {/* Bottom Bar: Selected Workspace Model and Go Action Button */ }
+  < div className = "mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface px-5 py-4 shadow-sm" >
           <div className="text-xs text-mute">
             {selectedTargetModel ? (
               <span>
@@ -553,8 +549,8 @@ export default function FinanceWorkspaceSelection() {
               <ArrowRight size={16} />
             </button>
           </div>
-        </div>
-      </div>
-    </Layout>
+        </div >
+      </div >
+    </Layout >
   )
 }
