@@ -54,20 +54,28 @@ export default function FinanceWorkspaceSelection() {
         const beSaved = res?.saved_models || []
         const bePublished = res?.published_models || []
 
-        // If backend database is empty but local storage has models, sync them to the database
-        if (beSaved.length === 0 && bePublished.length === 0 && (localSaved.length > 0 || localPublished.length > 0)) {
+        // If local storage has published models not in backend, or local saved models not in backend, sync them
+        const missingPubInBe = localPublished.filter((lp) => !bePublished.some((bp) => bp.name === lp.name))
+        const missingSavedInBe = localSaved.filter((ls) => !beSaved.some((bs) => bs.name === ls.name) && !bePublished.some((bp) => bp.name === ls.name))
+
+        if (missingPubInBe.length > 0 || missingSavedInBe.length > 0) {
           domains
             .syncCustomModels({ saved: localSaved, published: localPublished })
             .then((syncRes) => {
               if (!alive) return
-              const nextSaved = syncRes?.saved_models || localSaved
-              const nextPub = syncRes?.published_models || localPublished
+              const nextSaved = syncRes?.saved_models || beSaved
+              const nextPub = syncRes?.published_models || bePublished
               setSavedModels(nextSaved)
               setPublishedModels(nextPub)
               localStorage.setItem('afx_saved_models', JSON.stringify(nextSaved))
               localStorage.setItem('afx_published_models', JSON.stringify(nextPub))
             })
-            .catch(() => { })
+            .catch(() => {
+              setSavedModels(beSaved)
+              setPublishedModels(bePublished)
+              localStorage.setItem('afx_saved_models', JSON.stringify(beSaved))
+              localStorage.setItem('afx_published_models', JSON.stringify(bePublished))
+            })
         } else {
           // Backend is the source of truth across all browsers
           setSavedModels(beSaved)
@@ -150,6 +158,17 @@ export default function FinanceWorkspaceSelection() {
         name: pubItem.name,
         slug: pubItem.slug,
         domainName: pubItem.domainName,
+      })
+      .then(() => domains.customModels())
+      .then((res) => {
+        if (res?.published_models) {
+          setPublishedModels(res.published_models)
+          localStorage.setItem('afx_published_models', JSON.stringify(res.published_models))
+        }
+        if (res?.saved_models) {
+          setSavedModels(res.saved_models)
+          localStorage.setItem('afx_saved_models', JSON.stringify(res.saved_models))
+        }
       })
       .catch((err) => console.warn('Backend custom model publish warning:', err))
 
