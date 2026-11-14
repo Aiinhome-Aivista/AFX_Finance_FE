@@ -45,6 +45,11 @@ export default function FinanceWorkspaceSelection() {
     let alive = true
 
     const localSaved = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
+    const legacySaved = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
+    const allLocalSaved = [
+      ...localSaved,
+      ...legacySaved.filter((leg) => !localSaved.some((ls) => ls.name === leg.name)),
+    ]
     const localPublished = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
 
     domains
@@ -54,20 +59,31 @@ export default function FinanceWorkspaceSelection() {
         const beSaved = res?.saved_models || []
         const bePublished = res?.published_models || []
 
-        // If backend database is empty but local storage has models, sync them to the database
-        if (beSaved.length === 0 && bePublished.length === 0 && (localSaved.length > 0 || localPublished.length > 0)) {
+        // Find any locally saved or legacy models not yet in backend
+        const missingSaved = allLocalSaved.filter(
+          (ls) => !beSaved.some((bs) => bs.name === ls.name) && !bePublished.some((bp) => bp.name === ls.name)
+        )
+        const missingPub = localPublished.filter((lp) => !bePublished.some((bp) => bp.name === lp.name))
+
+        if (missingSaved.length > 0 || missingPub.length > 0) {
           domains
-            .syncCustomModels({ saved: localSaved, published: localPublished })
+            .syncCustomModels({ saved: allLocalSaved, published: localPublished })
             .then((syncRes) => {
               if (!alive) return
-              const nextSaved = syncRes?.saved_models || localSaved
-              const nextPub = syncRes?.published_models || localPublished
+              const nextSaved = syncRes?.saved_models || [...beSaved, ...missingSaved]
+              const nextPub = syncRes?.published_models || bePublished
               setSavedModels(nextSaved)
               setPublishedModels(nextPub)
               localStorage.setItem('afx_saved_models', JSON.stringify(nextSaved))
               localStorage.setItem('afx_published_models', JSON.stringify(nextPub))
             })
-            .catch(() => {})
+            .catch(() => {
+              const mergedSaved = [...beSaved, ...missingSaved]
+              setSavedModels(mergedSaved)
+              setPublishedModels(bePublished)
+              localStorage.setItem('afx_saved_models', JSON.stringify(mergedSaved))
+              localStorage.setItem('afx_published_models', JSON.stringify(bePublished))
+            })
         } else {
           // Backend is the source of truth across all browsers
           setSavedModels(beSaved)
@@ -105,6 +121,10 @@ export default function FinanceWorkspaceSelection() {
     const updated = savedModels.filter((m) => m.name !== modelName)
     setSavedModels(updated)
     localStorage.setItem('afx_saved_models', JSON.stringify(updated))
+    try {
+      const leg = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
+      localStorage.setItem('agentforgex_saved_models', JSON.stringify(leg.filter((m) => m.name !== modelName)))
+    } catch {}
     if (selectedMyModel === modelName) {
       setSelectedMyModel(updated[0]?.name || null)
     }

@@ -642,6 +642,11 @@ export default function DomainGraph() {
         const filtered = savedRegistry.filter((m) => m.name !== modelName)
         filtered.unshift(payload)
         localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+        const legacy = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
+        const filteredLegacy = legacy.filter((m) => m.name !== modelName)
+        filteredLegacy.unshift(payload)
+        localStorage.setItem('agentforgex_saved_models', JSON.stringify(filteredLegacy.slice(0, 50)))
+
         localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
         localStorage.setItem(`afx_custom_name_${slug}`, modelName)
 

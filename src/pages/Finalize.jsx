@@ -933,13 +933,36 @@ export default function Finalize() {
         flows: g.data?.flows || [],
       }
 
-      // Persist saved model snapshot to application storage (no file download)
+      // Persist saved model snapshot to application storage and backend database dynamically
       try {
-        const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-        const filtered = savedRegistry.filter((m) => m.name !== modelName)
-        filtered.unshift(payload)
-        localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+        const publishedRegistry = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
+        const isAlreadyPublished = publishedRegistry.some((p) => p.name === modelName)
+
+        if (!isAlreadyPublished) {
+          const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
+          const filtered = savedRegistry.filter((m) => m.name !== modelName)
+          filtered.unshift(payload)
+          localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+        } else {
+          const updatedPub = publishedRegistry.map((p) => (p.name === modelName ? { ...p, nodes: payload.nodes, edges: payload.edges } : p))
+          localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
+        }
+
+        const legacy = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
+        const filteredLegacy = legacy.filter((m) => m.name !== modelName)
+        filteredLegacy.unshift(payload)
+        localStorage.setItem('agentforgex_saved_models', JSON.stringify(filteredLegacy.slice(0, 50)))
+
         localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
+        localStorage.setItem(`afx_custom_name_${slug}`, modelName)
+
+        domains.saveCustomModel({
+          name: modelName,
+          slug,
+          domainName: d?.name || 'Planning, Budgeting and Forecasting',
+          nodes: payload.nodes,
+          edges: payload.edges,
+        }).catch((err) => console.warn('Backend custom model save warning:', err))
       } catch (err) {
         console.warn('Storage save warning:', err)
       }
