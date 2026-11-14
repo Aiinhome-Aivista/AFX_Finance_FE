@@ -173,7 +173,7 @@ export default function DomainGraph() {
   const [proposal, setProposal] = useState(null)
   const [deciding, setDeciding] = useState(false)
   const [activeRightTab, setActiveRightTab] = useState('chat') // 'chat' | 'details'
-  const [leftViewMode, setLeftViewMode] = useState('graph') // 'graph' | 'upload' (MOM Step 3)
+  const [leftViewMode, setLeftViewMode] = useState(() => (new URLSearchParams(window.location.search).get('mode') === 'upload' ? 'upload' : 'graph')) // 'graph' | 'upload' (MOM Step 3)
   const [parsingProgress, setParsingProgress] = useState(null) // { fileName, stage, timestamp } (MOM Step 4)
   const [gapData, setGapData] = useState(null) // MOM Step 5 Gap Analysis (KG2)
   const [isGapMode, setIsGapMode] = useState(false)
@@ -279,7 +279,12 @@ export default function DomainGraph() {
   useEffect(() => {
     setIsGapMode(false)
     setGapData(null)
-    setLeftViewMode('graph')
+    const mode = searchParams.get('mode')
+    if (mode === 'upload') {
+      setLeftViewMode('upload')
+    } else {
+      setLeftViewMode('graph')
+    }
     setParsingProgress(null)
     setActiveDomainFilter(domainKey)
     setSelected(null)
@@ -317,6 +322,7 @@ export default function DomainGraph() {
         })
     }
 
+    const isFresh = sessionStorage.getItem('afx_fresh_session') === 'true' || searchParams.get('fresh') === '1'
     if (isFresh) {
       sessionStorage.removeItem('afx_fresh_session')
       setSnap({
@@ -337,7 +343,8 @@ export default function DomainGraph() {
       })
       domains
         .reset(slug)
-        .then(() => {
+        .catch(() => {})
+        .finally(() => {
           wf.reload().catch(() => {})
           domainFiles.reload().catch(() => {})
           chat
@@ -346,9 +353,6 @@ export default function DomainGraph() {
             .catch(() => {
               chat.get(slug).then(setSnap).catch(() => {})
             })
-        })
-        .catch(() => {
-          chat.start(slug).then(setSnap).catch(() => {})
         })
     } else {
       chat
@@ -686,6 +690,11 @@ export default function DomainGraph() {
           localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
         }
 
+        const legacy = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
+        const filteredLegacy = legacy.filter((m) => m.name !== modelName)
+        filteredLegacy.unshift(payload)
+        localStorage.setItem('agentforgex_saved_models', JSON.stringify(filteredLegacy.slice(0, 50)))
+
         localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
         localStorage.setItem(`afx_custom_name_${slug}`, modelName)
 
@@ -708,13 +717,15 @@ export default function DomainGraph() {
   }
 
   const nextConfig = useMemo(() => {
-    if (isGapMode) {
+    const isUpload = leftViewMode === 'upload' || searchParams.get('mode') === 'upload'
+
+    if (isGapMode || searchParams.get('mode') === 'gap') {
       return {
         label: 'Next: Review',
         onNext: () => nav(`/finance/${slug}/finalize`),
       }
     }
-    if (leftViewMode === 'upload') {
+    if (isUpload) {
       if (hasUploadedFiles) {
         return {
           label: 'Gap Analysis',
@@ -729,9 +740,12 @@ export default function DomainGraph() {
     // Business Input view -> navigates to Data Input view
     return {
       label: 'Next',
-      onNext: () => nav(`/finance/${slug}?mode=upload`),
+      onNext: () => {
+        setLeftViewMode('upload')
+        nav(`/finance/${slug}?mode=upload`)
+      },
     }
-  }, [isGapMode, leftViewMode, hasUploadedFiles, slug, nav, handleProceedToGapAnalysis])
+  }, [isGapMode, leftViewMode, hasUploadedFiles, slug, nav, handleProceedToGapAnalysis, searchParams])
 
   return (
     <Layout
@@ -954,8 +968,8 @@ export default function DomainGraph() {
                 onNextToUpload={() => setLeftViewMode('upload')}
                 isUploadOpen={leftViewMode === 'upload'}
                 parsingProgress={parsingProgress}
-                locked={finalized}
-                disabledReason={finalized ? 'This model is finalised and governed as an Enterprise Digital Twin. Re-open it on the review page if you wish to make further changes.' : undefined}
+                locked={false}
+                disabledReason={undefined}
                 onGraphUpdate={(res) => {
                   if (res?.graph) {
                     setAiGraph(res.graph)

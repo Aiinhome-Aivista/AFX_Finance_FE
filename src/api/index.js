@@ -33,6 +33,10 @@ export const domains = {
     const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
     return http.post(`/domains/${clean}/reset`).then(d).catch(() => null)
   },
+  resetDomain: (slug) => {
+    const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
+    return http.post(`/domains/${clean}/reset`).then(d).catch(() => null)
+  },
   resetWorkspace: () => http.post('/workspace/reset').then(d).catch(() => null),
 }
 export const ontology = {

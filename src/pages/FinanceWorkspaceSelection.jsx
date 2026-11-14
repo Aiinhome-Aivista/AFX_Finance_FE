@@ -45,6 +45,11 @@ export default function FinanceWorkspaceSelection() {
     let alive = true
 
     const localSaved = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
+    const legacySaved = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
+    const allLocalSaved = [
+      ...localSaved,
+      ...legacySaved.filter((leg) => !localSaved.some((ls) => ls.name === leg.name)),
+    ]
     const localPublished = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
 
     domains
@@ -54,16 +59,18 @@ export default function FinanceWorkspaceSelection() {
         const beSaved = res?.saved_models || []
         const bePublished = res?.published_models || []
 
-        // If local storage has published models not in backend, or local saved models not in backend, sync them
-        const missingPubInBe = localPublished.filter((lp) => !bePublished.some((bp) => bp.name === lp.name))
-        const missingSavedInBe = localSaved.filter((ls) => !beSaved.some((bs) => bs.name === ls.name) && !bePublished.some((bp) => bp.name === ls.name))
+        // Find any locally saved or legacy models not yet in backend
+        const missingSaved = allLocalSaved.filter(
+          (ls) => !beSaved.some((bs) => bs.name === ls.name) && !bePublished.some((bp) => bp.name === ls.name)
+        )
+        const missingPub = localPublished.filter((lp) => !bePublished.some((bp) => bp.name === lp.name))
 
-        if (missingPubInBe.length > 0 || missingSavedInBe.length > 0) {
+        if (missingSaved.length > 0 || missingPub.length > 0) {
           domains
-            .syncCustomModels({ saved: localSaved, published: localPublished })
+            .syncCustomModels({ saved: allLocalSaved, published: localPublished })
             .then((syncRes) => {
               if (!alive) return
-              const nextSaved = syncRes?.saved_models || beSaved
+              const nextSaved = syncRes?.saved_models || [...beSaved, ...missingSaved]
               const nextPub = syncRes?.published_models || bePublished
               setSavedModels(nextSaved)
               setPublishedModels(nextPub)
@@ -71,9 +78,10 @@ export default function FinanceWorkspaceSelection() {
               localStorage.setItem('afx_published_models', JSON.stringify(nextPub))
             })
             .catch(() => {
-              setSavedModels(beSaved)
+              const mergedSaved = [...beSaved, ...missingSaved]
+              setSavedModels(mergedSaved)
               setPublishedModels(bePublished)
-              localStorage.setItem('afx_saved_models', JSON.stringify(beSaved))
+              localStorage.setItem('afx_saved_models', JSON.stringify(mergedSaved))
               localStorage.setItem('afx_published_models', JSON.stringify(bePublished))
             })
         } else {
@@ -113,6 +121,10 @@ export default function FinanceWorkspaceSelection() {
     const updated = savedModels.filter((m) => m.name !== modelName)
     setSavedModels(updated)
     localStorage.setItem('afx_saved_models', JSON.stringify(updated))
+    try {
+      const leg = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
+      localStorage.setItem('agentforgex_saved_models', JSON.stringify(leg.filter((m) => m.name !== modelName)))
+    } catch {}
     if (selectedMyModel === modelName) {
       setSelectedMyModel(updated[0]?.name || null)
     }
@@ -196,6 +208,30 @@ export default function FinanceWorkspaceSelection() {
     nav('/finance')
   }
 
+  const handleNewModel = async () => {
+    try {
+      Object.keys(localStorage).forEach((k) => {
+        if (
+          k.startsWith('afx_custom_graph_') ||
+          k.startsWith('afx_gap_cache_') ||
+          k.startsWith('afx_working_graph_') ||
+          k.startsWith('afx_model_snapshot_') ||
+          k.startsWith('afx_custom_name_')
+        ) {
+          localStorage.removeItem(k)
+        }
+      })
+      sessionStorage.setItem('afx_fresh_session', 'true')
+      sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
+    } catch {}
+    try {
+      await domains.resetWorkspace?.()
+    } catch (err) {
+      console.warn('Workspace reset error:', err)
+    }
+    nav('/finance?fresh=1')
+  }
+
   const selectedTargetModel = useMemo(() => {
     if (selectedPublishedModel) {
       return {
@@ -211,22 +247,6 @@ export default function FinanceWorkspaceSelection() {
     }
     return null
   }, [selectedPublishedModel, selectedMyModel])
-
-  const handleNewModel = () => {
-    sessionStorage.setItem('afx_fresh_session', 'true')
-    sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
-
-    try {
-      Object.keys(localStorage).forEach((k) => {
-        if (k.startsWith('afx_custom_graph_') || k.startsWith('afx_gap_cache_') || k.startsWith('afx_working_graph_')) {
-          localStorage.removeItem(k)
-        }
-      })
-    } catch { }
-
-    domains.resetWorkspace?.().catch?.(() => { })
-    nav('/finance?fresh=1')
-  }
 
   return (
     <Layout hideWorkflowBar>
@@ -388,8 +408,6 @@ export default function FinanceWorkspaceSelection() {
               <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
                 {savedModels.map((m) => {
                   const isSelected = selectedMyModel === m.name
-                  const nodeCount = m.nodes?.length || 9
-                  const edgeCount = m.edges?.length || 0
 
                   return (
                     <div
@@ -423,7 +441,7 @@ export default function FinanceWorkspaceSelection() {
                       </div>
                       <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
                       <p className="text-xs text-mute mt-1">
-                        Domain: {m.slug ? m.slug.replace(/-/g, ' ') : 'Planning, Budgeting and Forecasting'} · {nodeCount} entities · {edgeCount} relationships
+                        Domain: {m.domainName || (m.slug ? m.slug.replace(/[-_]/g, ' ') : 'Planning, Budgeting and Forecasting')}
                       </p>
                       <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
                         <span>Saved on {m.savedAt ? new Date(m.savedAt).toLocaleDateString() : 'Recent'}</span>
