@@ -29,8 +29,11 @@ export const domains = {
   select: (slug) => http.post(`/domains/${slug}/select`).then(d),
   confirmBlocks: (slug, blocks) => http.post(`/domains/${slug}/blocks`, { blocks }).then(d),
   workflow: (slug, wf) => http.get(`/domains/${slug}/workflow`, { params: wf ? { wf } : {} }).then(d),
-  resetWorkspace: () => http.post('/workspace/reset').then(d),
-  resetDomain: (slug) => http.post(`/domains/${slug}/reset`).then(d),
+  reset: (slug) => {
+    const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
+    return http.post(`/domains/${clean}/reset`).then(d).catch(() => null)
+  },
+  resetWorkspace: () => http.post('/workspace/reset').then(d).catch(() => null),
 }
 export const ontology = {
   overviewGraph: () => http.get('/ontology/overview-graph').then(d),

@@ -718,7 +718,7 @@ export default function Finalize() {
 
   const wf = useAsync(() => domains.workflow(slug), [slug])
   const fin = useAsync(() => graphs.finalization(slug), [slug], { immediate: true })
-  const g = useAsync(() => domains.graph(slug), [slug])
+  const g = useAsync(() => domains.graph(slug, false), [slug])
 
   const domainName =
     wf.data?.domain?.name ||
@@ -800,10 +800,25 @@ export default function Finalize() {
 
   // Robust fallback to ensure Knowledge Graph is ALWAYS populated across all domains
   const effectiveBaseGraph = useMemo(() => {
-    if (fin.data?.graph?.nodes?.length > 0) return fin.data.graph
-    if (g.data?.nodes?.length > 0) return g.data
+    let sourceGraph = fin.data?.graph?.nodes?.length > 0 ? fin.data.graph : g.data?.nodes?.length > 0 ? g.data : null
     const dKey = domainKey || 'f1'
     const dm = DOMMETA[dKey] || DOMMETA.f1
+    if (sourceGraph && sourceGraph.nodes) {
+      // Only keep nodes belonging to the current domain and spine
+      const filteredNodes = sourceGraph.nodes.filter((n) => {
+        const nd = String(n.group_key || n.d || '').toLowerCase()
+        return nd === dKey || nd === 'spine' || n.origin === 'custom' || n.origin === 'user' || n.role === 'client'
+      })
+      const nodeKeySet = new Set(filteredNodes.map((n) => String(n.key || n.id)))
+      const filteredEdges = (sourceGraph.edges || []).filter(
+        (e) => nodeKeySet.has(String(e.source || e.srcId)) && nodeKeySet.has(String(e.target || e.tgtId))
+      )
+      return {
+        ...sourceGraph,
+        nodes: filteredNodes.length > 0 ? filteredNodes : sourceGraph.nodes,
+        edges: filteredEdges,
+      }
+    }
     const rawNodes = NODES.filter((n) => n.d === dKey || n.d === 'spine')
     return {
       nodes: rawNodes.map((n, idx) => ({
@@ -948,11 +963,6 @@ export default function Finalize() {
           localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
         }
 
-        const legacy = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
-        const filteredLegacy = legacy.filter((m) => m.name !== modelName)
-        filteredLegacy.unshift(payload)
-        localStorage.setItem('agentforgex_saved_models', JSON.stringify(filteredLegacy.slice(0, 50)))
-
         localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
         localStorage.setItem(`afx_custom_name_${slug}`, modelName)
 
@@ -1075,6 +1085,7 @@ export default function Finalize() {
               edges={graphDataWithGaps.edges}
               domainMeta={wf.data?.domain || { n: domainName, name: domainName, c: domainMeta?.c || '#10b981' }}
               activeDomain={activeDomainFilter}
+              showNeighbours={false}
               selectedNodeId={selectedNode}
               onSelectNode={handleSelectNode}
               className="w-full h-full"

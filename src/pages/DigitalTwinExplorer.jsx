@@ -180,8 +180,6 @@ export default function DigitalTwinExplorer() {
         id: `custom_${Date.now()}`,
         name: modelName,
         createdAt: now.toISOString(),
-        savedAt: now.toISOString(),
-        slug,
         domainSlug: slug,
         domainName: domainName || 'Finance Model',
         nodeCount: productionGraph.nodes.length || 0,
@@ -189,35 +187,9 @@ export default function DigitalTwinExplorer() {
         nodes: productionGraph.nodes,
         edges: productionGraph.edges,
       }
-
-      // Check if already published
-      const publishedRegistry = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
-      const isAlreadyPublished = publishedRegistry.some((p) => p.name === modelName)
-
-      if (!isAlreadyPublished) {
-        const existing = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-        const filtered = existing.filter((m) => m.name !== modelName)
-        filtered.unshift(payload)
-        localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
-      } else {
-        const updatedPub = publishedRegistry.map((p) => (p.name === modelName ? { ...p, nodes: payload.nodes, edges: payload.edges } : p))
-        localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
-      }
-
-      const legacy = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
-      const filteredLegacy = legacy.filter((m) => m.name !== modelName)
-      filteredLegacy.unshift(payload)
-      localStorage.setItem('agentforgex_saved_models', JSON.stringify(filteredLegacy.slice(0, 50)))
-
-      // Persist to backend database dynamically
-      domains.saveCustomModel({
-        name: modelName,
-        slug,
-        domainName: domainName || 'Finance Model',
-        nodes: productionGraph.nodes,
-        edges: productionGraph.edges,
-      }).catch((err) => console.warn('Backend custom model save warning:', err))
-
+      const existing = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
+      existing.unshift(payload)
+      localStorage.setItem('agentforgex_saved_models', JSON.stringify(existing))
       toast.success(`Model "${modelName}" saved successfully!`)
       setSaveAsOpen(false)
     } catch (e) {

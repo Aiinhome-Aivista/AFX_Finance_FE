@@ -173,7 +173,7 @@ export default function DomainGraph() {
   const [proposal, setProposal] = useState(null)
   const [deciding, setDeciding] = useState(false)
   const [activeRightTab, setActiveRightTab] = useState('chat') // 'chat' | 'details'
-  const [leftViewMode, setLeftViewMode] = useState(() => (new URLSearchParams(window.location.search).get('mode') === 'upload' ? 'upload' : 'graph')) // 'graph' | 'upload' (MOM Step 3)
+  const [leftViewMode, setLeftViewMode] = useState('graph') // 'graph' | 'upload' (MOM Step 3)
   const [parsingProgress, setParsingProgress] = useState(null) // { fileName, stage, timestamp } (MOM Step 4)
   const [gapData, setGapData] = useState(null) // MOM Step 5 Gap Analysis (KG2)
   const [isGapMode, setIsGapMode] = useState(false)
@@ -223,15 +223,16 @@ export default function DomainGraph() {
     }
   }
 
+  const [searchParams] = useSearchParams()
+  const isFresh = searchParams.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true'
   const wf = useAsync(() => domains.workflow(slug), [slug])
-  const finalized = Boolean(wf.data?.finalized_version_number)
+  const finalized = Boolean(!isFresh && wf.data?.finalized_version_number)
   const dom = useAsync(() => domains.list(), [])
   const g = useAsync(() => domains.graph(slug, neighbours), [slug, neighbours])
   const blocks = useAsync(() => domains.blocks(slug), [slug])
   const flows = useAsync(() => domains.flows(slug), [slug])
   const domainFiles = useAsync(() => filesApi.list(slug), [slug])
-  const hasUploadedFiles = Boolean(domainFiles.data?.files && domainFiles.data.files.length > 0)
-  const [searchParams] = useSearchParams()
+  const hasUploadedFiles = Boolean(!isFresh && domainFiles.data?.files && domainFiles.data.files.length > 0)
   const { updateDomainWorkflow } = useWorkflow()
 
   const answeredCount = snap?.conversation?.messages?.filter((m) => m.kind === 'answer')?.length || 0
@@ -278,12 +279,7 @@ export default function DomainGraph() {
   useEffect(() => {
     setIsGapMode(false)
     setGapData(null)
-    const mode = searchParams.get('mode')
-    if (mode === 'upload') {
-      setLeftViewMode('upload')
-    } else {
-      setLeftViewMode('graph')
-    }
+    setLeftViewMode('graph')
     setParsingProgress(null)
     setActiveDomainFilter(domainKey)
     setSelected(null)
@@ -321,20 +317,38 @@ export default function DomainGraph() {
         })
     }
 
-    const isFresh = sessionStorage.getItem('afx_fresh_session') === 'true' || searchParams.get('fresh') === '1'
     if (isFresh) {
       sessionStorage.removeItem('afx_fresh_session')
+      setSnap({
+        conversation_id: null,
+        messages: [],
+        open_question: null,
+        progress: { answered: 0, planned: 0, plan_complete: false },
+        pending_change_count: 0,
+        engine: 'Assistant',
+        llm_enabled: false,
+      })
+      updateDomainWorkflow(slug, {
+        isKG1Ready: false,
+        hasFiles: false,
+        isGapMode: false,
+        isFinalized: false,
+        viewMode: 'chat',
+      })
       domains
-        .resetDomain(slug)
-        .catch(() => {})
-        .finally(() => {
-          wf.reload()
+        .reset(slug)
+        .then(() => {
+          wf.reload().catch(() => {})
+          domainFiles.reload().catch(() => {})
           chat
             .start(slug)
             .then(setSnap)
             .catch(() => {
               chat.get(slug).then(setSnap).catch(() => {})
             })
+        })
+        .catch(() => {
+          chat.start(slug).then(setSnap).catch(() => {})
         })
     } else {
       chat
@@ -353,14 +367,18 @@ export default function DomainGraph() {
         })
     }
 
-    graphs
-      .proposals(slug)
-      .then((r) => {
-        const p = r.proposals?.find((x) => x.status === 'pending' && x.source === 'chat') || null
-        setProposal(p)
-      })
-      .catch(() => { })
-  }, [slug])
+    if (!isFresh) {
+      graphs
+        .proposals(slug)
+        .then((r) => {
+          const p = r.proposals?.find((x) => x.status === 'pending' && x.source === 'chat') || null
+          setProposal(p)
+        })
+        .catch(() => { })
+    } else {
+      setProposal(null)
+    }
+  }, [slug, isFresh])
 
   // Bidirectional communication with graph iframe
   useEffect(() => {
@@ -655,14 +673,18 @@ export default function DomainGraph() {
 
       // Persist saved model snapshot to application storage and backend database dynamically
       try {
-        const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-        const filtered = savedRegistry.filter((m) => m.name !== modelName)
-        filtered.unshift(payload)
-        localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
-        const legacy = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
-        const filteredLegacy = legacy.filter((m) => m.name !== modelName)
-        filteredLegacy.unshift(payload)
-        localStorage.setItem('agentforgex_saved_models', JSON.stringify(filteredLegacy.slice(0, 50)))
+        const publishedRegistry = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
+        const isAlreadyPublished = publishedRegistry.some((p) => p.name === modelName)
+
+        if (!isAlreadyPublished) {
+          const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
+          const filtered = savedRegistry.filter((m) => m.name !== modelName)
+          filtered.unshift(payload)
+          localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+        } else {
+          const updatedPub = publishedRegistry.map((p) => (p.name === modelName ? { ...p, nodes: payload.nodes, edges: payload.edges } : p))
+          localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
+        }
 
         localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
         localStorage.setItem(`afx_custom_name_${slug}`, modelName)
@@ -686,15 +708,13 @@ export default function DomainGraph() {
   }
 
   const nextConfig = useMemo(() => {
-    const isUpload = leftViewMode === 'upload' || searchParams.get('mode') === 'upload'
-
-    if (isGapMode || searchParams.get('mode') === 'gap') {
+    if (isGapMode) {
       return {
         label: 'Next: Review',
         onNext: () => nav(`/finance/${slug}/finalize`),
       }
     }
-    if (isUpload) {
+    if (leftViewMode === 'upload') {
       if (hasUploadedFiles) {
         return {
           label: 'Gap Analysis',
@@ -709,12 +729,9 @@ export default function DomainGraph() {
     // Business Input view -> navigates to Data Input view
     return {
       label: 'Next',
-      onNext: () => {
-        setLeftViewMode('upload')
-        nav(`/finance/${slug}?mode=upload`)
-      },
+      onNext: () => nav(`/finance/${slug}?mode=upload`),
     }
-  }, [isGapMode, leftViewMode, hasUploadedFiles, slug, nav, handleProceedToGapAnalysis, searchParams])
+  }, [isGapMode, leftViewMode, hasUploadedFiles, slug, nav, handleProceedToGapAnalysis])
 
   return (
     <Layout
@@ -937,8 +954,8 @@ export default function DomainGraph() {
                 onNextToUpload={() => setLeftViewMode('upload')}
                 isUploadOpen={leftViewMode === 'upload'}
                 parsingProgress={parsingProgress}
-                locked={false}
-                disabledReason={undefined}
+                locked={finalized}
+                disabledReason={finalized ? 'This model is finalised and governed as an Enterprise Digital Twin. Re-open it on the review page if you wish to make further changes.' : undefined}
                 onGraphUpdate={(res) => {
                   if (res?.graph) {
                     setAiGraph(res.graph)
