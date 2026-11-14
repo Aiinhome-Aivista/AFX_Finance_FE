@@ -11,7 +11,8 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
   const loc = useLocation()
   const roleLabel = isAnalyst ? 'Data Analyst' : 'Data Architect'
   const isModelSelectionPage = hideWorkflowBar || loc.pathname === '/apps'
-  const isFinalStep = hideNext || loc.pathname.endsWith('/twin')
+  const isLandingOrOverview = loc.pathname === '/finance' || loc.pathname === '/finance/'
+  const shouldHideNext = hideNext || loc.pathname.endsWith('/twin') || isLandingOrOverview
 
   const handleNext = () => {
     if (onNext) {
@@ -83,7 +84,7 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
           {/* User Controls & Actions */}
           <div className="flex items-center gap-2 shrink-0">
             {headerAction}
-            {!isModelSelectionPage && !isFinalStep && (
+            {!isModelSelectionPage && !shouldHideNext && (
               <button
                 type="button"
                 onClick={handleNext}

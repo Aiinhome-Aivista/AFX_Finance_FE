@@ -187,6 +187,22 @@ export default function FinanceWorkspaceSelection() {
     return null
   }, [selectedPublishedModel, selectedMyModel])
 
+  const handleNewModel = () => {
+    sessionStorage.setItem('afx_fresh_session', 'true')
+    sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
+
+    try {
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith('afx_custom_graph_') || k.startsWith('afx_gap_cache_') || k.startsWith('afx_working_graph_')) {
+          localStorage.removeItem(k)
+        }
+      })
+    } catch {}
+
+    domains.resetWorkspace().catch(() => {})
+    nav('/finance?fresh=1')
+  }
+
   return (
     <Layout hideWorkflowBar>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -215,14 +231,15 @@ export default function FinanceWorkspaceSelection() {
             </div>
 
             {/* Top Right Quick Action: [New] */}
-            <Link
-              to="/finance"
-              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-[#0b1320] shadow-sm transition"
+            <button
+              type="button"
+              onClick={handleNewModel}
+              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-[#0b1320] shadow-sm transition cursor-pointer"
               title="Create a new Finance domain model"
             >
               <Plus size={15} />
               <span>New</span>
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -277,7 +294,23 @@ export default function FinanceWorkspaceSelection() {
                   const nodeCount = m.nodes?.length || 9
                   const edgeCount = m.edges?.length || 0
 
-                  return (
+                  const handleNewModel = () => {
+    sessionStorage.setItem('afx_fresh_session', 'true')
+    sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
+
+    try {
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith('afx_custom_graph_') || k.startsWith('afx_gap_cache_') || k.startsWith('afx_working_graph_')) {
+          localStorage.removeItem(k)
+        }
+      })
+    } catch {}
+
+    domains.resetWorkspace().catch(() => {})
+    nav('/finance?fresh=1')
+  }
+
+  return (
                     <div
                       key={m.name}
                       onClick={() => {
@@ -378,7 +411,23 @@ export default function FinanceWorkspaceSelection() {
               <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
                 {publishedModels.map((m) => {
                   const isSelected = selectedPublishedModel === m.name
-                  return (
+                  const handleNewModel = () => {
+    sessionStorage.setItem('afx_fresh_session', 'true')
+    sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
+
+    try {
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith('afx_custom_graph_') || k.startsWith('afx_gap_cache_') || k.startsWith('afx_working_graph_')) {
+          localStorage.removeItem(k)
+        }
+      })
+    } catch {}
+
+    domains.resetWorkspace().catch(() => {})
+    nav('/finance?fresh=1')
+  }
+
+  return (
                     <div
                       key={m.name}
                       onClick={() => {
