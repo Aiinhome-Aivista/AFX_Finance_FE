@@ -315,7 +315,7 @@ export default function ChatPanel({
           <div className="mt-6 flex flex-col gap-2 w-full text-left">
             <button
               onClick={start}
-              disabled={busy || locked}
+              disabled={busy}
               className="group flex items-center justify-between rounded-xl border border-brand/30 bg-brand/10 p-3 text-xs font-semibold text-brand transition hover:bg-brand hover:text-white shadow-2xs cursor-pointer"
             >
               <div className="flex items-center gap-2">
@@ -501,30 +501,8 @@ export default function ChatPanel({
 
       {/* Bottom Controls & Input */}
       <div className="border-t border-line/70 p-3 bg-surface/95">
-        {isEffectivelyLocked ? (
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/30 p-3 text-center text-xs space-y-2">
-            <div className="flex items-center justify-center gap-1.5 font-bold text-emerald-800 dark:text-emerald-300">
-              <Lock size={13} />
-              <span>Digital Twin Governed</span>
-            </div>
-            <p className="text-[11px] text-muted">{disabledReason}</p>
-            <div className="flex items-center justify-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setShowReopenConfirm(true)}
-                disabled={reopening}
-                className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow-sm cursor-pointer transition hover:scale-[1.02] disabled:opacity-50"
-              >
-                {reopening ? 'Unlocking…' : 'Unlock / Re-open Model'}
-              </button>
-              <Link to={`/finance/${slug}/finalize`} className="btn-ghost btn-sm text-[11px] text-ink hover:text-brand cursor-pointer">
-                Review Page →
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {/* Context chip if a node is selected */}
+        <div className="space-y-2">
+          {/* Context chip if a node is selected */}
             {askNode && (
               <div className="flex items-center justify-between gap-2 rounded-xl bg-brand/10 border border-brand/25 px-2.5 py-1.5 text-xs">
                 <div className="flex items-center gap-1.5 min-w-0">
@@ -679,7 +657,6 @@ export default function ChatPanel({
               </button>
             </form>
           </div>
-        )}
       </div>
 
       <ConfirmDialog

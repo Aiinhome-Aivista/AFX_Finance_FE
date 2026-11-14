@@ -197,6 +197,29 @@ export default function FinanceWorkspaceSelection() {
     nav('/finance')
   }
 
+  const handleNewModel = async () => {
+    try {
+      Object.keys(localStorage).forEach((k) => {
+        if (
+          k.startsWith('afx_custom_graph_') ||
+          k.startsWith('afx_gap_cache_') ||
+          k.startsWith('afx_working_graph_') ||
+          k.startsWith('afx_model_snapshot_') ||
+          k.startsWith('afx_custom_name_')
+        ) {
+          localStorage.removeItem(k)
+        }
+      })
+      sessionStorage.setItem('afx_fresh_session', 'true')
+    } catch {}
+    try {
+      await domains.resetWorkspace()
+    } catch (err) {
+      console.warn('Workspace reset error:', err)
+    }
+    nav('/finance?fresh=1')
+  }
+
   const selectedTargetModel = useMemo(() => {
     if (selectedPublishedModel) {
       return {
@@ -244,14 +267,15 @@ export default function FinanceWorkspaceSelection() {
 
             {/* Top Right Quick Action: [New] (Data Architect Only) */}
             {!isAnalyst && (
-              <Link
-                to="/finance"
-                className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-[#0b1320] shadow-sm transition"
+              <button
+                type="button"
+                onClick={handleNewModel}
+                className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-[#0b1320] shadow-sm transition cursor-pointer"
                 title="Create a new Finance domain model"
               >
                 <Plus size={15} />
                 <span>New</span>
-              </Link>
+              </button>
             )}
           </div>
         </div>

@@ -321,20 +321,37 @@ export default function DomainGraph() {
         })
     }
 
-    chat
-      .get(slug)
-      .then(setSnap)
-      .catch(() => {
-        setSnap({
-          conversation_id: null,
-          messages: [],
-          open_question: null,
-          progress: { answered: 0, planned: 0, plan_complete: false },
-          pending_change_count: 0,
-          engine: 'Assistant',
-          llm_enabled: false,
+    const isFresh = sessionStorage.getItem('afx_fresh_session') === 'true' || searchParams.get('fresh') === '1'
+    if (isFresh) {
+      sessionStorage.removeItem('afx_fresh_session')
+      domains
+        .resetDomain(slug)
+        .catch(() => {})
+        .finally(() => {
+          wf.reload()
+          chat
+            .start(slug)
+            .then(setSnap)
+            .catch(() => {
+              chat.get(slug).then(setSnap).catch(() => {})
+            })
         })
-      })
+    } else {
+      chat
+        .get(slug)
+        .then(setSnap)
+        .catch(() => {
+          setSnap({
+            conversation_id: null,
+            messages: [],
+            open_question: null,
+            progress: { answered: 0, planned: 0, plan_complete: false },
+            pending_change_count: 0,
+            engine: 'Assistant',
+            llm_enabled: false,
+          })
+        })
+    }
 
     graphs
       .proposals(slug)
@@ -920,8 +937,8 @@ export default function DomainGraph() {
                 onNextToUpload={() => setLeftViewMode('upload')}
                 isUploadOpen={leftViewMode === 'upload'}
                 parsingProgress={parsingProgress}
-                locked={finalized}
-                disabledReason={finalized ? 'This model is finalised and governed as an Enterprise Digital Twin. Re-open it on the review page if you wish to make further changes.' : undefined}
+                locked={false}
+                disabledReason={undefined}
                 onGraphUpdate={(res) => {
                   if (res?.graph) {
                     setAiGraph(res.graph)
