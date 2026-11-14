@@ -193,6 +193,22 @@ export default function FinanceWorkspaceSelection() {
     return null
   }, [selectedPublishedModel, selectedMyModel])
 
+  const handleNewModel = () => {
+    sessionStorage.setItem('afx_fresh_session', 'true')
+    sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
+
+    try {
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith('afx_custom_graph_') || k.startsWith('afx_gap_cache_') || k.startsWith('afx_working_graph_')) {
+          localStorage.removeItem(k)
+        }
+      })
+    } catch { }
+
+    domains.resetWorkspace?.().catch?.(() => { })
+    nav('/finance?fresh=1')
+  }
+
   return (
     <Layout hideWorkflowBar>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -224,14 +240,15 @@ export default function FinanceWorkspaceSelection() {
 
             {/* Top Right Quick Action: [New] (Data Architect Only) */}
             {!isAnalyst && (
-              <Link
-                to="/finance"
-                className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-[#0b1320] shadow-sm transition"
+              <button
+                type="button"
+                onClick={handleNewModel}
+                className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-[#0b1320] shadow-sm transition cursor-pointer"
                 title="Create a new Finance domain model"
               >
                 <Plus size={15} />
                 <span>New</span>
-              </Link>
+              </button>
             )}
           </div>
         </div>
@@ -295,10 +312,11 @@ export default function FinanceWorkspaceSelection() {
                           setSelectedPublishedModel(m.name)
                           setSelectedMyModel(null)
                         }}
-                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer ${isSelected
-                          ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
-                          : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
-                          }`}
+                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer ${
+                          isSelected
+                            ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
+                            : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
+                        }`}
                       >
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
@@ -324,7 +342,7 @@ export default function FinanceWorkspaceSelection() {
             </section>
           </div>
         ) : (
-          /* Data Architect View: 2-Column Side-by-Side View with Center Arrow Transfer (matches user hand-drawn sketch and AppSelect layout) */
+          /* Data Architect View: 2-Column Side-by-Side View with Center Arrow Transfer */
           <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-stretch mt-4">
             {/* Left Column: My Finance Models (Only Saved Models) */}
             <section
@@ -362,10 +380,11 @@ export default function FinanceWorkspaceSelection() {
                           setSelectedMyModel(m.name)
                           setSelectedPublishedModel(null)
                         }}
-                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer relative group ${isSelected
-                          ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
-                          : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
-                          }`}
+                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer relative group ${
+                          isSelected
+                            ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
+                            : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
+                        }`}
                       >
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
@@ -378,7 +397,7 @@ export default function FinanceWorkspaceSelection() {
                             <button
                               type="button"
                               onClick={(e) => handleDeleteSavedModel(e, m.name)}
-                              className="p-1 text-muted hover:text-red-500 hover:bg-surface rounded transition opacity-0 group-hover:opacity-100"
+                              className="p-1 text-muted hover:text-red-500 hover:bg-surface rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
                               title="Delete saved snapshot"
                             >
                               <Trash2 size={13} />
@@ -397,7 +416,7 @@ export default function FinanceWorkspaceSelection() {
                               e.stopPropagation()
                               handlePublishModel(m.name)
                             }}
-                            className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#10b981]/15 text-[#10b981] hover:bg-[#10b981] hover:text-[#0b1320] border border-[#10b981]/40 transition inline-flex items-center gap-1"
+                            className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#10b981]/15 text-[#10b981] hover:bg-[#10b981] hover:text-[#0b1320] border border-[#10b981]/40 transition inline-flex items-center gap-1 cursor-pointer"
                             title="Directly publish this model into Published Models"
                           >
                             <ShieldCheck size={11} />
@@ -419,10 +438,11 @@ export default function FinanceWorkspaceSelection() {
                 disabled={!selectedMyModel}
                 aria-label="Publish selected model to Published Models"
                 title={selectedMyModel ? `Publish "${selectedMyModel.replace(/_/g, ' ')}" to Published Models` : 'Select a saved model on the left to publish'}
-                className={`h-11 w-11 rounded-xl border flex items-center justify-center transition-all ${selectedMyModel
-                  ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-md shadow-[#10b981]/25 hover:bg-[#34d399] cursor-pointer'
-                  : 'bg-surface border-line text-mute opacity-40 cursor-not-allowed'
-                  }`}
+                className={`h-11 w-11 rounded-xl border flex items-center justify-center transition-all ${
+                  selectedMyModel
+                    ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-md shadow-[#10b981]/25 hover:bg-[#34d399] cursor-pointer'
+                    : 'bg-surface border-line text-mute opacity-40 cursor-not-allowed'
+                }`}
               >
                 <ArrowRight size={18} />
               </button>
@@ -461,10 +481,11 @@ export default function FinanceWorkspaceSelection() {
                           setSelectedPublishedModel(m.name)
                           setSelectedMyModel(null)
                         }}
-                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer ${isSelected
-                          ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
-                          : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
-                          }`}
+                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer ${
+                          isSelected
+                            ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
+                            : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
+                        }`}
                       >
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
@@ -522,10 +543,11 @@ export default function FinanceWorkspaceSelection() {
               type="button"
               onClick={handleGo}
               disabled={!selectedTargetModel}
-              className={`inline-flex items-center gap-2 rounded-xl px-7 py-2.5 text-sm font-bold transition-all ${selectedTargetModel
-                ? 'cursor-pointer bg-[#10b981] text-[#0b1320] shadow-md shadow-[#10b981]/30 ring-2 ring-[#10b981]/50 hover:bg-[#34d399]'
-                : 'bg-surface2 border border-line text-mute opacity-50 cursor-not-allowed'
-                }`}
+              className={`inline-flex items-center gap-2 rounded-xl px-7 py-2.5 text-sm font-bold transition-all ${
+                selectedTargetModel
+                  ? 'cursor-pointer bg-[#10b981] text-[#0b1320] shadow-md shadow-[#10b981]/30 ring-2 ring-[#10b981]/50 hover:bg-[#34d399]'
+                  : 'bg-surface2 border border-line text-mute opacity-50 cursor-not-allowed'
+              }`}
             >
               <span>Go</span>
               <ArrowRight size={16} />

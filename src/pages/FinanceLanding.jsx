@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -38,6 +38,7 @@ import {
 
 export default function FinanceLanding() {
   const nav = useNavigate()
+  const [searchParams] = useSearchParams()
   const canvasRef = useRef(null)
   const { isAnalyst } = useAuth()
   const { theme } = useTheme()
@@ -165,7 +166,8 @@ export default function FinanceLanding() {
     }
     const targetSlug = DOMAIN_SLUGS[dKey]
     if (targetSlug) {
-      nav(`/finance/${targetSlug}`)
+      const isFresh = searchParams.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true'
+      nav(`/finance/${targetSlug}${isFresh ? '?fresh=1' : ''}`)
     }
   }
 
@@ -194,7 +196,7 @@ export default function FinanceLanding() {
   const currentActiveProgress = currentActiveSlug ? progress[currentActiveSlug] : null
 
   return (
-    <Layout wide>
+    <Layout wide hideNext>
       {/* =========================================================================
           ROLE-BASED FINANCE MODELS WORKSPACE HEADER & TABS
          ========================================================================= */}
@@ -207,14 +209,14 @@ export default function FinanceLanding() {
             <ArrowLeft size={13} />
             <span>Finance Workspace</span>
           </Link>
-          <div>
+          {/* <div>
             <h2 className="text-sm sm:text-base font-bold text-ink tracking-tight">
               Finance Knowledge Graph
             </h2>
             <p className="text-[11px] text-mute">
               Interactive multi-dimensional ontology mapping core financial planning, costing, and governance.
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -608,7 +610,7 @@ export default function FinanceLanding() {
                   {selectedNode.d !== 'spine' && DOMAIN_SLUGS[selectedNode.d] && (
                     <div className="mt-3.5">
                       <Link
-                        to={`/finance/${DOMAIN_SLUGS[selectedNode.d]}`}
+                        to={`/finance/${DOMAIN_SLUGS[selectedNode.d]}${(searchParams.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true') ? '?fresh=1' : ''}`}
                         className="btn-primary btn-sm w-full flex items-center justify-center gap-2 text-xs font-semibold shadow-sm py-2"
                       >
                         <span>

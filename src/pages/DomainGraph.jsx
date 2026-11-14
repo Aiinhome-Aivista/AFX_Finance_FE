@@ -223,15 +223,16 @@ export default function DomainGraph() {
     }
   }
 
+  const [searchParams] = useSearchParams()
+  const isFresh = searchParams.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true'
   const wf = useAsync(() => domains.workflow(slug), [slug])
-  const finalized = Boolean(wf.data?.finalized_version_number)
+  const finalized = Boolean(!isFresh && wf.data?.finalized_version_number)
   const dom = useAsync(() => domains.list(), [])
   const g = useAsync(() => domains.graph(slug, neighbours), [slug, neighbours])
   const blocks = useAsync(() => domains.blocks(slug), [slug])
   const flows = useAsync(() => domains.flows(slug), [slug])
   const domainFiles = useAsync(() => filesApi.list(slug), [slug])
-  const hasUploadedFiles = Boolean(domainFiles.data?.files && domainFiles.data.files.length > 0)
-  const [searchParams] = useSearchParams()
+  const hasUploadedFiles = Boolean(!isFresh && domainFiles.data?.files && domainFiles.data.files.length > 0)
   const { updateDomainWorkflow } = useWorkflow()
 
   const answeredCount = snap?.conversation?.messages?.filter((m) => m.kind === 'answer')?.length || 0
@@ -316,29 +317,68 @@ export default function DomainGraph() {
         })
     }
 
-    chat
-      .get(slug)
-      .then(setSnap)
-      .catch(() => {
-        setSnap({
-          conversation_id: null,
-          messages: [],
-          open_question: null,
-          progress: { answered: 0, planned: 0, plan_complete: false },
-          pending_change_count: 0,
-          engine: 'Assistant',
-          llm_enabled: false,
+    if (isFresh) {
+      sessionStorage.removeItem('afx_fresh_session')
+      setSnap({
+        conversation_id: null,
+        messages: [],
+        open_question: null,
+        progress: { answered: 0, planned: 0, plan_complete: false },
+        pending_change_count: 0,
+        engine: 'Assistant',
+        llm_enabled: false,
+      })
+      updateDomainWorkflow(slug, {
+        isKG1Ready: false,
+        hasFiles: false,
+        isGapMode: false,
+        isFinalized: false,
+        viewMode: 'chat',
+      })
+      domains
+        .reset(slug)
+        .then(() => {
+          wf.reload().catch(() => {})
+          domainFiles.reload().catch(() => {})
+          chat
+            .start(slug)
+            .then(setSnap)
+            .catch(() => {
+              chat.get(slug).then(setSnap).catch(() => {})
+            })
         })
-      })
+        .catch(() => {
+          chat.start(slug).then(setSnap).catch(() => {})
+        })
+    } else {
+      chat
+        .get(slug)
+        .then(setSnap)
+        .catch(() => {
+          setSnap({
+            conversation_id: null,
+            messages: [],
+            open_question: null,
+            progress: { answered: 0, planned: 0, plan_complete: false },
+            pending_change_count: 0,
+            engine: 'Assistant',
+            llm_enabled: false,
+          })
+        })
+    }
 
-    graphs
-      .proposals(slug)
-      .then((r) => {
-        const p = r.proposals?.find((x) => x.status === 'pending' && x.source === 'chat') || null
-        setProposal(p)
-      })
-      .catch(() => { })
-  }, [slug])
+    if (!isFresh) {
+      graphs
+        .proposals(slug)
+        .then((r) => {
+          const p = r.proposals?.find((x) => x.status === 'pending' && x.source === 'chat') || null
+          setProposal(p)
+        })
+        .catch(() => { })
+    } else {
+      setProposal(null)
+    }
+  }, [slug, isFresh])
 
   // Bidirectional communication with graph iframe
   useEffect(() => {
