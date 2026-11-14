@@ -373,8 +373,6 @@ export default function FinanceWorkspaceSelection() {
               <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
                 {savedModels.map((m) => {
                   const isSelected = selectedMyModel === m.name
-                  const nodeCount = m.nodes?.length || 9
-                  const edgeCount = m.edges?.length || 0
 
                   return (
                     <div
@@ -409,7 +407,7 @@ export default function FinanceWorkspaceSelection() {
                       </div>
                       <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
                       <p className="text-xs text-mute mt-1">
-                        Domain: {m.slug ? m.slug.replace(/-/g, ' ') : 'Planning, Budgeting and Forecasting'} · {nodeCount} entities · {edgeCount} relationships
+                        Domain: {m.domainName || (m.slug ? m.slug.replace(/[-_]/g, ' ') : 'Planning, Budgeting and Forecasting')}
                       </p>
                       <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
                         <span>Saved on {m.savedAt ? new Date(m.savedAt).toLocaleDateString() : 'Recent'}</span>
