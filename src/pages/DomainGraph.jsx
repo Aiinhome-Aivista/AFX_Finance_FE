@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
@@ -154,6 +154,7 @@ const buildClientGapAnalysis = (currentGraph, uploadedFiles, currentSlug) => {
 export default function DomainGraph() {
   const { slug } = useParams()
   const nav = useNavigate()
+  const location = useLocation()
   const toast = useToast()
   const domainKey = SLUG_TO_DOM[slug] || SLUG_TO_DOM[slug?.replace(/_/g, '-')] || 'all'
   const [activeDomainFilter, setActiveDomainFilter] = useState(domainKey)
@@ -649,10 +650,35 @@ export default function DomainGraph() {
   }
 
   const defaultSaveName = useMemo(() => {
+    // 1. From navigation route state
+    if (location.state?.modelName) {
+      return location.state.modelName
+    }
+    // 2. From currently active selected model
+    const activeModel = localStorage.getItem('afx_active_model_name')
+    if (activeModel) {
+      return activeModel
+    }
+    // 3. From domain custom name
+    const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
+    const customForSlug = localStorage.getItem(`afx_custom_name_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_custom_name_${cleanSlug}`) : null)
+    if (customForSlug) {
+      return customForSlug
+    }
+    // 4. From model snapshot
+    try {
+      const snap = localStorage.getItem(`afx_model_snapshot_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_model_snapshot_${cleanSlug}`) : null)
+      if (snap) {
+        const parsed = JSON.parse(snap)
+        if (parsed?.name) return parsed.name
+      }
+    } catch { }
+
+    // Fallback: Date-based default name
     const now = new Date()
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
-  }, [])
+  }, [slug, location.state])
 
   const handleSaveAs = () => {
     setSaveAsOpen(true)
@@ -664,6 +690,7 @@ export default function DomainGraph() {
       const payload = {
         name: modelName,
         savedAt: now.toISOString(),
+        updatedAt: now.toISOString(),
         slug,
         version: g.data?.version || { number: 1, label: 'v1.0' },
         nodes: base?.nodes || [],
@@ -673,6 +700,17 @@ export default function DomainGraph() {
 
       // Persist saved model snapshot to application storage and backend database dynamically
       try {
+        const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
+        localStorage.setItem('afx_active_model_name', modelName)
+        localStorage.setItem(`afx_custom_name_${slug}`, modelName)
+        if (cleanSlug) {
+          localStorage.setItem(`afx_custom_name_${cleanSlug}`, modelName)
+        }
+        localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
+        if (cleanSlug) {
+          localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(payload))
+        }
+
         const publishedRegistry = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
         const isAlreadyPublished = publishedRegistry.some((p) => p.name === modelName)
 
@@ -686,15 +724,14 @@ export default function DomainGraph() {
           localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
         }
 
-        localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
-        localStorage.setItem(`afx_custom_name_${slug}`, modelName)
-
         domains.saveCustomModel({
           name: modelName,
           slug,
           domainName: domain?.name || 'Planning, Budgeting and Forecasting',
           nodes: payload.nodes,
           edges: payload.edges,
+          savedAt: payload.savedAt,
+          createdAt: payload.savedAt,
         }).catch((err) => console.warn('Backend custom model save warning:', err))
       } catch (err) {
         console.warn('Storage save warning:', err)

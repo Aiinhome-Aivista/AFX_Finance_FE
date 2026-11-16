@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -27,6 +27,7 @@ import { useWorkflow } from '../context/WorkflowContext'
 
 export default function DigitalTwinExplorer() {
   const { slug } = useParams()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const wfParam = searchParams.get('wf')
   const { isAnalyst } = useAuth()
@@ -164,10 +165,30 @@ export default function DigitalTwinExplorer() {
   const [saveAsOpen, setSaveAsOpen] = useState(false)
 
   const defaultSaveName = useMemo(() => {
+    if (location.state?.modelName) {
+      return location.state.modelName
+    }
+    const activeModel = localStorage.getItem('afx_active_model_name')
+    if (activeModel) {
+      return activeModel
+    }
+    const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
+    const customForSlug = localStorage.getItem(`afx_custom_name_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_custom_name_${cleanSlug}`) : null)
+    if (customForSlug) {
+      return customForSlug
+    }
+    try {
+      const snap = localStorage.getItem(`afx_model_snapshot_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_model_snapshot_${cleanSlug}`) : null)
+      if (snap) {
+        const parsed = JSON.parse(snap)
+        if (parsed?.name) return parsed.name
+      }
+    } catch { }
+
     const now = new Date()
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
-  }, [])
+  }, [slug, location.state])
 
   const handleSaveAs = () => {
     setSaveAsOpen(true)
@@ -180,6 +201,8 @@ export default function DigitalTwinExplorer() {
         id: `custom_${Date.now()}`,
         name: modelName,
         createdAt: now.toISOString(),
+        savedAt: now.toISOString(),
+        updatedAt: now.toISOString(),
         domainSlug: slug,
         domainName: domainName || 'Finance Model',
         nodeCount: productionGraph.nodes.length || 0,
@@ -187,9 +210,40 @@ export default function DigitalTwinExplorer() {
         nodes: productionGraph.nodes,
         edges: productionGraph.edges,
       }
+
+      const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
+      localStorage.setItem('afx_active_model_name', modelName)
+      localStorage.setItem(`afx_custom_name_${slug}`, modelName)
+      if (cleanSlug) {
+        localStorage.setItem(`afx_custom_name_${cleanSlug}`, modelName)
+      }
+      localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
+      if (cleanSlug) {
+        localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(payload))
+      }
+
       const existing = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
       existing.unshift(payload)
       localStorage.setItem('agentforgex_saved_models', JSON.stringify(existing))
+
+      const afxSaved = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
+      const filtered = afxSaved.filter((m) => m.name !== modelName)
+      filtered.unshift({
+        ...payload,
+        savedAt: payload.createdAt,
+      })
+      localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+
+      domains.saveCustomModel({
+        name: modelName,
+        slug,
+        domainName: domainName || 'Planning, Budgeting and Forecasting',
+        nodes: payload.nodes,
+        edges: payload.edges,
+        savedAt: payload.savedAt,
+        createdAt: payload.createdAt,
+      }).catch((err) => console.warn('Backend custom model save warning:', err))
+
       toast.success(`Model "${modelName}" saved successfully!`)
       setSaveAsOpen(false)
     } catch (e) {

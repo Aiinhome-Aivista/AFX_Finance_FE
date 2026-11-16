@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
@@ -710,6 +710,7 @@ function DiffLists({ d, domainName = 'Finance', slug = '', graph = null, history
 export default function Finalize() {
   const { slug } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const toast = useToast()
 
   const cleanSlug = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
@@ -926,10 +927,30 @@ export default function Finalize() {
   }
 
   const defaultSaveName = useMemo(() => {
+    if (location.state?.modelName) {
+      return location.state.modelName
+    }
+    const activeModel = localStorage.getItem('afx_active_model_name')
+    if (activeModel) {
+      return activeModel
+    }
+    const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
+    const customForSlug = localStorage.getItem(`afx_custom_name_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_custom_name_${cleanSlug}`) : null)
+    if (customForSlug) {
+      return customForSlug
+    }
+    try {
+      const snap = localStorage.getItem(`afx_model_snapshot_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_model_snapshot_${cleanSlug}`) : null)
+      if (snap) {
+        const parsed = JSON.parse(snap)
+        if (parsed?.name) return parsed.name
+      }
+    } catch { }
+
     const now = new Date()
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
-  }, [])
+  }, [slug, location.state])
 
   const handleSaveAs = () => {
     setSaveAsOpen(true)
@@ -941,6 +962,7 @@ export default function Finalize() {
       const payload = {
         name: modelName,
         savedAt: now.toISOString(),
+        updatedAt: now.toISOString(),
         slug,
         version: d?.version || { number: 1, label: 'v1.0' },
         nodes: graphDataWithGaps.nodes || [],
@@ -950,6 +972,17 @@ export default function Finalize() {
 
       // Persist saved model snapshot to application storage and backend database dynamically
       try {
+        const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
+        localStorage.setItem('afx_active_model_name', modelName)
+        localStorage.setItem(`afx_custom_name_${slug}`, modelName)
+        if (cleanSlug) {
+          localStorage.setItem(`afx_custom_name_${cleanSlug}`, modelName)
+        }
+        localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
+        if (cleanSlug) {
+          localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(payload))
+        }
+
         const publishedRegistry = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
         const isAlreadyPublished = publishedRegistry.some((p) => p.name === modelName)
 
@@ -963,15 +996,14 @@ export default function Finalize() {
           localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
         }
 
-        localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
-        localStorage.setItem(`afx_custom_name_${slug}`, modelName)
-
         domains.saveCustomModel({
           name: modelName,
           slug,
           domainName: d?.name || 'Planning, Budgeting and Forecasting',
           nodes: payload.nodes,
           edges: payload.edges,
+          savedAt: payload.savedAt,
+          createdAt: payload.savedAt,
         }).catch((err) => console.warn('Backend custom model save warning:', err))
       } catch (err) {
         console.warn('Storage save warning:', err)
@@ -1037,8 +1069,8 @@ export default function Finalize() {
               type="button"
               onClick={() => setActiveDomainFilter(activeDomainFilter === 'spine' ? domainKey : 'spine')}
               className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${activeDomainFilter === 'spine'
-                  ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
-                  : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
+                ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
+                : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
                 }`}
               title="Finance master-data spine"
             >
@@ -1101,8 +1133,8 @@ export default function Finalize() {
                   type="button"
                   onClick={() => setActiveRightTab('chat')}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${activeRightTab === 'chat'
-                      ? 'bg-brand text-white shadow-2xs'
-                      : 'text-muted hover:text-ink'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'text-muted hover:text-ink'
                     }`}
                 >
                   <Bot size={14} />
@@ -1118,8 +1150,8 @@ export default function Finalize() {
                   type="button"
                   onClick={() => setActiveRightTab('details')}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${activeRightTab === 'details'
-                      ? 'bg-brand text-white shadow-2xs'
-                      : 'text-muted hover:text-ink'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'text-muted hover:text-ink'
                     }`}
                 >
                   <FileText size={14} />
