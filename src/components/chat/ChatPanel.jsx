@@ -11,7 +11,6 @@ import {
   Send,
   SkipForward,
   Sparkles,
-  UploadCloud,
   User,
   Zap,
 } from 'lucide-react'
@@ -545,28 +544,6 @@ export default function ChatPanel({
                     Proceed
                   </button>
                 </div>
-              </div>
-            )}
-
-            {/* Discovery Complete / Baseline Milestone Card (MOM Step 3) */}
-            {isComplete && onNextToUpload && !isUploadOpen && (
-              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/20 p-3.5 text-xs space-y-2 shadow-2xs">
-                <div className="flex items-center gap-2 font-bold text-emerald-800 dark:text-emerald-300">
-                  <Sparkles size={15} className="text-[#10b981]" />
-                  <span>Domain Discovery Complete</span>
-                </div>
-                <p className="text-muted leading-relaxed">
-                  Your initial questionnaire responses have successfully synthesized your <strong>Domain Knowledge Model</strong>. Ingest your business data files (CSV, Excel, PDF, SQL) to initiate Gap Analysis.
-                </p>
-                <button
-                  type="button"
-                  onClick={onNextToUpload}
-                  className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-sm shadow-emerald-500/25 flex items-center gap-2 cursor-pointer transition-transform hover:scale-[1.02]"
-                >
-                  <UploadCloud size={14} />
-                  <span>Next: Upload Business Data</span>
-                  <ArrowRight size={14} />
-                </button>
               </div>
             )}
 

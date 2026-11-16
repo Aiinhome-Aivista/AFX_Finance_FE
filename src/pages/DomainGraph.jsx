@@ -336,17 +336,17 @@ export default function DomainGraph() {
       domains
         .reset(slug)
         .then(() => {
-          wf.reload().catch(() => {})
-          domainFiles.reload().catch(() => {})
+          wf.reload().catch(() => { })
+          domainFiles.reload().catch(() => { })
           chat
             .start(slug)
             .then(setSnap)
             .catch(() => {
-              chat.get(slug).then(setSnap).catch(() => {})
+              chat.get(slug).then(setSnap).catch(() => { })
             })
         })
         .catch(() => {
-          chat.start(slug).then(setSnap).catch(() => {})
+          chat.start(slug).then(setSnap).catch(() => { })
         })
     } else {
       chat
@@ -389,18 +389,18 @@ export default function DomainGraph() {
       try {
         const savedList = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
         saved = savedList.find((m) => m && m.name === activeName)
-      } catch {}
+      } catch { }
       if (!saved) {
         try {
           const pubList = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
           saved = pubList.find((m) => m && m.name === activeName)
-        } catch {}
+        } catch { }
       }
       if (!saved) {
         try {
           const snapByName = localStorage.getItem(`afx_model_snapshot_${activeName}`)
           if (snapByName) saved = JSON.parse(snapByName)
-        } catch {}
+        } catch { }
       }
     }
 
@@ -408,7 +408,7 @@ export default function DomainGraph() {
       try {
         const snap = localStorage.getItem(`afx_model_snapshot_${slug}`) || localStorage.getItem(`afx_model_snapshot_${cleanSlug}`)
         if (snap) saved = JSON.parse(snap)
-      } catch {}
+      } catch { }
     }
 
     if (saved && saved.nodes && saved.nodes.length > 0) {
