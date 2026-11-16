@@ -50,24 +50,36 @@ export default function ChevronTracker() {
   const { domainMap } = useWorkflow()
 
   // Extract slug from /finance/:slug/...
-  const { currentStep, slug, domainInfo, isFinalized, isTwinPage } = useMemo(() => {
+  const { currentStep, slug: effectiveSlug } = useMemo(() => {
     const parts = path.split('/').filter(Boolean)
+    const nonSlugKeywords = ['overview', 'models', 'telemetry', 'apps']
     let extractedSlug = null
-    if (parts[0] === 'finance' && parts[1] && !['overview'].includes(parts[1])) {
+    if (parts[0] === 'finance' && parts[1] && !nonSlugKeywords.includes(parts[1])) {
       extractedSlug = parts[1]
+      try {
+        localStorage.setItem('afx_last_slug', extractedSlug)
+        localStorage.setItem('afx_active_model_slug', extractedSlug)
+      } catch {
+        // ignore
+      }
     }
 
-    const info = (extractedSlug && domainMap[extractedSlug]) || {}
-    const finalized = Boolean(info.isFinalized)
-    const isGapActive = Boolean(info.isGapMode) || location.search.includes('mode=gap')
+    const fallbackSlug =
+      localStorage.getItem('afx_last_slug') ||
+      localStorage.getItem('afx_active_model_slug') ||
+      Object.keys(domainMap)[0] ||
+      'planning-budgeting-forecasting'
+
+    const resolvedSlug = extractedSlug || fallbackSlug
+
+    const isGapActive = location.search.includes('mode=gap')
     const isUploadView =
-      (location.search.includes('mode=upload') ||
-      location.search.includes('upload')) && !isGapActive
+      (location.search.includes('mode=upload') || location.search.includes('upload')) && !isGapActive
     const twinPage = path.includes('/twin')
     const finalizePage = path.includes('/finalize')
 
     let step = 1
-    if (!extractedSlug || path === '/finance' || path === '/apps') {
+    if (!extractedSlug || path === '/finance' || path.startsWith('/finance/models') || path === '/apps') {
       step = 1
     } else if (twinPage) {
       step = 5
@@ -81,10 +93,7 @@ export default function ChevronTracker() {
 
     return {
       currentStep: step,
-      slug: extractedSlug,
-      domainInfo: info,
-      isFinalized: finalized,
-      isTwinPage: twinPage,
+      slug: resolvedSlug,
     }
   }, [path, location.search, domainMap])
 
@@ -94,27 +103,9 @@ export default function ChevronTracker() {
       className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto py-1 scroll-none max-w-full"
     >
       {STAGES.map((stage) => {
-        let isCompleted = false
-        let isLocked = false
-
-        if (stage.id === 1) {
-          isCompleted = currentStep > 1
-          isLocked = false
-        } else if (stage.id === 2) {
-          isCompleted = currentStep > 2
-          isLocked = !slug
-        } else if (stage.id === 3) {
-          isCompleted = currentStep > 3
-          isLocked = !slug
-        } else if (stage.id === 4) {
-          isCompleted = currentStep > 4
-          isLocked = !slug
-        } else if (stage.id === 5) {
-          isCompleted = currentStep === 5 && isFinalized
-          isLocked = !slug
-        }
-
         const isActive = stage.id === currentStep
+        const isCompleted = stage.id < currentStep
+        const isLocked = !effectiveSlug && stage.id > 1
 
         // Enhanced High-End Styling (preserves exact chevron shape with modern depth):
         let outerBg = 'bg-slate-200/90 dark:bg-slate-600/70'
@@ -186,7 +177,7 @@ export default function ChevronTracker() {
           </div>
         )
 
-        const targetRoute = stage.getRoute(slug)
+        const targetRoute = stage.getRoute(effectiveSlug)
 
         if (isLocked) {
           return (

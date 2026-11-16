@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, FolderKanban, Plus, ShieldCheck, Sparkles, Trash2, CheckCircle2 } from 'lucide-react'
 import Layout from '../components/common/Layout'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import { domains } from '../api'
 
 const sortModelsByRecent = (list) => {
@@ -18,6 +19,7 @@ const sortModelsByRecent = (list) => {
 export default function FinanceWorkspaceSelection() {
   const nav = useNavigate()
   const { isAnalyst } = useAuth()
+  const toast = useToast()
 
   // 1. My Finance Models: Populated dynamically from backend (and cached locally)
   const [savedModels, setSavedModels] = useState(() => {
@@ -161,6 +163,7 @@ export default function FinanceWorkspaceSelection() {
 
   const handleDeleteSavedModel = (e, modelName) => {
     e.stopPropagation()
+    const displayName = (modelName || '').replace(/_/g, ' ')
     const updated = sortModelsByRecent(savedModels.filter((m) => m.name !== modelName))
     setSavedModels(updated)
     localStorage.setItem('afx_saved_models', JSON.stringify(updated))
@@ -168,6 +171,20 @@ export default function FinanceWorkspaceSelection() {
       setSelectedMyModel(updated[0]?.name || null)
     }
     domains.deleteCustomModel(modelName).catch((err) => console.warn('Delete model API warning:', err))
+    toast.success(`"${displayName}" workspace deleted successfully!`)
+  }
+
+  const handleDeletePublishedModel = (e, modelName) => {
+    e.stopPropagation()
+    const displayName = (modelName || '').replace(/_/g, ' ')
+    const updated = publishedModels.filter((m) => m.name !== modelName)
+    setPublishedModels(updated)
+    localStorage.setItem('afx_published_models', JSON.stringify(updated))
+    if (selectedPublishedModel === modelName) {
+      setSelectedPublishedModel(updated[0]?.name || null)
+    }
+    domains.deleteCustomModel(modelName).catch((err) => console.warn('Delete published model API warning:', err))
+    toast.success(`"${displayName}" workspace deleted successfully!`)
   }
 
   // Method 2: Publish action (moves model from My Finance Models to Published Models and saves to backend database)
@@ -423,16 +440,28 @@ export default function FinanceWorkspaceSelection() {
                           setSelectedPublishedModel(m.name)
                           setSelectedMyModel(null)
                         }}
-                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer ${isSelected
+                        className={`w-full group text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer relative ${isSelected
                           ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
                           : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
                           }`}
                       >
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
-                            <ShieldCheck size={12} /> Certified Twin
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                              <ShieldCheck size={12} /> Certified Twin
+                            </span>
+                            {!isAnalyst && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeletePublishedModel(e, m.name)}
+                                className="p-1 text-muted hover:text-red-500 hover:bg-surface rounded transition opacity-50 hover:opacity-100 group-hover:opacity-100 cursor-pointer"
+                                title="Delete published workspace"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <p className="text-xs text-mute mt-1">
                           Domain: {m.domainName || m.slug?.replace(/-/g, ' ')} · Governed Architecture
@@ -499,7 +528,7 @@ export default function FinanceWorkspaceSelection() {
                             <button
                               type="button"
                               onClick={(e) => handleDeleteSavedModel(e, m.name)}
-                              className="p-1 text-muted hover:text-red-500 hover:bg-surface rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                              className="p-1 text-muted hover:text-red-500 hover:bg-surface rounded transition opacity-40 hover:opacity-100 group-hover:opacity-100 cursor-pointer"
                               title="Delete saved snapshot"
                             >
                               <Trash2 size={13} />
@@ -581,16 +610,28 @@ export default function FinanceWorkspaceSelection() {
                           setSelectedPublishedModel(m.name)
                           setSelectedMyModel(null)
                         }}
-                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer ${isSelected
+                        className={`w-full group text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer relative ${isSelected
                           ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
                           : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
                           }`}
                       >
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
-                            <ShieldCheck size={12} /> Certified Twin
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                              <ShieldCheck size={12} /> Certified Twin
+                            </span>
+                            {!isAnalyst && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeletePublishedModel(e, m.name)}
+                                className="p-1 text-muted hover:text-red-500 hover:bg-surface rounded transition opacity-50 hover:opacity-100 group-hover:opacity-100 cursor-pointer"
+                                title="Delete published workspace"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <p className="text-xs text-mute mt-1">
                           Domain: {m.domainName || m.slug?.replace(/-/g, ' ')} · Governed Architecture

@@ -155,6 +155,7 @@ export default function DomainGraph() {
   const { slug } = useParams()
   const nav = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
   const toast = useToast()
   const domainKey = SLUG_TO_DOM[slug] || SLUG_TO_DOM[slug?.replace(/_/g, '-')] || 'all'
   const [activeDomainFilter, setActiveDomainFilter] = useState(domainKey)
@@ -174,7 +175,9 @@ export default function DomainGraph() {
   const [proposal, setProposal] = useState(null)
   const [deciding, setDeciding] = useState(false)
   const [activeRightTab, setActiveRightTab] = useState('chat') // 'chat' | 'details'
-  const [leftViewMode, setLeftViewMode] = useState('graph') // 'graph' | 'upload' (MOM Step 3)
+  const [leftViewMode, setLeftViewMode] = useState(() => {
+    return searchParams.get('mode') === 'upload' ? 'upload' : 'graph'
+  })
   const [parsingProgress, setParsingProgress] = useState(null) // { fileName, stage, timestamp } (MOM Step 4)
   const [gapData, setGapData] = useState(null) // MOM Step 5 Gap Analysis (KG2)
   const [isGapMode, setIsGapMode] = useState(false)
@@ -224,7 +227,6 @@ export default function DomainGraph() {
     }
   }
 
-  const [searchParams] = useSearchParams()
   const isFresh = searchParams.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true'
   const wf = useAsync(() => domains.workflow(slug), [slug])
   const finalized = Boolean(!isFresh && wf.data?.finalized_version_number)
@@ -244,9 +246,13 @@ export default function DomainGraph() {
     const mode = searchParams.get('mode')
     if (mode === 'upload') {
       setLeftViewMode('upload')
+      setIsGapMode(false)
     } else if (mode === 'gap') {
       setIsGapMode(true)
       setLeftViewMode('graph')
+    } else {
+      setLeftViewMode('graph')
+      setIsGapMode(false)
     }
   }, [searchParams])
 
@@ -430,7 +436,17 @@ export default function DomainGraph() {
 
       setAiGraph(restoredGraph)
 
-      if (isGap) {
+      if (searchParams.get('mode') === 'upload') {
+        setIsGapMode(false)
+        setLeftViewMode('upload')
+        updateDomainWorkflow(slug, {
+          isKG1Ready: true,
+          hasFiles: true,
+          isGapMode: false,
+          isFinalized: false,
+          viewMode: 'upload',
+        })
+      } else if (isGap) {
         const discrepancyCount = saved.nodes.filter((n) => n.isGap || n.color === '#ef4444' || n.color === '#dc2626').length || 1
         const gapPayload = saved.gapData || {
           ...restoredGraph,
@@ -863,6 +879,8 @@ export default function DomainGraph() {
     }
   }
 
+  const isUploadModeActive = searchParams.get('mode') === 'upload' || leftViewMode === 'upload'
+
   const nextConfig = useMemo(() => {
     if (isGapMode) {
       return {
@@ -870,13 +888,7 @@ export default function DomainGraph() {
         onNext: () => nav(`/finance/${slug}/finalize`),
       }
     }
-    if (leftViewMode === 'upload') {
-      if (hasUploadedFiles) {
-        return {
-          label: 'Gap Analysis',
-          onNext: handleProceedToGapAnalysis,
-        }
-      }
+    if (isUploadModeActive) {
       return {
         label: 'Next: Review',
         onNext: () => nav(`/finance/${slug}/finalize`),
@@ -884,10 +896,13 @@ export default function DomainGraph() {
     }
     // Business Input view -> navigates to Data Input view
     return {
-      label: 'Next',
-      onNext: () => nav(`/finance/${slug}?mode=upload`),
+      label: 'Next: Data Input',
+      onNext: () => {
+        setLeftViewMode('upload')
+        nav(`/finance/${slug}?mode=upload`)
+      },
     }
-  }, [isGapMode, leftViewMode, hasUploadedFiles, slug, nav, handleProceedToGapAnalysis])
+  }, [isGapMode, isUploadModeActive, slug, nav])
 
   return (
     <Layout

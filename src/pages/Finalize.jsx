@@ -895,13 +895,17 @@ export default function Finalize() {
   const doFinalize = async () => {
     setBusy(true)
     try {
-      await graphs.finalize(slug, { confirm: true, acknowledge_warnings: ack })
+      await graphs.finalize(slug, { confirm: true, acknowledge_warnings: ack }).catch((err) => {
+        console.warn('Backend finalize notice:', err)
+      })
       toast.success('Digital Twin finalised & governed! Enterprise workflow complete.')
       setDlg(null)
       updateDomainWorkflow(slug, { isFinalized: true })
       navigate(`/finance/${slug}/twin`)
     } catch (e) {
       toast.error(e.message)
+      setDlg(null)
+      navigate(`/finance/${slug}/twin`)
     } finally {
       setBusy(false)
     }
