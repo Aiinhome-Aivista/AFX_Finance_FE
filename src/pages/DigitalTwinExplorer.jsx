@@ -209,6 +209,8 @@ export default function DigitalTwinExplorer() {
         edgeCount: productionGraph.edges.length || 0,
         nodes: productionGraph.nodes,
         edges: productionGraph.edges,
+        stage: 'twin',
+        isTwin: true,
       }
 
       const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
@@ -221,6 +223,7 @@ export default function DigitalTwinExplorer() {
       if (cleanSlug) {
         localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(payload))
       }
+      localStorage.setItem(`afx_model_snapshot_${modelName}`, JSON.stringify(payload))
 
       const existing = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
       existing.unshift(payload)

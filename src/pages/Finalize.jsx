@@ -964,10 +964,13 @@ export default function Finalize() {
         savedAt: now.toISOString(),
         updatedAt: now.toISOString(),
         slug,
+        domainName: d?.name || domainName || 'Finance Model',
         version: d?.version || { number: 1, label: 'v1.0' },
         nodes: graphDataWithGaps.nodes || [],
         edges: graphDataWithGaps.edges || [],
         flows: g.data?.flows || [],
+        stage: 'finalize',
+        isGapMode: false,
       }
 
       // Persist saved model snapshot to application storage and backend database dynamically
@@ -982,6 +985,7 @@ export default function Finalize() {
         if (cleanSlug) {
           localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(payload))
         }
+        localStorage.setItem(`afx_model_snapshot_${modelName}`, JSON.stringify(payload))
 
         const publishedRegistry = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
         const isAlreadyPublished = publishedRegistry.some((p) => p.name === modelName)

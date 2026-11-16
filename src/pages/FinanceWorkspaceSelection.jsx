@@ -72,8 +72,13 @@ export default function FinanceWorkspaceSelection() {
             const chosenSavedAt = (localTs > beTs ? lm?.savedAt : bm.savedAt) || bm.savedAt || lm?.savedAt || bm.createdAt || lm?.createdAt
             return {
               ...bm,
+              ...lm,
               nodes: bm.nodes || lm?.nodes,
               edges: bm.edges || lm?.edges,
+              flows: bm.flows || lm?.flows,
+              stage: bm.stage || lm?.stage,
+              isGapMode: bm.isGapMode ?? lm?.isGapMode,
+              gapData: bm.gapData || lm?.gapData,
               savedAt: chosenSavedAt,
             }
           })
@@ -245,15 +250,29 @@ export default function FinanceWorkspaceSelection() {
       const my = savedModels.find((m) => m.name === selectedMyModel)
       if (my) {
         localStorage.setItem('afx_active_model_name', my.name)
-        if (my.slug) {
-          const cleanSlug = my.slug.replace(/\s+/g, '-').toLowerCase()
-          localStorage.setItem(`afx_custom_name_${my.slug}`, my.name)
-          localStorage.setItem(`afx_custom_name_${cleanSlug}`, my.name)
-          localStorage.setItem(`afx_model_snapshot_${my.slug}`, JSON.stringify(my))
-          localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(my))
+        const targetSlug = my.slug || 'planning-budgeting-forecasting'
+        const cleanSlug = targetSlug.replace(/\s+/g, '-').toLowerCase()
+        localStorage.setItem(`afx_custom_name_${targetSlug}`, my.name)
+        localStorage.setItem(`afx_custom_name_${cleanSlug}`, my.name)
+        localStorage.setItem(`afx_model_snapshot_${targetSlug}`, JSON.stringify(my))
+        localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(my))
+        localStorage.setItem(`afx_model_snapshot_${my.name}`, JSON.stringify(my))
+
+        if (my.stage === 'twin' || my.isTwin) {
+          nav(`/finance/${targetSlug}/twin`, {
+            state: { modelName: my.name, model: my },
+          })
+          return
         }
-        nav(`/finance/${my.slug || 'planning-budgeting-forecasting'}`, {
-          state: { modelName: my.name },
+        if (my.stage === 'finalize') {
+          nav(`/finance/${targetSlug}/finalize`, {
+            state: { modelName: my.name, model: my },
+          })
+          return
+        }
+
+        nav(`/finance/${targetSlug}`, {
+          state: { modelName: my.name, model: my },
         })
         return
       }
