@@ -194,7 +194,7 @@ export default function FinanceLanding() {
   const currentActiveProgress = currentActiveSlug ? progress[currentActiveSlug] : null
 
   return (
-    <Layout wide>
+    <Layout wide hideNext>
       {/* =========================================================================
           ROLE-BASED FINANCE MODELS WORKSPACE HEADER & TABS
          ========================================================================= */}
@@ -207,14 +207,6 @@ export default function FinanceLanding() {
             <ArrowLeft size={13} />
             <span>Finance Workspace</span>
           </Link>
-          <div>
-            <h2 className="text-sm sm:text-base font-bold text-ink tracking-tight">
-              Finance Knowledge Graph
-            </h2>
-            <p className="text-[11px] text-mute">
-              Interactive multi-dimensional ontology mapping core financial planning, costing, and governance.
-            </p>
-          </div>
         </div>
       </div>
 
