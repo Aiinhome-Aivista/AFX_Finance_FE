@@ -5,10 +5,12 @@ import {
   ArrowRight,
   Bot,
   CheckCircle2,
+  Compass,
   FileText,
   History,
   Lock,
   Save,
+  ShieldAlert,
   X,
 } from 'lucide-react'
 import Layout from '../components/common/Layout'
@@ -1203,6 +1205,28 @@ export default function Finalize() {
                           </p>
                         )}
                       </div>
+
+                      {(selectedGraphNode.traversal_path || selectedGraphNode.notes?.traversal_path) && (
+                        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-1">
+                          <span className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
+                            <Compass size={12} /> Traversal Path (When & Why to Traverse)
+                          </span>
+                          <p className="text-[11px] text-emerald-900 dark:text-emerald-200 leading-relaxed font-medium">
+                            {selectedGraphNode.traversal_path || selectedGraphNode.notes?.traversal_path}
+                          </p>
+                        </div>
+                      )}
+
+                      {(selectedGraphNode.stop_criteria || selectedGraphNode.notes?.stop_criteria) && (
+                        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/25 space-y-1">
+                          <span className="text-[10px] uppercase font-bold text-red-600 dark:text-red-400 flex items-center gap-1">
+                            <ShieldAlert size={12} /> Boundaries / Stop Criteria (Guardrails)
+                          </span>
+                          <p className="text-[11px] text-red-700 dark:text-red-300 leading-relaxed font-medium">
+                            {selectedGraphNode.stop_criteria || selectedGraphNode.notes?.stop_criteria}
+                          </p>
+                        </div>
+                      )}
 
                       {selectedGraphNode.attributes && selectedGraphNode.attributes.length > 0 && (
                         <div className="p-3 rounded-xl bg-surface2/30 border border-line space-y-2">
