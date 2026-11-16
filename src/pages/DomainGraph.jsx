@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
@@ -154,6 +154,7 @@ const buildClientGapAnalysis = (currentGraph, uploadedFiles, currentSlug) => {
 export default function DomainGraph() {
   const { slug } = useParams()
   const nav = useNavigate()
+  const location = useLocation()
   const toast = useToast()
   const domainKey = SLUG_TO_DOM[slug] || SLUG_TO_DOM[slug?.replace(/_/g, '-')] || 'all'
   const [activeDomainFilter, setActiveDomainFilter] = useState(domainKey)
@@ -246,9 +247,6 @@ export default function DomainGraph() {
     } else if (mode === 'gap') {
       setIsGapMode(true)
       setLeftViewMode('graph')
-    } else {
-      setLeftViewMode('graph')
-      setIsGapMode(false)
     }
   }, [searchParams])
 
@@ -338,17 +336,17 @@ export default function DomainGraph() {
       domains
         .reset(slug)
         .then(() => {
-          wf.reload().catch(() => {})
-          domainFiles.reload().catch(() => {})
+          wf.reload().catch(() => { })
+          domainFiles.reload().catch(() => { })
           chat
             .start(slug)
             .then(setSnap)
             .catch(() => {
-              chat.get(slug).then(setSnap).catch(() => {})
+              chat.get(slug).then(setSnap).catch(() => { })
             })
         })
         .catch(() => {
-          chat.start(slug).then(setSnap).catch(() => {})
+          chat.start(slug).then(setSnap).catch(() => { })
         })
     } else {
       chat
@@ -379,6 +377,122 @@ export default function DomainGraph() {
       setProposal(null)
     }
   }, [slug, isFresh])
+
+  // Restore saved workspace progress if an existing workspace was selected
+  useEffect(() => {
+    if (isFresh || !slug) return
+    const activeName = location.state?.modelName || localStorage.getItem('afx_active_model_name')
+    const cleanSlug = slug.replace(/\s+/g, '-').toLowerCase()
+    let saved = location.state?.model
+
+    if (!saved && activeName) {
+      try {
+        const savedList = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
+        saved = savedList.find((m) => m && m.name === activeName)
+      } catch { }
+      if (!saved) {
+        try {
+          const pubList = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
+          saved = pubList.find((m) => m && m.name === activeName)
+        } catch { }
+      }
+      if (!saved) {
+        try {
+          const snapByName = localStorage.getItem(`afx_model_snapshot_${activeName}`)
+          if (snapByName) saved = JSON.parse(snapByName)
+        } catch { }
+      }
+    }
+
+    if (!saved) {
+      try {
+        const snap = localStorage.getItem(`afx_model_snapshot_${slug}`) || localStorage.getItem(`afx_model_snapshot_${cleanSlug}`)
+        if (snap) saved = JSON.parse(snap)
+      } catch { }
+    }
+
+    if (saved && saved.nodes && saved.nodes.length > 0) {
+      const isGap = Boolean(
+        saved.isGapMode ||
+        saved.stage === 'gap_analysis' ||
+        saved.stage === 'review' ||
+        /gap/i.test(saved.name) ||
+        saved.nodes.some((n) => n.isGap || n.color === '#ef4444' || n.color === '#dc2626')
+      )
+
+      const restoredGraph = {
+        domain: g.data?.domain || { name: saved.domainName || domainKey, slug },
+        nodes: saved.nodes,
+        edges: saved.edges || [],
+        flows: saved.flows || g.data?.flows || [],
+        version: saved.version || g.data?.version,
+      }
+
+      setAiGraph(restoredGraph)
+
+      if (isGap) {
+        const discrepancyCount = saved.nodes.filter((n) => n.isGap || n.color === '#ef4444' || n.color === '#dc2626').length || 1
+        const gapPayload = saved.gapData || {
+          ...restoredGraph,
+          stats: {
+            discrepancies: discrepancyCount,
+            missing: discrepancyCount,
+            new: 0,
+          },
+        }
+        setGapData(gapPayload)
+        setIsGapMode(true)
+        setLeftViewMode('graph')
+        updateDomainWorkflow(slug, {
+          isKG1Ready: true,
+          hasFiles: true,
+          isGapMode: true,
+          isFinalized: false,
+          viewMode: 'graph',
+        })
+        setSnap((prev) => ({
+          conversation_id: prev?.conversation_id || 'restored_gap',
+          messages: [
+            {
+              role: 'assistant',
+              kind: 'system',
+              text: 'Domain Discovery complete. All set for Gap Analysis.',
+            },
+            {
+              role: 'assistant',
+              kind: 'gap_summary',
+              text: `**FINANCE DATA ASSISTANT**\n\n**Gap Analysis Complete.**\n\nI compared your telemetry with your domain baseline model.\n\n- **Discrepancies (RED)**: ${discrepancyCount} discrepancy element(s)\n- **Matched Elements**: ${Math.max(0, saved.nodes.length - discrepancyCount)} verified entity(ies)\n\nAll discrepancies are highlighted in RED on your Knowledge Graph. Let's review these gaps so we can finalize your Digital Twin.`,
+            },
+          ],
+          stage: 'complete',
+          progress: { answered: 3, planned: 3, plan_complete: true },
+          pending_change_count: 0,
+          engine: 'Assistant',
+          llm_enabled: false,
+        }))
+      } else if (saved.stage === 'files' || saved.stage === 'data_input') {
+        setIsGapMode(false)
+        setLeftViewMode('upload')
+        updateDomainWorkflow(slug, {
+          isKG1Ready: true,
+          hasFiles: true,
+          isGapMode: false,
+          isFinalized: false,
+          viewMode: 'upload',
+        })
+      } else {
+        setIsGapMode(false)
+        setLeftViewMode('graph')
+        updateDomainWorkflow(slug, {
+          isKG1Ready: true,
+          hasFiles: false,
+          isGapMode: false,
+          isFinalized: false,
+          viewMode: 'graph',
+        })
+      }
+    }
+  }, [slug, isFresh, location.state])
 
   // Bidirectional communication with graph iframe
   useEffect(() => {
@@ -649,10 +763,35 @@ export default function DomainGraph() {
   }
 
   const defaultSaveName = useMemo(() => {
+    // 1. From navigation route state
+    if (location.state?.modelName) {
+      return location.state.modelName
+    }
+    // 2. From currently active selected model
+    const activeModel = localStorage.getItem('afx_active_model_name')
+    if (activeModel) {
+      return activeModel
+    }
+    // 3. From domain custom name
+    const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
+    const customForSlug = localStorage.getItem(`afx_custom_name_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_custom_name_${cleanSlug}`) : null)
+    if (customForSlug) {
+      return customForSlug
+    }
+    // 4. From model snapshot
+    try {
+      const snap = localStorage.getItem(`afx_model_snapshot_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_model_snapshot_${cleanSlug}`) : null)
+      if (snap) {
+        const parsed = JSON.parse(snap)
+        if (parsed?.name) return parsed.name
+      }
+    } catch { }
+
+    // Fallback: Date-based default name
     const now = new Date()
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
-  }, [])
+  }, [slug, location.state])
 
   const handleSaveAs = () => {
     setSaveAsOpen(true)
@@ -664,21 +803,45 @@ export default function DomainGraph() {
       const payload = {
         name: modelName,
         savedAt: now.toISOString(),
+        updatedAt: now.toISOString(),
         slug,
+        domainName: domain?.name || 'Planning, Budgeting and Forecasting',
         version: g.data?.version || { number: 1, label: 'v1.0' },
         nodes: base?.nodes || [],
         edges: base?.edges || [],
         flows: g.data?.flows || [],
+        isGapMode: Boolean(isGapMode),
+        stage: isGapMode ? 'gap_analysis' : (leftViewMode === 'upload' ? 'files' : 'graph'),
+        gapData: gapData || (isGapMode ? base : null),
+        leftViewMode: leftViewMode || 'graph',
       }
 
       // Persist saved model snapshot to application storage and backend database dynamically
       try {
-        const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-        const filtered = savedRegistry.filter((m) => m.name !== modelName)
-        filtered.unshift(payload)
-        localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
-        localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
+        const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
+        localStorage.setItem('afx_active_model_name', modelName)
         localStorage.setItem(`afx_custom_name_${slug}`, modelName)
+        if (cleanSlug) {
+          localStorage.setItem(`afx_custom_name_${cleanSlug}`, modelName)
+        }
+        localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
+        if (cleanSlug) {
+          localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(payload))
+        }
+        localStorage.setItem(`afx_model_snapshot_${modelName}`, JSON.stringify(payload))
+
+        const publishedRegistry = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
+        const isAlreadyPublished = publishedRegistry.some((p) => p.name === modelName)
+
+        if (!isAlreadyPublished) {
+          const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
+          const filtered = savedRegistry.filter((m) => m.name !== modelName)
+          filtered.unshift(payload)
+          localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+        } else {
+          const updatedPub = publishedRegistry.map((p) => (p.name === modelName ? { ...p, nodes: payload.nodes, edges: payload.edges, isGapMode: payload.isGapMode, stage: payload.stage } : p))
+          localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
+        }
 
         domains.saveCustomModel({
           name: modelName,
@@ -686,6 +849,8 @@ export default function DomainGraph() {
           domainName: domain?.name || 'Planning, Budgeting and Forecasting',
           nodes: payload.nodes,
           edges: payload.edges,
+          savedAt: payload.savedAt,
+          createdAt: payload.savedAt,
         }).catch((err) => console.warn('Backend custom model save warning:', err))
       } catch (err) {
         console.warn('Storage save warning:', err)
@@ -945,8 +1110,8 @@ export default function DomainGraph() {
                 onNextToUpload={() => setLeftViewMode('upload')}
                 isUploadOpen={leftViewMode === 'upload'}
                 parsingProgress={parsingProgress}
-                locked={finalized}
-                disabledReason={finalized ? 'This model is finalised and governed as an Enterprise Digital Twin. Re-open it on the review page if you wish to make further changes.' : undefined}
+                locked={false}
+                disabledReason={undefined}
                 onGraphUpdate={(res) => {
                   if (res?.graph) {
                     setAiGraph(res.graph)

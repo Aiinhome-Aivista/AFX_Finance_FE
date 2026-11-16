@@ -117,8 +117,8 @@ export default function Customize() {
             askNode={askNode}
             nodeName={g?.nodes.find((n) => n.key === askNode)?.name}
             onProposal={setProposal}
-            locked={finalized}
-            disabledReason={finalized ? 'The ontology is finalised. Re-open it on the finalisation page to continue.' : undefined}
+            locked={false}
+            disabledReason={undefined}
             onNextToUpload={() => setViewMode('upload')}
             isUploadOpen={viewMode === 'upload'}
             parsingProgress={parsingProgress}

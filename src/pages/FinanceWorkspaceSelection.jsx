@@ -5,6 +5,16 @@ import Layout from '../components/common/Layout'
 import { useAuth } from '../context/AuthContext'
 import { domains } from '../api'
 
+const sortModelsByRecent = (list) => {
+  return [...(list || [])]
+    .filter((m) => m && m.name && m.name.trim())
+    .sort((a, b) => {
+      const tA = new Date(a.savedAt || a.updatedAt || a.createdAt || 0).getTime()
+      const tB = new Date(b.savedAt || b.updatedAt || b.createdAt || 0).getTime()
+      return tB - tA
+    })
+}
+
 export default function FinanceWorkspaceSelection() {
   const nav = useNavigate()
   const { isAnalyst } = useAuth()
@@ -13,7 +23,7 @@ export default function FinanceWorkspaceSelection() {
   const [savedModels, setSavedModels] = useState(() => {
     try {
       const data = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-      return Array.isArray(data) ? data : []
+      return Array.isArray(data) ? sortModelsByRecent(data) : []
     } catch {
       return []
     }
@@ -54,25 +64,72 @@ export default function FinanceWorkspaceSelection() {
         const beSaved = res?.saved_models || []
         const bePublished = res?.published_models || []
 
-        // If backend database is empty but local storage has models, sync them to the database
-        if (beSaved.length === 0 && bePublished.length === 0 && (localSaved.length > 0 || localPublished.length > 0)) {
+        const mergeWithLocalDates = (beList) => {
+          const merged = (beList || []).map((bm) => {
+            const lm = localSaved.find((x) => x.name === bm.name)
+            const beTs = new Date(bm.savedAt || bm.updatedAt || bm.createdAt || 0).getTime()
+            const localTs = new Date(lm?.savedAt || lm?.updatedAt || lm?.createdAt || 0).getTime()
+            const chosenSavedAt = (localTs > beTs ? lm?.savedAt : bm.savedAt) || bm.savedAt || lm?.savedAt || bm.createdAt || lm?.createdAt
+            return {
+              ...bm,
+              ...lm,
+              nodes: bm.nodes || lm?.nodes,
+              edges: bm.edges || lm?.edges,
+              flows: bm.flows || lm?.flows,
+              stage: bm.stage || lm?.stage,
+              isGapMode: bm.isGapMode ?? lm?.isGapMode,
+              gapData: bm.gapData || lm?.gapData,
+              savedAt: chosenSavedAt,
+            }
+          })
+          return sortModelsByRecent(merged)
+        }
+
+        // If local storage has published models not in backend, or local saved models not in backend, sync them
+        const missingPubInBe = localPublished.filter((lp) => !bePublished.some((bp) => bp.name === lp.name))
+        const missingSavedInBe = localSaved.filter((ls) => !beSaved.some((bs) => bs.name === ls.name) && !bePublished.some((bp) => bp.name === ls.name))
+
+        if (missingPubInBe.length > 0 || missingSavedInBe.length > 0) {
+          const syncSaved = localSaved.map((ls) => ({
+            name: ls.name,
+            slug: ls.slug,
+            domainName: ls.domainName,
+            savedAt: ls.savedAt || ls.createdAt,
+            createdAt: ls.createdAt || ls.savedAt,
+            nodes: ls.nodes,
+            edges: ls.edges,
+          }))
+          const syncPublished = localPublished.map((lp) => ({
+            name: lp.name,
+            slug: lp.slug,
+            domainName: lp.domainName,
+            publishedAt: lp.publishedAt || lp.savedAt,
+          }))
+
           domains
-            .syncCustomModels({ saved: localSaved, published: localPublished })
+            .syncCustomModels({ saved: syncSaved, published: syncPublished })
             .then((syncRes) => {
               if (!alive) return
-              const nextSaved = syncRes?.saved_models || localSaved
-              const nextPub = syncRes?.published_models || localPublished
+              const nextSaved = mergeWithLocalDates(syncRes?.saved_models || beSaved)
+              const nextPub = syncRes?.published_models || bePublished
               setSavedModels(nextSaved)
               setPublishedModels(nextPub)
               localStorage.setItem('afx_saved_models', JSON.stringify(nextSaved))
               localStorage.setItem('afx_published_models', JSON.stringify(nextPub))
             })
-            .catch(() => {})
+            .catch(() => {
+              const finalSaved = mergeWithLocalDates(beSaved)
+              setSavedModels(finalSaved)
+              setPublishedModels(bePublished)
+              localStorage.setItem('afx_saved_models', JSON.stringify(finalSaved))
+              localStorage.setItem('afx_published_models', JSON.stringify(bePublished))
+            })
         } else {
           // Backend is the source of truth across all browsers
-          setSavedModels(beSaved)
+          const finalSaved = mergeWithLocalDates(beSaved)
+          setSavedModels(finalSaved)
           setPublishedModels(bePublished)
-          localStorage.setItem('afx_saved_models', JSON.stringify(beSaved))
+          localStorage.setItem('afx_saved_models', JSON.stringify(finalSaved))
           localStorage.setItem('afx_published_models', JSON.stringify(bePublished))
         }
       })
@@ -85,18 +142,26 @@ export default function FinanceWorkspaceSelection() {
     }
   }, [])
 
-  // Auto-select first available model if none selected
+  const sortedSavedModels = useMemo(() => sortModelsByRecent(savedModels), [savedModels])
+
+  // Auto-select first available model if none selected (the most recently saved workspace)
   useEffect(() => {
-    if (savedModels.length > 0 && !selectedMyModel && !selectedPublishedModel) {
-      setSelectedMyModel(savedModels[0].name)
-    } else if (publishedModels.length > 0 && !selectedPublishedModel && !selectedMyModel) {
-      setSelectedPublishedModel(publishedModels[0].name)
+    if (isAnalyst) {
+      if (publishedModels.length > 0 && !selectedPublishedModel) {
+        setSelectedPublishedModel(publishedModels[0].name)
+      }
+    } else {
+      if (sortedSavedModels.length > 0 && !selectedMyModel && !selectedPublishedModel) {
+        setSelectedMyModel(sortedSavedModels[0].name)
+      } else if (publishedModels.length > 0 && !selectedPublishedModel && !selectedMyModel) {
+        setSelectedPublishedModel(publishedModels[0].name)
+      }
     }
-  }, [savedModels, publishedModels, selectedMyModel, selectedPublishedModel])
+  }, [isAnalyst, sortedSavedModels, publishedModels, selectedMyModel, selectedPublishedModel])
 
   const handleDeleteSavedModel = (e, modelName) => {
     e.stopPropagation()
-    const updated = savedModels.filter((m) => m.name !== modelName)
+    const updated = sortModelsByRecent(savedModels.filter((m) => m.name !== modelName))
     setSavedModels(updated)
     localStorage.setItem('afx_saved_models', JSON.stringify(updated))
     if (selectedMyModel === modelName) {
@@ -130,7 +195,7 @@ export default function FinanceWorkspaceSelection() {
     localStorage.setItem('afx_published_models', JSON.stringify(nextPublished))
 
     // 2. Remove from My Finance Models (transfer across)
-    const nextSaved = savedModels.filter((x) => x.name !== targetName)
+    const nextSaved = sortModelsByRecent(savedModels.filter((x) => x.name !== targetName))
     setSavedModels(nextSaved)
     localStorage.setItem('afx_saved_models', JSON.stringify(nextSaved))
 
@@ -145,6 +210,18 @@ export default function FinanceWorkspaceSelection() {
         slug: pubItem.slug,
         domainName: pubItem.domainName,
       })
+      .then(() => domains.customModels())
+      .then((res) => {
+        if (res?.published_models) {
+          setPublishedModels(res.published_models)
+          localStorage.setItem('afx_published_models', JSON.stringify(res.published_models))
+        }
+        if (res?.saved_models) {
+          const sorted = sortModelsByRecent(res.saved_models)
+          setSavedModels(sorted)
+          localStorage.setItem('afx_saved_models', JSON.stringify(sorted))
+        }
+      })
       .catch((err) => console.warn('Backend custom model publish warning:', err))
 
     showToast(`"${targetName.replace(/_/g, ' ')}" published as Governed Digital Twin!`)
@@ -154,7 +231,17 @@ export default function FinanceWorkspaceSelection() {
     if (selectedPublishedModel) {
       const pub = publishedModels.find((m) => m.name === selectedPublishedModel)
       if (pub) {
-        nav(`/finance/${pub.slug || 'planning-budgeting-forecasting'}/twin`)
+        localStorage.setItem('afx_active_model_name', pub.name)
+        if (pub.slug) {
+          const cleanSlug = pub.slug.replace(/\s+/g, '-').toLowerCase()
+          localStorage.setItem(`afx_custom_name_${pub.slug}`, pub.name)
+          localStorage.setItem(`afx_custom_name_${cleanSlug}`, pub.name)
+          localStorage.setItem(`afx_model_snapshot_${pub.slug}`, JSON.stringify(pub))
+          localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(pub))
+        }
+        nav(`/finance/${pub.slug || 'planning-budgeting-forecasting'}/twin`, {
+          state: { modelName: pub.name },
+        })
         return
       }
     }
@@ -162,7 +249,31 @@ export default function FinanceWorkspaceSelection() {
     if (selectedMyModel) {
       const my = savedModels.find((m) => m.name === selectedMyModel)
       if (my) {
-        nav(`/finance/${my.slug || 'planning-budgeting-forecasting'}`)
+        localStorage.setItem('afx_active_model_name', my.name)
+        const targetSlug = my.slug || 'planning-budgeting-forecasting'
+        const cleanSlug = targetSlug.replace(/\s+/g, '-').toLowerCase()
+        localStorage.setItem(`afx_custom_name_${targetSlug}`, my.name)
+        localStorage.setItem(`afx_custom_name_${cleanSlug}`, my.name)
+        localStorage.setItem(`afx_model_snapshot_${targetSlug}`, JSON.stringify(my))
+        localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(my))
+        localStorage.setItem(`afx_model_snapshot_${my.name}`, JSON.stringify(my))
+
+        if (my.stage === 'twin' || my.isTwin) {
+          nav(`/finance/${targetSlug}/twin`, {
+            state: { modelName: my.name, model: my },
+          })
+          return
+        }
+        if (my.stage === 'finalize') {
+          nav(`/finance/${targetSlug}/finalize`, {
+            state: { modelName: my.name, model: my },
+          })
+          return
+        }
+
+        nav(`/finance/${targetSlug}`, {
+          state: { modelName: my.name, model: my },
+        })
         return
       }
     }
@@ -190,16 +301,22 @@ export default function FinanceWorkspaceSelection() {
   const handleNewModel = () => {
     sessionStorage.setItem('afx_fresh_session', 'true')
     sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
+    localStorage.removeItem('afx_active_model_name')
 
     try {
       Object.keys(localStorage).forEach((k) => {
-        if (k.startsWith('afx_custom_graph_') || k.startsWith('afx_gap_cache_') || k.startsWith('afx_working_graph_')) {
+        if (
+          k.startsWith('afx_custom_name_') ||
+          k.startsWith('afx_custom_graph_') ||
+          k.startsWith('afx_gap_cache_') ||
+          k.startsWith('afx_working_graph_')
+        ) {
           localStorage.removeItem(k)
         }
       })
-    } catch {}
+    } catch { }
 
-    domains.resetWorkspace().catch(() => {})
+    domains.resetWorkspace?.().catch?.(() => { })
     nav('/finance?fresh=1')
   }
 
@@ -226,20 +343,24 @@ export default function FinanceWorkspaceSelection() {
                 Finance Workspace
               </h1>
               <p className="text-xs sm:text-sm text-mute">
-                Select your customized model on the left, use the arrow to publish as a Governed Digital Twin on the right, then click Go.
+                {isAnalyst
+                  ? 'Select a governed digital twin model from Published Models and click Go.'
+                  : 'Select your customized model on the left, use the arrow to publish as a Governed Digital Twin on the right, then click Go.'}
               </p>
             </div>
 
-            {/* Top Right Quick Action: [New] */}
-            <button
-              type="button"
-              onClick={handleNewModel}
-              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-[#0b1320] shadow-sm transition cursor-pointer"
-              title="Create a new Finance domain model"
-            >
-              <Plus size={15} />
-              <span>New</span>
-            </button>
+            {/* Top Right Quick Action: [New] (Data Architect Only) */}
+            {!isAnalyst && (
+              <button
+                type="button"
+                onClick={handleNewModel}
+                className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-[#0b1320] shadow-sm transition cursor-pointer"
+                title="Create a new Finance domain model"
+              >
+                <Plus size={15} />
+                <span>New</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -263,209 +384,232 @@ export default function FinanceWorkspaceSelection() {
           </div>
         )}
 
-        {/* 2-Column Side-by-Side View with Center Arrow Transfer (matches user hand-drawn sketch and AppSelect layout) */}
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-stretch mt-4">
-          {/* Left Column: My Finance Models (Only Saved Models) */}
-          <section
-            aria-label="My Finance Models"
-            className="card p-5 border border-line bg-surface flex flex-col min-h-[380px] shadow-2xs"
-          >
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-[#10b981] flex items-center justify-center">
-                  <FolderKanban size={15} />
+        {isAnalyst ? (
+          /* Data Analyst View: ONLY Published Models */
+          <div className="max-w-2xl mx-auto mt-4">
+            <section
+              aria-label="Published Models"
+              className="card p-5 border border-line bg-surface flex flex-col min-h-[380px] shadow-2xs"
+            >
+              <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-[#10b981] flex items-center justify-center">
+                    <ShieldCheck size={16} />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-ink">Published Models</h2>
+                    <p className="text-xs text-mute">Enterprise Governed Digital Twins</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-sm font-bold text-ink">My Finance Models</h2>
-                  <p className="text-xs text-mute">Models saved via "Save As"</p>
-                </div>
+                <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
+                  {publishedModels.length}
+                </span>
               </div>
-              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
-                {savedModels.length}
-              </span>
-            </div>
 
-            {savedModels.length === 0 ? (
-              <div className="flex-1" />
-            ) : (
-              <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
-                {savedModels.map((m) => {
-                  const isSelected = selectedMyModel === m.name
-                  const nodeCount = m.nodes?.length || 9
-                  const edgeCount = m.edges?.length || 0
-
-                  const handleNewModel = () => {
-    sessionStorage.setItem('afx_fresh_session', 'true')
-    sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
-
-    try {
-      Object.keys(localStorage).forEach((k) => {
-        if (k.startsWith('afx_custom_graph_') || k.startsWith('afx_gap_cache_') || k.startsWith('afx_working_graph_')) {
-          localStorage.removeItem(k)
-        }
-      })
-    } catch {}
-
-    domains.resetWorkspace().catch(() => {})
-    nav('/finance?fresh=1')
-  }
-
-  return (
-                    <div
-                      key={m.name}
-                      onClick={() => {
-                        setSelectedMyModel(m.name)
-                        setSelectedPublishedModel(null)
-                      }}
-                      className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer relative group ${
-                        isSelected
+              {publishedModels.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center text-center p-6">
+                  <p className="text-xs text-mute">
+                    No certified digital twin models published yet.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
+                  {publishedModels.map((m) => {
+                    const isSelected = selectedPublishedModel === m.name
+                    return (
+                      <div
+                        key={m.name}
+                        onClick={() => {
+                          setSelectedPublishedModel(m.name)
+                          setSelectedMyModel(null)
+                        }}
+                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer ${isSelected
                           ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
                           : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
-                          {m.name}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/10 text-amber-600 border-amber-500/30">
-                            Saved Snapshot
+                          }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                            <ShieldCheck size={12} /> Certified Twin
                           </span>
+                        </div>
+                        <p className="text-xs text-mute mt-1">
+                          Domain: {m.domainName || m.slug?.replace(/-/g, ' ')} · Governed Architecture
+                        </p>
+                        <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
+                          <span>Published on {m.publishedAt ? new Date(m.publishedAt).toLocaleDateString() : 'Recent'}</span>
+                          <span className="text-[#10b981] font-semibold">Explore Digital Twin →</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
+        ) : (
+          /* Data Architect View: 2-Column Side-by-Side View with Center Arrow Transfer */
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-stretch mt-4">
+            {/* Left Column: My Finance Models (Only Saved Models) */}
+            <section
+              aria-label="My Finance Models"
+              className="card p-5 border border-line bg-surface flex flex-col min-h-[380px] shadow-2xs"
+            >
+              <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-[#10b981] flex items-center justify-center">
+                    <FolderKanban size={15} />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-ink">My Finance Models</h2>
+                    <p className="text-xs text-mute">Models saved via "Save As"</p>
+                  </div>
+                </div>
+                <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
+                  {savedModels.length}
+                </span>
+              </div>
+
+              {savedModels.length === 0 ? (
+                <div className="flex-1" />
+              ) : (
+                <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
+                  {sortedSavedModels.map((m) => {
+                    const isSelected = selectedMyModel === m.name
+
+                    return (
+                      <div
+                        key={m.name}
+                        onClick={() => {
+                          setSelectedMyModel(m.name)
+                          setSelectedPublishedModel(null)
+                        }}
+                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer relative group ${isSelected
+                          ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
+                          : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
+                          }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/10 text-amber-600 border-amber-500/30">
+                              Saved Snapshot
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteSavedModel(e, m.name)}
+                              className="p-1 text-muted hover:text-red-500 hover:bg-surface rounded transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                              title="Delete saved snapshot"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-xs text-mute mt-1">
+                          Domain: {m.domainName || (m.slug ? m.slug.replace(/-/g, ' ') : 'Planning, Budgeting and Forecasting')}
+                        </p>
+                        <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
+                          <span>Saved on {m.savedAt ? new Date(m.savedAt).toLocaleDateString() : (m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'Recent')}</span>
                           <button
                             type="button"
-                            onClick={(e) => handleDeleteSavedModel(e, m.name)}
-                            className="p-1 text-muted hover:text-red-500 hover:bg-surface rounded transition opacity-0 group-hover:opacity-100"
-                            title="Delete saved snapshot"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handlePublishModel(m.name)
+                            }}
+                            className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#10b981]/15 text-[#10b981] hover:bg-[#10b981] hover:text-[#0b1320] border border-[#10b981]/40 transition inline-flex items-center gap-1 cursor-pointer"
+                            title="Directly publish this model into Published Models"
                           >
-                            <Trash2 size={13} />
+                            <ShieldCheck size={11} />
+                            <span>Publish →</span>
                           </button>
                         </div>
                       </div>
-                      <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
-                      <p className="text-xs text-mute mt-1">
-                        Domain: {m.slug ? m.slug.replace(/-/g, ' ') : 'Planning, Budgeting and Forecasting'} · {nodeCount} entities · {edgeCount} relationships
-                      </p>
-                      <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
-                        <span>Saved on {m.savedAt ? new Date(m.savedAt).toLocaleDateString() : 'Recent'}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handlePublishModel(m.name)
-                          }}
-                          className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#10b981]/15 text-[#10b981] hover:bg-[#10b981] hover:text-[#0b1320] border border-[#10b981]/40 transition inline-flex items-center gap-1"
-                          title="Directly publish this model into Published Models"
-                        >
-                          <ShieldCheck size={11} />
-                          <span>Publish →</span>
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </section>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
 
-          {/* Center Arrow Transfer Control (Directly matching sketch: [Finance Model] -> [Published Models]) */}
-          <div className="flex md:flex-col items-center justify-center gap-3 py-4">
-            <button
-              type="button"
-              onClick={() => handlePublishModel(selectedMyModel)}
-              disabled={!selectedMyModel}
-              aria-label="Publish selected model to Published Models"
-              title={selectedMyModel ? `Publish "${selectedMyModel.replace(/_/g, ' ')}" to Published Models` : 'Select a saved model on the left to publish'}
-              className={`h-11 w-11 rounded-xl border flex items-center justify-center transition-all ${
-                selectedMyModel
+            {/* Center Arrow Transfer Control (Directly matching sketch: [Finance Model] -> [Published Models]) */}
+            <div className="flex md:flex-col items-center justify-center gap-3 py-4">
+              <button
+                type="button"
+                onClick={() => handlePublishModel(selectedMyModel)}
+                disabled={!selectedMyModel}
+                aria-label="Publish selected model to Published Models"
+                title={selectedMyModel ? `Publish "${selectedMyModel.replace(/_/g, ' ')}" to Published Models` : 'Select a saved model on the left to publish'}
+                className={`h-11 w-11 rounded-xl border flex items-center justify-center transition-all ${selectedMyModel
                   ? 'bg-[#10b981] border-[#10b981] text-[#0b1320] shadow-md shadow-[#10b981]/25 hover:bg-[#34d399] cursor-pointer'
                   : 'bg-surface border-line text-mute opacity-40 cursor-not-allowed'
-              }`}
-            >
-              <ArrowRight size={18} />
-            </button>
-          </div>
-
-          {/* Right Column: Published Models (Only Finalized / Published Models) */}
-          <section
-            aria-label="Published Models"
-            className="card p-5 border border-line bg-surface flex flex-col min-h-[380px] shadow-2xs"
-          >
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-[#10b981] flex items-center justify-center">
-                  <ShieldCheck size={16} />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-ink">Published Models</h2>
-                  <p className="text-xs text-mute">Enterprise Governed Digital Twins</p>
-                </div>
-              </div>
-              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
-                {publishedModels.length}
-              </span>
+                  }`}
+              >
+                <ArrowRight size={18} />
+              </button>
             </div>
 
-            {publishedModels.length === 0 ? (
-              <div className="flex-1" />
-            ) : (
-              <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
-                {publishedModels.map((m) => {
-                  const isSelected = selectedPublishedModel === m.name
-                  const handleNewModel = () => {
-    sessionStorage.setItem('afx_fresh_session', 'true')
-    sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
+            {/* Right Column: Published Models (Only Finalized / Published Models) */}
+            <section
+              aria-label="Published Models"
+              className="card p-5 border border-line bg-surface flex flex-col min-h-[380px] shadow-2xs"
+            >
+              <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-[#10b981] flex items-center justify-center">
+                    <ShieldCheck size={16} />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-ink">Published Models</h2>
+                    <p className="text-xs text-mute">Enterprise Governed Digital Twins</p>
+                  </div>
+                </div>
+                <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
+                  {publishedModels.length}
+                </span>
+              </div>
 
-    try {
-      Object.keys(localStorage).forEach((k) => {
-        if (k.startsWith('afx_custom_graph_') || k.startsWith('afx_gap_cache_') || k.startsWith('afx_working_graph_')) {
-          localStorage.removeItem(k)
-        }
-      })
-    } catch {}
-
-    domains.resetWorkspace().catch(() => {})
-    nav('/finance?fresh=1')
-  }
-
-  return (
-                    <div
-                      key={m.name}
-                      onClick={() => {
-                        setSelectedPublishedModel(m.name)
-                        setSelectedMyModel(null)
-                      }}
-                      className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer ${
-                        isSelected
+              {publishedModels.length === 0 ? (
+                <div className="flex-1" />
+              ) : (
+                <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
+                  {publishedModels.map((m) => {
+                    const isSelected = selectedPublishedModel === m.name
+                    return (
+                      <div
+                        key={m.name}
+                        onClick={() => {
+                          setSelectedPublishedModel(m.name)
+                          setSelectedMyModel(null)
+                        }}
+                        className={`w-full text-left rounded-xl border p-4 transition-all focus:outline-none cursor-pointer ${isSelected
                           ? 'border-[#10b981] bg-[#10b981]/10 ring-2 ring-[#10b981]/30 shadow-md'
                           : 'border-line bg-surface2/60 hover:border-[#10b981]/50 hover:bg-surface2'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
-                          {m.name}
-                        </span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
-                          <ShieldCheck size={12} /> Certified Twin
-                        </span>
+                          }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                            <ShieldCheck size={12} /> Certified Twin
+                          </span>
+                        </div>
+                        <p className="text-xs text-mute mt-1">
+                          Domain: {m.domainName || m.slug?.replace(/-/g, ' ')} · Governed Architecture
+                        </p>
+                        <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
+                          <span>Published on {m.publishedAt ? new Date(m.publishedAt).toLocaleDateString() : 'Recent'}</span>
+                          <span className="text-[#10b981] font-semibold">Explore Digital Twin →</span>
+                        </div>
                       </div>
-                      <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
-                      <p className="text-xs text-mute mt-1">
-                        Domain: {m.domainName || m.slug?.replace(/-/g, ' ')} · Governed Architecture
-                      </p>
-                      <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
-                        <span>Published on {m.publishedAt ? new Date(m.publishedAt).toLocaleDateString() : 'Recent'}</span>
-                        <span className="text-[#10b981] font-semibold">Explore Digital Twin →</span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </section>
-        </div>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
 
         {/* Bottom Bar: Selected Workspace Model and Go Action Button */}
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface px-5 py-4 shadow-sm">
+        < div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface px-5 py-4 shadow-sm" >
           <div className="text-xs text-mute">
             {selectedTargetModel ? (
               <span>
@@ -483,6 +627,8 @@ export default function FinanceWorkspaceSelection() {
                   </span>
                 )}
               </span>
+            ) : isAnalyst ? (
+              <span>Click any published model to select it and click Go to inspect the digital twin.</span>
             ) : (
               <span>Select any saved or published model to select it and click Go, or click + New to create a fresh model.</span>
             )}
@@ -493,18 +639,17 @@ export default function FinanceWorkspaceSelection() {
               type="button"
               onClick={handleGo}
               disabled={!selectedTargetModel}
-              className={`inline-flex items-center gap-2 rounded-xl px-7 py-2.5 text-sm font-bold transition-all ${
-                selectedTargetModel
+              className={`inline-flex items-center gap-2 rounded-xl px-7 py-2.5 text-sm font-bold transition-all ${selectedTargetModel
                   ? 'cursor-pointer bg-[#10b981] text-[#0b1320] shadow-md shadow-[#10b981]/30 ring-2 ring-[#10b981]/50 hover:bg-[#34d399]'
                   : 'bg-surface2 border border-line text-mute opacity-50 cursor-not-allowed'
-              }`}
+                }`}
             >
               <span>Go</span>
               <ArrowRight size={16} />
             </button>
           </div>
-        </div>
-      </div>
-    </Layout>
+        </div >
+      </div >
+    </Layout >
   )
 }

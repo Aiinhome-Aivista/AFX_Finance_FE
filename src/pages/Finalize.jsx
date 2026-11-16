@@ -1,14 +1,16 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
   Bot,
   CheckCircle2,
+  Compass,
   FileText,
   History,
   Lock,
   Save,
+  ShieldAlert,
   X,
 } from 'lucide-react'
 import Layout from '../components/common/Layout'
@@ -710,6 +712,7 @@ function DiffLists({ d, domainName = 'Finance', slug = '', graph = null, history
 export default function Finalize() {
   const { slug } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const toast = useToast()
 
   const cleanSlug = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
@@ -718,7 +721,7 @@ export default function Finalize() {
 
   const wf = useAsync(() => domains.workflow(slug), [slug])
   const fin = useAsync(() => graphs.finalization(slug), [slug], { immediate: true })
-  const g = useAsync(() => domains.graph(slug), [slug])
+  const g = useAsync(() => domains.graph(slug, false), [slug])
 
   const domainName =
     wf.data?.domain?.name ||
@@ -800,10 +803,25 @@ export default function Finalize() {
 
   // Robust fallback to ensure Knowledge Graph is ALWAYS populated across all domains
   const effectiveBaseGraph = useMemo(() => {
-    if (fin.data?.graph?.nodes?.length > 0) return fin.data.graph
-    if (g.data?.nodes?.length > 0) return g.data
+    let sourceGraph = fin.data?.graph?.nodes?.length > 0 ? fin.data.graph : g.data?.nodes?.length > 0 ? g.data : null
     const dKey = domainKey || 'f1'
     const dm = DOMMETA[dKey] || DOMMETA.f1
+    if (sourceGraph && sourceGraph.nodes) {
+      // Only keep nodes belonging to the current domain and spine
+      const filteredNodes = sourceGraph.nodes.filter((n) => {
+        const nd = String(n.group_key || n.d || '').toLowerCase()
+        return nd === dKey || nd === 'spine' || n.origin === 'custom' || n.origin === 'user' || n.role === 'client'
+      })
+      const nodeKeySet = new Set(filteredNodes.map((n) => String(n.key || n.id)))
+      const filteredEdges = (sourceGraph.edges || []).filter(
+        (e) => nodeKeySet.has(String(e.source || e.srcId)) && nodeKeySet.has(String(e.target || e.tgtId))
+      )
+      return {
+        ...sourceGraph,
+        nodes: filteredNodes.length > 0 ? filteredNodes : sourceGraph.nodes,
+        edges: filteredEdges,
+      }
+    }
     const rawNodes = NODES.filter((n) => n.d === dKey || n.d === 'spine')
     return {
       nodes: rawNodes.map((n, idx) => ({
@@ -911,10 +929,30 @@ export default function Finalize() {
   }
 
   const defaultSaveName = useMemo(() => {
+    if (location.state?.modelName) {
+      return location.state.modelName
+    }
+    const activeModel = localStorage.getItem('afx_active_model_name')
+    if (activeModel) {
+      return activeModel
+    }
+    const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
+    const customForSlug = localStorage.getItem(`afx_custom_name_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_custom_name_${cleanSlug}`) : null)
+    if (customForSlug) {
+      return customForSlug
+    }
+    try {
+      const snap = localStorage.getItem(`afx_model_snapshot_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_model_snapshot_${cleanSlug}`) : null)
+      if (snap) {
+        const parsed = JSON.parse(snap)
+        if (parsed?.name) return parsed.name
+      }
+    } catch { }
+
     const now = new Date()
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
-  }, [])
+  }, [slug, location.state])
 
   const handleSaveAs = () => {
     setSaveAsOpen(true)
@@ -926,20 +964,53 @@ export default function Finalize() {
       const payload = {
         name: modelName,
         savedAt: now.toISOString(),
+        updatedAt: now.toISOString(),
         slug,
+        domainName: d?.name || domainName || 'Finance Model',
         version: d?.version || { number: 1, label: 'v1.0' },
         nodes: graphDataWithGaps.nodes || [],
         edges: graphDataWithGaps.edges || [],
         flows: g.data?.flows || [],
+        stage: 'finalize',
+        isGapMode: false,
       }
 
-      // Persist saved model snapshot to application storage (no file download)
+      // Persist saved model snapshot to application storage and backend database dynamically
       try {
-        const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-        const filtered = savedRegistry.filter((m) => m.name !== modelName)
-        filtered.unshift(payload)
-        localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+        const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
+        localStorage.setItem('afx_active_model_name', modelName)
+        localStorage.setItem(`afx_custom_name_${slug}`, modelName)
+        if (cleanSlug) {
+          localStorage.setItem(`afx_custom_name_${cleanSlug}`, modelName)
+        }
         localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
+        if (cleanSlug) {
+          localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(payload))
+        }
+        localStorage.setItem(`afx_model_snapshot_${modelName}`, JSON.stringify(payload))
+
+        const publishedRegistry = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
+        const isAlreadyPublished = publishedRegistry.some((p) => p.name === modelName)
+
+        if (!isAlreadyPublished) {
+          const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
+          const filtered = savedRegistry.filter((m) => m.name !== modelName)
+          filtered.unshift(payload)
+          localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+        } else {
+          const updatedPub = publishedRegistry.map((p) => (p.name === modelName ? { ...p, nodes: payload.nodes, edges: payload.edges } : p))
+          localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
+        }
+
+        domains.saveCustomModel({
+          name: modelName,
+          slug,
+          domainName: d?.name || 'Planning, Budgeting and Forecasting',
+          nodes: payload.nodes,
+          edges: payload.edges,
+          savedAt: payload.savedAt,
+          createdAt: payload.savedAt,
+        }).catch((err) => console.warn('Backend custom model save warning:', err))
       } catch (err) {
         console.warn('Storage save warning:', err)
       }
@@ -1004,8 +1075,8 @@ export default function Finalize() {
               type="button"
               onClick={() => setActiveDomainFilter(activeDomainFilter === 'spine' ? domainKey : 'spine')}
               className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${activeDomainFilter === 'spine'
-                  ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
-                  : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
+                ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
+                : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
                 }`}
               title="Finance master-data spine"
             >
@@ -1052,6 +1123,7 @@ export default function Finalize() {
               edges={graphDataWithGaps.edges}
               domainMeta={wf.data?.domain || { n: domainName, name: domainName, c: domainMeta?.c || '#10b981' }}
               activeDomain={activeDomainFilter}
+              showNeighbours={false}
               selectedNodeId={selectedNode}
               onSelectNode={handleSelectNode}
               className="w-full h-full"
@@ -1067,8 +1139,8 @@ export default function Finalize() {
                   type="button"
                   onClick={() => setActiveRightTab('chat')}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${activeRightTab === 'chat'
-                      ? 'bg-brand text-white shadow-2xs'
-                      : 'text-muted hover:text-ink'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'text-muted hover:text-ink'
                     }`}
                 >
                   <Bot size={14} />
@@ -1084,8 +1156,8 @@ export default function Finalize() {
                   type="button"
                   onClick={() => setActiveRightTab('details')}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${activeRightTab === 'details'
-                      ? 'bg-brand text-white shadow-2xs'
-                      : 'text-muted hover:text-ink'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'text-muted hover:text-ink'
                     }`}
                 >
                   <FileText size={14} />
@@ -1117,12 +1189,8 @@ export default function Finalize() {
                   onNextToUpload={() => navigate(`/finance/${slug}?mode=upload`)}
                   isUploadOpen={false}
                   parsingProgress={null}
-                  locked={finalized}
-                  disabledReason={
-                    finalized
-                      ? 'This model is finalised and governed as an Enterprise Digital Twin. Re-open it if you wish to make further changes.'
-                      : undefined
-                  }
+                  locked={false}
+                  disabledReason={undefined}
                   onGraphUpdate={(res) => {
                     if (res?.graph) {
                       toast.success('Knowledge Graph automatically updated!')
@@ -1173,6 +1241,28 @@ export default function Finalize() {
                           </p>
                         )}
                       </div>
+
+                      {(selectedGraphNode.traversal_path || selectedGraphNode.notes?.traversal_path) && (
+                        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-1">
+                          <span className="text-[10px] uppercase font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
+                            <Compass size={12} /> Traversal Path (When & Why to Traverse)
+                          </span>
+                          <p className="text-[11px] text-emerald-900 dark:text-emerald-200 leading-relaxed font-medium">
+                            {selectedGraphNode.traversal_path || selectedGraphNode.notes?.traversal_path}
+                          </p>
+                        </div>
+                      )}
+
+                      {(selectedGraphNode.stop_criteria || selectedGraphNode.notes?.stop_criteria) && (
+                        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/25 space-y-1">
+                          <span className="text-[10px] uppercase font-bold text-red-600 dark:text-red-400 flex items-center gap-1">
+                            <ShieldAlert size={12} /> Boundaries / Stop Criteria (Guardrails)
+                          </span>
+                          <p className="text-[11px] text-red-700 dark:text-red-300 leading-relaxed font-medium">
+                            {selectedGraphNode.stop_criteria || selectedGraphNode.notes?.stop_criteria}
+                          </p>
+                        </div>
+                      )}
 
                       {selectedGraphNode.attributes && selectedGraphNode.attributes.length > 0 && (
                         <div className="p-3 rounded-xl bg-surface2/30 border border-line space-y-2">

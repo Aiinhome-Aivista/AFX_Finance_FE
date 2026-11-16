@@ -713,6 +713,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
           {Object.entries(domMetas).map(([d, m]) => {
             if (!m) return null
             const isTargetDomain = activeDomain === d
+            if (!showNeighbours && !isTargetDomain) return null
             return (
               <g key={`halo-${d}`} className="pointer-events-none transition-opacity">
                 <circle
@@ -744,6 +745,9 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
           {/* Edges Layer (Curved Quadratic Bezier Arrows) */}
           <g className="edges-layer">
             {edges.map((e) => {
+              if (!showNeighbours && visibleSet && (!visibleSet.has(e.srcId) || !visibleSet.has(e.tgtId))) {
+                return null
+              }
               const aOk = !visibleSet || visibleSet.has(e.srcId) || neighbourSet.has(e.srcId)
               const bOk = !visibleSet || visibleSet.has(e.tgtId) || neighbourSet.has(e.tgtId)
               const isShown = aOk && bOk
@@ -809,6 +813,9 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
           {/* Nodes Layer */}
           <g className="nodes-layer">
             {nodes.map((n) => {
+              if (!showNeighbours && visibleSet && !visibleSet.has(n.id)) {
+                return null
+              }
               const meta = domMetas[n.d] || DOMMETA[n.d] || DOMMETA.spine
               const isDiscrepancy = n.gap_status === 'missing' || n.gap_status === 'new' || n.is_discrepancy || n.gap_color === '#ef4444' || n.color === '#ef4444'
               const nodeColor = isDiscrepancy ? '#ef4444' : (n.color || meta?.c || '#3B82F6')

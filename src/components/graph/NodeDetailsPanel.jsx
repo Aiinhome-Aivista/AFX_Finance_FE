@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, FunctionSquare, Link2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Compass, FunctionSquare, Link2, ShieldAlert, X } from 'lucide-react'
 import { ontology } from '../../api'
 import { Loading, ErrorState } from '../common/States'
 import { ROLE_LABEL, cleanMojibake } from '../../lib/format'
@@ -80,6 +80,22 @@ export default function NodeDetailsPanel({ nodeKey, graphNode, graphNodes, graph
         {state.loading && <Loading label="Loading entity…" className="!p-4" />}
         {state.error && <ErrorState error={state.error} className="!p-4" />}
         {definition && <Section title="Definition"><p className="leading-relaxed">{definition}</p></Section>}
+
+        {(graphNode?.traversal_path || ref?.traversal_path) && (
+          <Section title="Traversal Path (When & Why to Traverse)" icon={Compass}>
+            <p className="rounded-lg bg-emerald-500/10 border border-emerald-500/25 p-2.5 text-[12px] leading-relaxed text-emerald-800 dark:text-emerald-300">
+              {cleanMojibake(graphNode?.traversal_path || ref?.traversal_path)}
+            </p>
+          </Section>
+        )}
+
+        {(graphNode?.stop_criteria || ref?.stop_criteria) && (
+          <Section title="Boundaries / Stop Criteria (Guardrails)" icon={ShieldAlert}>
+            <p className="rounded-lg bg-bad/10 border border-bad/25 p-2.5 text-[12px] leading-relaxed text-bad font-medium">
+              {cleanMojibake(graphNode?.stop_criteria || ref?.stop_criteria)}
+            </p>
+          </Section>
+        )}
 
         {custom && graphNode.notes && <Section title="Client notes / business rules"><p className="whitespace-pre-wrap rounded-lg bg-surface2 p-2 text-[13px]">{cleanMojibake(graphNode.notes)}</p></Section>}
 

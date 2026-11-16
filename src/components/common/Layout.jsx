@@ -12,7 +12,8 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
   const roleLabel = isAnalyst ? 'Data Analyst' : 'Data Architect'
   const isModelSelectionPage = hideWorkflowBar || loc.pathname === '/apps'
   const isLandingOrOverview = loc.pathname === '/finance' || loc.pathname === '/finance/'
-  const shouldHideNext = hideNext || loc.pathname.endsWith('/twin') || isLandingOrOverview
+  const isFinalStep = hideNext || loc.pathname.endsWith('/twin') || isLandingOrOverview
+  const shouldHideNext = isFinalStep
 
   const handleNext = () => {
     if (onNext) {
