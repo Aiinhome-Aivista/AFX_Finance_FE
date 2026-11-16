@@ -59,11 +59,10 @@ export default function ChevronTracker() {
 
     const info = (extractedSlug && domainMap[extractedSlug]) || {}
     const finalized = Boolean(info.isFinalized)
+    const isGapActive = Boolean(info.isGapMode) || location.search.includes('mode=gap')
     const isUploadView =
-      location.search.includes('mode=upload') ||
-      location.search.includes('mode=gap') ||
-      location.search.includes('upload') ||
-      location.search.includes('gap')
+      (location.search.includes('mode=upload') ||
+      location.search.includes('upload')) && !isGapActive
     const twinPage = path.includes('/twin')
     const finalizePage = path.includes('/finalize')
 
@@ -72,7 +71,7 @@ export default function ChevronTracker() {
       step = 1
     } else if (twinPage) {
       step = 5
-    } else if (finalizePage) {
+    } else if (finalizePage || isGapActive) {
       step = 4
     } else if (isUploadView) {
       step = 3

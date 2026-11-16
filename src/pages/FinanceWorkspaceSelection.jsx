@@ -5,6 +5,16 @@ import Layout from '../components/common/Layout'
 import { useAuth } from '../context/AuthContext'
 import { domains } from '../api'
 
+const sortModelsByRecent = (list) => {
+  return [...(list || [])]
+    .filter((m) => m && m.name && m.name.trim())
+    .sort((a, b) => {
+      const tA = new Date(a.savedAt || a.updatedAt || a.createdAt || 0).getTime()
+      const tB = new Date(b.savedAt || b.updatedAt || b.createdAt || 0).getTime()
+      return tB - tA
+    })
+}
+
 export default function FinanceWorkspaceSelection() {
   const nav = useNavigate()
   const { isAnalyst } = useAuth()
@@ -13,7 +23,7 @@ export default function FinanceWorkspaceSelection() {
   const [savedModels, setSavedModels] = useState(() => {
     try {
       const data = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-      return Array.isArray(data) ? data : []
+      return Array.isArray(data) ? sortModelsByRecent(data) : []
     } catch {
       return []
     }
@@ -54,16 +64,53 @@ export default function FinanceWorkspaceSelection() {
         const beSaved = res?.saved_models || []
         const bePublished = res?.published_models || []
 
+        const mergeWithLocalDates = (beList) => {
+          const merged = (beList || []).map((bm) => {
+            const lm = localSaved.find((x) => x.name === bm.name)
+            const beTs = new Date(bm.savedAt || bm.updatedAt || bm.createdAt || 0).getTime()
+            const localTs = new Date(lm?.savedAt || lm?.updatedAt || lm?.createdAt || 0).getTime()
+            const chosenSavedAt = (localTs > beTs ? lm?.savedAt : bm.savedAt) || bm.savedAt || lm?.savedAt || bm.createdAt || lm?.createdAt
+            return {
+              ...bm,
+              ...lm,
+              nodes: bm.nodes || lm?.nodes,
+              edges: bm.edges || lm?.edges,
+              flows: bm.flows || lm?.flows,
+              stage: bm.stage || lm?.stage,
+              isGapMode: bm.isGapMode ?? lm?.isGapMode,
+              gapData: bm.gapData || lm?.gapData,
+              savedAt: chosenSavedAt,
+            }
+          })
+          return sortModelsByRecent(merged)
+        }
+
         // If local storage has published models not in backend, or local saved models not in backend, sync them
         const missingPubInBe = localPublished.filter((lp) => !bePublished.some((bp) => bp.name === lp.name))
         const missingSavedInBe = localSaved.filter((ls) => !beSaved.some((bs) => bs.name === ls.name) && !bePublished.some((bp) => bp.name === ls.name))
 
         if (missingPubInBe.length > 0 || missingSavedInBe.length > 0) {
+          const syncSaved = localSaved.map((ls) => ({
+            name: ls.name,
+            slug: ls.slug,
+            domainName: ls.domainName,
+            savedAt: ls.savedAt || ls.createdAt,
+            createdAt: ls.createdAt || ls.savedAt,
+            nodes: ls.nodes,
+            edges: ls.edges,
+          }))
+          const syncPublished = localPublished.map((lp) => ({
+            name: lp.name,
+            slug: lp.slug,
+            domainName: lp.domainName,
+            publishedAt: lp.publishedAt || lp.savedAt,
+          }))
+
           domains
-            .syncCustomModels({ saved: localSaved, published: localPublished })
+            .syncCustomModels({ saved: syncSaved, published: syncPublished })
             .then((syncRes) => {
               if (!alive) return
-              const nextSaved = syncRes?.saved_models || beSaved
+              const nextSaved = mergeWithLocalDates(syncRes?.saved_models || beSaved)
               const nextPub = syncRes?.published_models || bePublished
               setSavedModels(nextSaved)
               setPublishedModels(nextPub)
@@ -71,16 +118,18 @@ export default function FinanceWorkspaceSelection() {
               localStorage.setItem('afx_published_models', JSON.stringify(nextPub))
             })
             .catch(() => {
-              setSavedModels(beSaved)
+              const finalSaved = mergeWithLocalDates(beSaved)
+              setSavedModels(finalSaved)
               setPublishedModels(bePublished)
-              localStorage.setItem('afx_saved_models', JSON.stringify(beSaved))
+              localStorage.setItem('afx_saved_models', JSON.stringify(finalSaved))
               localStorage.setItem('afx_published_models', JSON.stringify(bePublished))
             })
         } else {
           // Backend is the source of truth across all browsers
-          setSavedModels(beSaved)
+          const finalSaved = mergeWithLocalDates(beSaved)
+          setSavedModels(finalSaved)
           setPublishedModels(bePublished)
-          localStorage.setItem('afx_saved_models', JSON.stringify(beSaved))
+          localStorage.setItem('afx_saved_models', JSON.stringify(finalSaved))
           localStorage.setItem('afx_published_models', JSON.stringify(bePublished))
         }
       })
@@ -93,24 +142,26 @@ export default function FinanceWorkspaceSelection() {
     }
   }, [])
 
-  // Auto-select first available model if none selected
+  const sortedSavedModels = useMemo(() => sortModelsByRecent(savedModels), [savedModels])
+
+  // Auto-select first available model if none selected (the most recently saved workspace)
   useEffect(() => {
     if (isAnalyst) {
       if (publishedModels.length > 0 && !selectedPublishedModel) {
         setSelectedPublishedModel(publishedModels[0].name)
       }
     } else {
-      if (savedModels.length > 0 && !selectedMyModel && !selectedPublishedModel) {
-        setSelectedMyModel(savedModels[0].name)
+      if (sortedSavedModels.length > 0 && !selectedMyModel && !selectedPublishedModel) {
+        setSelectedMyModel(sortedSavedModels[0].name)
       } else if (publishedModels.length > 0 && !selectedPublishedModel && !selectedMyModel) {
         setSelectedPublishedModel(publishedModels[0].name)
       }
     }
-  }, [isAnalyst, savedModels, publishedModels, selectedMyModel, selectedPublishedModel])
+  }, [isAnalyst, sortedSavedModels, publishedModels, selectedMyModel, selectedPublishedModel])
 
   const handleDeleteSavedModel = (e, modelName) => {
     e.stopPropagation()
-    const updated = savedModels.filter((m) => m.name !== modelName)
+    const updated = sortModelsByRecent(savedModels.filter((m) => m.name !== modelName))
     setSavedModels(updated)
     localStorage.setItem('afx_saved_models', JSON.stringify(updated))
     if (selectedMyModel === modelName) {
@@ -144,7 +195,7 @@ export default function FinanceWorkspaceSelection() {
     localStorage.setItem('afx_published_models', JSON.stringify(nextPublished))
 
     // 2. Remove from My Finance Models (transfer across)
-    const nextSaved = savedModels.filter((x) => x.name !== targetName)
+    const nextSaved = sortModelsByRecent(savedModels.filter((x) => x.name !== targetName))
     setSavedModels(nextSaved)
     localStorage.setItem('afx_saved_models', JSON.stringify(nextSaved))
 
@@ -166,8 +217,9 @@ export default function FinanceWorkspaceSelection() {
           localStorage.setItem('afx_published_models', JSON.stringify(res.published_models))
         }
         if (res?.saved_models) {
-          setSavedModels(res.saved_models)
-          localStorage.setItem('afx_saved_models', JSON.stringify(res.saved_models))
+          const sorted = sortModelsByRecent(res.saved_models)
+          setSavedModels(sorted)
+          localStorage.setItem('afx_saved_models', JSON.stringify(sorted))
         }
       })
       .catch((err) => console.warn('Backend custom model publish warning:', err))
@@ -179,7 +231,17 @@ export default function FinanceWorkspaceSelection() {
     if (selectedPublishedModel) {
       const pub = publishedModels.find((m) => m.name === selectedPublishedModel)
       if (pub) {
-        nav(`/finance/${pub.slug || 'planning-budgeting-forecasting'}/twin`)
+        localStorage.setItem('afx_active_model_name', pub.name)
+        if (pub.slug) {
+          const cleanSlug = pub.slug.replace(/\s+/g, '-').toLowerCase()
+          localStorage.setItem(`afx_custom_name_${pub.slug}`, pub.name)
+          localStorage.setItem(`afx_custom_name_${cleanSlug}`, pub.name)
+          localStorage.setItem(`afx_model_snapshot_${pub.slug}`, JSON.stringify(pub))
+          localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(pub))
+        }
+        nav(`/finance/${pub.slug || 'planning-budgeting-forecasting'}/twin`, {
+          state: { modelName: pub.name },
+        })
         return
       }
     }
@@ -187,7 +249,31 @@ export default function FinanceWorkspaceSelection() {
     if (selectedMyModel) {
       const my = savedModels.find((m) => m.name === selectedMyModel)
       if (my) {
-        nav(`/finance/${my.slug || 'planning-budgeting-forecasting'}`)
+        localStorage.setItem('afx_active_model_name', my.name)
+        const targetSlug = my.slug || 'planning-budgeting-forecasting'
+        const cleanSlug = targetSlug.replace(/\s+/g, '-').toLowerCase()
+        localStorage.setItem(`afx_custom_name_${targetSlug}`, my.name)
+        localStorage.setItem(`afx_custom_name_${cleanSlug}`, my.name)
+        localStorage.setItem(`afx_model_snapshot_${targetSlug}`, JSON.stringify(my))
+        localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(my))
+        localStorage.setItem(`afx_model_snapshot_${my.name}`, JSON.stringify(my))
+
+        if (my.stage === 'twin' || my.isTwin) {
+          nav(`/finance/${targetSlug}/twin`, {
+            state: { modelName: my.name, model: my },
+          })
+          return
+        }
+        if (my.stage === 'finalize') {
+          nav(`/finance/${targetSlug}/finalize`, {
+            state: { modelName: my.name, model: my },
+          })
+          return
+        }
+
+        nav(`/finance/${targetSlug}`, {
+          state: { modelName: my.name, model: my },
+        })
         return
       }
     }
@@ -215,10 +301,16 @@ export default function FinanceWorkspaceSelection() {
   const handleNewModel = () => {
     sessionStorage.setItem('afx_fresh_session', 'true')
     sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
+    localStorage.removeItem('afx_active_model_name')
 
     try {
       Object.keys(localStorage).forEach((k) => {
-        if (k.startsWith('afx_custom_graph_') || k.startsWith('afx_gap_cache_') || k.startsWith('afx_working_graph_')) {
+        if (
+          k.startsWith('afx_custom_name_') ||
+          k.startsWith('afx_custom_graph_') ||
+          k.startsWith('afx_gap_cache_') ||
+          k.startsWith('afx_working_graph_')
+        ) {
           localStorage.removeItem(k)
         }
       })
@@ -337,14 +429,11 @@ export default function FinanceWorkspaceSelection() {
                         }`}
                     >
                       <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
-                          {m.name}
-                        </span>
+                        <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
                           <ShieldCheck size={12} /> Certified Twin
                         </span>
                       </div>
-                      <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
                       <p className="text-xs text-mute mt-1">
                         Domain: {m.domainName || m.slug?.replace(/-/g, ' ')} · Governed Architecture
                       </p>
@@ -386,10 +475,8 @@ export default function FinanceWorkspaceSelection() {
               <div className="flex-1" />
             ) : (
               <div className="space-y-3 flex-1 overflow-y-auto max-h-[460px] pr-1 scroll-thin">
-                {savedModels.map((m) => {
+                {sortedSavedModels.map((m) => {
                   const isSelected = selectedMyModel === m.name
-                  const nodeCount = m.nodes?.length || 9
-                  const edgeCount = m.edges?.length || 0
 
                   return (
                     <div
@@ -404,9 +491,7 @@ export default function FinanceWorkspaceSelection() {
                         }`}
                     >
                       <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
-                          {m.name}
-                        </span>
+                        <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
                         <div className="flex items-center gap-1.5">
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/10 text-amber-600 border-amber-500/30">
                             Saved Snapshot
@@ -421,12 +506,11 @@ export default function FinanceWorkspaceSelection() {
                           </button>
                         </div>
                       </div>
-                      <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
                       <p className="text-xs text-mute mt-1">
-                        Domain: {m.slug ? m.slug.replace(/-/g, ' ') : 'Planning, Budgeting and Forecasting'} · {nodeCount} entities · {edgeCount} relationships
+                        Domain: {m.domainName || (m.slug ? m.slug.replace(/-/g, ' ') : 'Planning, Budgeting and Forecasting')}
                       </p>
                       <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
-                        <span>Saved on {m.savedAt ? new Date(m.savedAt).toLocaleDateString() : 'Recent'}</span>
+                        <span>Saved on {m.savedAt ? new Date(m.savedAt).toLocaleDateString() : (m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'Recent')}</span>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -503,14 +587,11 @@ export default function FinanceWorkspaceSelection() {
                     }`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-surface border border-line text-ink font-mono">
-                      {m.name}
-                    </span>
+                    <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
                       <ShieldCheck size={12} /> Certified Twin
                     </span>
                   </div>
-                  <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
                   <p className="text-xs text-mute mt-1">
                     Domain: {m.domainName || m.slug?.replace(/-/g, ' ')} · Governed Architecture
                   </p>
