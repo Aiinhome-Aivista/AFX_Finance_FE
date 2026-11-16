@@ -6,15 +6,15 @@ import {
   Download,
   ExternalLink,
   Layers,
-  Play,
   Save,
   Share2,
-  Sliders,
   Workflow,
   X,
 } from 'lucide-react'
 import Layout from '../components/common/Layout'
 import OntologyGraphCanvas from '../components/graph/OntologyGraphCanvas'
+import DigitalTwinSwimlane from '../components/graph/DigitalTwinSwimlane'
+import TwinDataConnectors from '../components/graph/TwinDataConnectors'
 import { Loading, ErrorState } from '../components/common/States'
 import SaveAsModal from '../components/common/SaveAsModal'
 import useAsync from '../components/common/useAsync'
@@ -39,14 +39,7 @@ export default function DigitalTwinExplorer() {
   const [selectedNodeId, setSelectedNodeId] = useState(null)
   const [cmp, setCmp] = useState(null)
   const [gapGraph, setGapGraph] = useState(null)
-  const [activeRightTab, setActiveRightTab] = useState('telemetry') // 'telemetry' | 'simulation'
-  const [simValues, setSimValues] = useState({
-    overheadRate: 94.5,
-    freightMultiplier: 1.05,
-    channelVarianceThreshold: 4.2,
-  })
-  const [isSimulating, setIsSimulating] = useState(false)
-  const [simResults, setSimResults] = useState(null)
+  const [fitMode, setFitMode] = useState('fit')
 
   const cleanSlug = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
   const domainKey = SLUG_TO_DOM[cleanSlug]
@@ -127,20 +120,6 @@ export default function DigitalTwinExplorer() {
       ) || null
     )
   }, [selectedNodeId, productionGraph.nodes])
-
-  const handleRunSimulation = () => {
-    setIsSimulating(true)
-    setTimeout(() => {
-      setIsSimulating(false)
-      setSimResults({
-        unitEconomicsShift: '+2.4%',
-        reallocatedOverhead: '$142,500',
-        highCostChannel: 'Direct-Store-Delivery (DSD)',
-        confidenceScore: '99.1%',
-      })
-      toast.success('What-If Digital Twin simulation completed successfully!')
-    }, 700)
-  }
 
   const handleExportJson = () => {
     if (!d?.graph) return
@@ -311,263 +290,57 @@ export default function DigitalTwinExplorer() {
           </div>
         </div>
 
-        {/* Main 2-Column Grid */}
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] items-stretch">
-          {/* Left Column: Interactive Production Graph Canvas */}
-          <section className="card overflow-hidden p-0 border border-line isolate flex flex-col shadow-card">
-            <div className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 select-none shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded-lg bg-[#10b981]/15 text-[#10b981] flex items-center justify-center">
-                  <Workflow size={15} />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-ink">
-                    Production Architecture Graph
-                  </h2>
-                  <p className="text-[11px] text-muted">
-                    {productionGraph.nodes.length || d?.graph?.nodes?.length || 0} verified entities · {productionGraph.edges.length || d?.graph?.edges?.length || 0} certified relationships
-                  </p>
-                </div>
+        {/* Full-Width Interactive Digital Twin Swimlane Canvas */}
+        <section className="card overflow-hidden p-0 border border-line isolate flex flex-col shadow-card w-full">
+          <div className="flex items-center justify-between border-b border-line bg-surface px-5 py-3.5 select-none shrink-0 gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded-lg bg-[#10b981]/15 text-[#10b981] flex items-center justify-center">
+                <Workflow size={16} />
               </div>
+              <h2 className="text-sm font-bold text-ink">
+                Digital Twin — {domainName} Process Model
+              </h2>
             </div>
 
-            <div className="h-[560px] min-h-[500px] w-full relative overflow-hidden bg-surface">
-              {d?.graph ? (
-                <OntologyGraphCanvas
-                  nodes={productionGraph.nodes}
-                  edges={productionGraph.edges}
-                  domainMeta={wf.data?.domain}
-                  selectedNodeId={selectedNodeId}
-                  onSelectNode={setSelectedNodeId}
-                  className="w-full h-full"
-                />
-              ) : (
-                <Loading label="Rendering Twin Graph..." />
-              )}
-            </div>
-          </section>
-
-          {/* Right Column: Dynamic Twin Control Center */}
-          <section className="card p-5 border border-line flex flex-col justify-between shadow-card">
-            <div className="space-y-4">
-              {/* Tabs: Telemetry & Specs / What-If Simulation */}
-              <div className="flex items-center justify-between pb-2.5 border-b border-line">
-                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-surface2 border border-line/60">
-                  <button
-                    type="button"
-                    onClick={() => setActiveRightTab('telemetry')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${activeRightTab === 'telemetry'
-                      ? 'bg-[#10b981] text-white shadow-xs'
-                      : 'text-muted hover:text-ink'
-                      }`}
-                  >
-                    Telemetry & Specs
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveRightTab('simulation')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${activeRightTab === 'simulation'
-                      ? 'bg-[#10b981] text-white shadow-xs'
-                      : 'text-muted hover:text-ink'
-                      }`}
-                  >
-                    <Sliders size={13} />
-                    <span>What-If Simulation</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Tab 1: Telemetry & Node Inspection */}
-              {activeRightTab === 'telemetry' && (
-                <div className="space-y-3.5 text-xs">
-                  {selectedNode ? (
-                    <div className="space-y-3 p-3.5 rounded-xl bg-surface2/50 border border-line animate-fade-in">
-                      <div className="flex items-center justify-between border-b border-line/70 pb-2">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="h-2.5 w-2.5 rounded-full"
-                            style={{ backgroundColor: selectedNode.color || '#10b981' }}
-                          />
-                          <b className="text-sm text-ink">{selectedNode.name || selectedNode.n || selectedNode.id}</b>
-                          {selectedNode.gap_status === 'missing' && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/10 text-red-600 border border-red-500/30">
-                              MISSING
-                            </span>
-                          )}
-                          {selectedNode.gap_status === 'new' && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/10 text-red-600 border border-red-500/30">
-                              NEW TELEMETRY
-                            </span>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedNodeId(null)}
-                          className="text-[11px] text-muted hover:text-ink underline cursor-pointer"
-                        >
-                          Clear Selection
-                        </button>
-                      </div>
-
-                      <div>
-                        <span className="text-[10px] uppercase font-bold text-muted block mb-1">
-                          Enterprise Role & Context
-                        </span>
-                        <p className="text-[11px] text-ink leading-relaxed">
-                          {selectedNode.definition || selectedNode.def || 'Certified architectural node actively driving financial digital twin operations.'}
-                        </p>
-                      </div>
-
-                      {selectedNode.attributes && selectedNode.attributes.length > 0 && (
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-muted block mb-1">
-                            Calibrated Attributes ({selectedNode.attributes.length})
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {selectedNode.attributes.map((a, i) => (
-                              <span
-                                key={i}
-                                className="px-2 py-0.5 rounded-md bg-surface border border-line font-mono text-[10.5px] text-ink"
-                              >
-                                {typeof a === 'string' ? a : a?.name}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="p-3.5 rounded-xl border border-line bg-surface2/30 space-y-1.5">
-                      <div className="flex items-center gap-2 text-ink font-bold">
-                        <span>Interactive Exploration Active</span>
-                      </div>
-                      <p className="text-[11px] text-muted leading-relaxed">
-                        Click any node on the left production graph to inspect its verified definitions, attributes, and mathematical calculation ladder.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Governance Snapshot Card */}
-                  <div className="rounded-xl border border-line bg-surface2/40 p-3.5 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-ink">Governance Certification</span>
-                      <span className="flex items-center gap-1 font-bold text-[#10b981]">
-                        <CheckCircle2 size={13} />
-                        <span>Verified Active</span>
-                      </span>
-                    </div>
-
-                    <div className="text-[11px]">
-                      <div className="p-2 rounded-lg bg-surface border border-line">
-                        <span className="text-muted block text-[10px]">Model State:</span>
-                        <b className="text-ink">Locked / Governed</b>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 2: What-If Simulation */}
-              {activeRightTab === 'simulation' && (
-                <div className="space-y-3.5 text-xs">
-                  <div className="rounded-xl border border-line bg-surface2/30 p-3.5 space-y-3">
-                    <span className="font-bold text-ink block">
-                      Simulate Operating Parameter Changes
-                    </span>
-                    <p className="text-[11px] text-muted leading-relaxed">
-                      Test sensitivity against volatile cost drivers without altering your certified baseline digital twin.
-                    </p>
-
-                    <div className="space-y-2.5 pt-1">
-                      <div>
-                        <div className="flex justify-between text-[11px] mb-1">
-                          <span className="text-muted">Overhead Absorption Rate:</span>
-                          <b className="font-mono text-ink">{simValues.overheadRate}%</b>
-                        </div>
-                        <input
-                          type="range"
-                          min="80"
-                          max="115"
-                          step="0.5"
-                          value={simValues.overheadRate}
-                          onChange={(e) =>
-                            setSimValues((prev) => ({ ...prev, overheadRate: parseFloat(e.target.value) }))
-                          }
-                          className="w-full accent-[#10b981] cursor-pointer"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between text-[11px] mb-1">
-                          <span className="text-muted">Freight & Logistics Multiplier:</span>
-                          <b className="font-mono text-ink">{simValues.freightMultiplier}x</b>
-                        </div>
-                        <input
-                          type="range"
-                          min="0.8"
-                          max="1.5"
-                          step="0.05"
-                          value={simValues.freightMultiplier}
-                          onChange={(e) =>
-                            setSimValues((prev) => ({ ...prev, freightMultiplier: parseFloat(e.target.value) }))
-                          }
-                          className="w-full accent-[#10b981] cursor-pointer"
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleRunSimulation}
-                      disabled={isSimulating}
-                      className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold w-full py-2 text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition shadow-sm"
-                    >
-                      <Play size={12} fill="currentColor" />
-                      <span>{isSimulating ? 'Running Simulation...' : 'Execute What-If Model'}</span>
-                    </button>
-                  </div>
-
-                  {simResults && (
-                    <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-50/20 dark:bg-emerald-950/20 space-y-2 animate-fade-in">
-                      <div className="flex items-center justify-between font-bold text-emerald-800 dark:text-emerald-300">
-                        <span>Simulation Outcomes</span>
-                        <span className="text-[10px] font-mono">{simResults.confidenceScore} match</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-[11px]">
-                        <div>
-                          <span className="text-muted block text-[10px]">Net Margin Delta:</span>
-                          <b className="text-emerald-700 dark:text-emerald-400 font-bold">{simResults.unitEconomicsShift}</b>
-                        </div>
-                        <div>
-                          <span className="text-muted block text-[10px]">Reallocated Pool:</span>
-                          <b className="text-ink font-bold">{simResults.reallocatedOverhead}</b>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Bottom Actions */}
-            <div className="pt-3 border-t border-line flex flex-wrap gap-2">
-              {!isAnalyst && (
-                <Link
-                  to={`/finance/${slug}`}
-                  className="btn-ghost flex-1 text-center py-2 text-xs rounded-xl border border-line hover:bg-surface2 cursor-pointer"
-                >
-                  Inspect Chatbot History
-                </Link>
-              )}
-              <Link
-                to="/finance"
-                className="btn bg-[#10b981] hover:bg-[#059669] text-white font-bold flex-1 text-center py-2 text-xs rounded-xl shadow-sm transition"
+            {/* Fit width and Actual size controls lifted to top section */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setFitMode('fit')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold border transition cursor-pointer ${fitMode === 'fit'
+                    ? 'bg-[#10B981] text-white border-[#10B981] shadow-xs'
+                    : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                  }`}
               >
-                {isAnalyst ? 'Published Models →' : 'All Finance Domains →'}
-              </Link>
+                Fit width
+              </button>
+              <button
+                type="button"
+                onClick={() => setFitMode('actual')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold border transition cursor-pointer ${fitMode === 'actual'
+                    ? 'bg-[#10B981] text-white border-[#10B981] shadow-xs'
+                    : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                  }`}
+              >
+                Actual size
+              </button>
             </div>
-          </section>
-        </div>
+          </div>
+
+          <div className="w-full relative overflow-hidden bg-surface">
+            <DigitalTwinSwimlane
+              domainName={domainName}
+              slug={cleanSlug}
+              nodes={productionGraph.nodes}
+              edges={productionGraph.edges}
+              fitMode={fitMode}
+              setFitMode={setFitMode}
+            />
+          </div>
+        </section>
+
+        {/* Live Data & Telemetry Connectors (API, Upload CSV, Snowflake) */}
+        <TwinDataConnectors slug={cleanSlug} domainName={domainName} />
       </div>
 
       {/* Save As In-Window Modal */}

@@ -50,6 +50,14 @@
   --ont-code-bg: #22272E;
 }
 
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
 html,
 body,
 #root {
@@ -67,6 +75,47 @@ html.dark body {
 html:not(.dark) body {
   background-color: #FFFFFF;
   color-scheme: light;
+}
+
+/* Global Crisp Scrollbars — Light by default */
+* {
+  scrollbar-color: #CBD5E1 #F8FAFC;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F8FAFC;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 6px;
+  border: 2px solid #F8FAFC;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+.dark * {
+  scrollbar-color: #48505A #22272E;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #22272E;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #48505A;
+  border: 2px solid #22272E;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748B;
 }
 
 body,
