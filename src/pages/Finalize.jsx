@@ -1151,12 +1151,8 @@ export default function Finalize() {
                   onNextToUpload={() => navigate(`/finance/${slug}?mode=upload`)}
                   isUploadOpen={false}
                   parsingProgress={null}
-                  locked={finalized}
-                  disabledReason={
-                    finalized
-                      ? 'This model is finalised and governed as an Enterprise Digital Twin. Re-open it if you wish to make further changes.'
-                      : undefined
-                  }
+                  locked={false}
+                  disabledReason={undefined}
                   onGraphUpdate={(res) => {
                     if (res?.graph) {
                       toast.success('Knowledge Graph automatically updated!')

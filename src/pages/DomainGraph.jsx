@@ -954,8 +954,8 @@ export default function DomainGraph() {
                 onNextToUpload={() => setLeftViewMode('upload')}
                 isUploadOpen={leftViewMode === 'upload'}
                 parsingProgress={parsingProgress}
-                locked={finalized}
-                disabledReason={finalized ? 'This model is finalised and governed as an Enterprise Digital Twin. Re-open it on the review page if you wish to make further changes.' : undefined}
+                locked={false}
+                disabledReason={undefined}
                 onGraphUpdate={(res) => {
                   if (res?.graph) {
                     setAiGraph(res.graph)
