@@ -85,7 +85,7 @@ export default function AnalystDashboard() {
           </div>
         )}
         <div className="ml-auto flex items-center gap-2">
-          <Link to={`/finance/${slug}/twin?wf=${wf}`} className="btn-ghost btn-sm">Digital Twin</Link>
+          {!isAnalyst && <Link to={`/finance/${slug}/twin?wf=${wf}`} className="btn-ghost btn-sm">Digital Twin</Link>}
           {!isAnalyst && d?.status === 'ready' && (
             <button className="btn-ghost btn-sm inline-flex items-center gap-1.5" onClick={refresh} disabled={refreshing}>
               <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} /> Recompute
