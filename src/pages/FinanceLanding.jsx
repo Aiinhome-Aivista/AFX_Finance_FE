@@ -329,13 +329,21 @@ export default function FinanceLanding() {
                     </div>
                   </div>
 
-                  <Link
-                    to={`/finance/${m.slug}/twin?wf=${m.workflow_id}`}
-                    className="btn-primary w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl"
-                  >
-                    <span>Explore Digital Twin</span>
-                    <ArrowRight size={14} />
-                  </Link>
+                  <div className="flex gap-2">
+                    <Link
+                      to={`/finance/${m.slug}/dashboard?wf=${m.workflow_id}`}
+                      className="btn-primary flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl"
+                    >
+                      <span>Open Dashboard</span>
+                      <ArrowRight size={14} />
+                    </Link>
+                    <Link
+                      to={`/finance/${m.slug}/twin?wf=${m.workflow_id}`}
+                      className="btn-ghost flex-1 py-2 text-center text-xs font-semibold rounded-xl"
+                    >
+                      Digital Twin
+                    </Link>
+                  </div>
                 </div>
               ))}
             </div>

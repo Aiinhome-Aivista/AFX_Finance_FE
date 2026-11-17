@@ -256,6 +256,14 @@ export default function FinanceWorkspaceSelection() {
           localStorage.setItem(`afx_model_snapshot_${pub.slug}`, JSON.stringify(pub))
           localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(pub))
         }
+        if (isAnalyst) {
+          if (pub.workflow_id) {
+            nav(`/finance/${pub.slug || 'planning-budgeting-forecasting'}/dashboard?wf=${pub.workflow_id}`)
+          } else {
+            showToast('This published model has no data workspace yet. Ask the Data Architect to upload data for it.')
+          }
+          return
+        }
         nav(`/finance/${pub.slug || 'planning-budgeting-forecasting'}/twin`, {
           state: { modelName: pub.name },
         })

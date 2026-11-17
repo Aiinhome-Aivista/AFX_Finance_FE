@@ -94,6 +94,10 @@ export const files = {
     return http.get(`/domains/${clean}/telemetry/gap-analysis`, { params }).then(d)
   },
 }
+export const analyst = {
+  chat: (wf, question, history) => http.post(`/published/${wf}/chat`, { question, history }, { timeout: 3 * 60 * 1000 }).then(d),
+  dashboard: (wf, refresh) => http.get(`/published/${wf}/dashboard`, { params: refresh ? { refresh: 1 } : {}, timeout: 5 * 60 * 1000 }).then(d),
+}
 export const evaluation = {
   summary: (slug) => {
     const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()

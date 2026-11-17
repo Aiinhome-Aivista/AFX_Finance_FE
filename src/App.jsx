@@ -13,6 +13,7 @@ import Customize from './pages/Customize'
 import Finalize from './pages/Finalize'
 import Telemetry from './pages/Telemetry'
 import DigitalTwinExplorer from './pages/DigitalTwinExplorer'
+import AnalystDashboard from './pages/AnalystDashboard'
 
 const P = ({ children, allowedRoles, redirectTo }) => (
   <ProtectedRoute allowedRoles={allowedRoles} redirectTo={redirectTo}>
@@ -101,6 +102,7 @@ export default function App() {
           </P>
         }
       />
+      <Route path="/finance/:slug/dashboard" element={<P><AnalystDashboard /></P>} />
       <Route path="/finance/:slug/twin" element={<P><DigitalTwinExplorer /></P>} />
       <Route
         path="/finance/:slug/telemetry"

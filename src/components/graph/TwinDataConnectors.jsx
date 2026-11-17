@@ -128,12 +128,13 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
 
     try {
       if (filesApi && filesApi.upload) {
-        await filesApi.upload(cleanSlug, file).catch(() => {
-          // If server upload fails due to mock server, continue with client verification
-        })
+        await filesApi.upload(cleanSlug, file)
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      // Do not fake a success: the file was not stored, so nothing downstream (e.g. the Analyst dashboard) can use it.
+      setUploadingCsv(false)
+      toast.error(err?.message || `Upload failed for "${file.name}". The file was not saved.`)
+      return
     }
 
     // Simulate fast parsing & schema verification
