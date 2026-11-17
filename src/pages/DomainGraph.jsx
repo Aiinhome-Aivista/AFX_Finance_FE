@@ -813,7 +813,7 @@ export default function DomainGraph() {
     setSaveAsOpen(true)
   }
 
-  const executeSaveAs = (modelName) => {
+  const executeSaveAs = (modelName, mode = 'overwrite') => {
     try {
       const now = new Date()
       const payload = {
@@ -851,11 +851,22 @@ export default function DomainGraph() {
 
         if (!isAlreadyPublished) {
           const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-          const filtered = savedRegistry.filter((m) => m.name !== modelName)
-          filtered.unshift(payload)
-          localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+          if (mode === 'overwrite') {
+            const idx = savedRegistry.findIndex((m) => m.name === modelName)
+            if (idx >= 0) {
+              savedRegistry[idx] = { ...savedRegistry[idx], ...payload, id: savedRegistry[idx].id || `custom_${Date.now()}` }
+            } else {
+              savedRegistry.unshift({ ...payload, id: `custom_${Date.now()}` })
+            }
+            localStorage.setItem('afx_saved_models', JSON.stringify(savedRegistry.slice(0, 50)))
+          } else {
+            const newEntry = { ...payload, id: `custom_${Date.now()}` }
+            const filtered = savedRegistry.filter((m) => m.name !== modelName)
+            filtered.unshift(newEntry)
+            localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+          }
         } else {
-          const updatedPub = publishedRegistry.map((p) => (p.name === modelName ? { ...p, nodes: payload.nodes, edges: payload.edges, isGapMode: payload.isGapMode, stage: payload.stage } : p))
+          const updatedPub = publishedRegistry.map((p) => (p.name === modelName ? { ...p, nodes: payload.nodes, edges: payload.edges, isGapMode: payload.isGapMode, stage: payload.stage, updatedAt: now.toISOString() } : p))
           localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
         }
 
@@ -872,7 +883,11 @@ export default function DomainGraph() {
         console.warn('Storage save warning:', err)
       }
 
-      toast.success(`Model "${modelName}" saved successfully!`)
+      if (mode === 'overwrite') {
+        toast.success(`Model "${modelName}" updated successfully (overwritten)!`)
+      } else {
+        toast.success(`Saved as new model version "${modelName}"!`)
+      }
       setSaveAsOpen(false)
     } catch (e) {
       toast.error('Failed to save model: ' + e.message)

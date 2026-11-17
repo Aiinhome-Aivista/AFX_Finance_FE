@@ -6,6 +6,7 @@ import {
   Bot,
   CheckCircle2,
   Compass,
+  Edit3,
   FileText,
   History,
   Lock,
@@ -962,7 +963,12 @@ export default function Finalize() {
     setSaveAsOpen(true)
   }
 
-  const executeSaveAs = (modelName) => {
+  const handleEditModel = () => {
+    // Navigate back to Step 2 Business Input so user can edit graph, prompts, and calibration parameters
+    navigate(`/finance/${slug}`)
+  }
+
+  const executeSaveAs = (modelName, mode = 'overwrite') => {
     try {
       const now = new Date()
       const payload = {
@@ -998,11 +1004,22 @@ export default function Finalize() {
 
         if (!isAlreadyPublished) {
           const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-          const filtered = savedRegistry.filter((m) => m.name !== modelName)
-          filtered.unshift(payload)
-          localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+          if (mode === 'overwrite') {
+            const idx = savedRegistry.findIndex((m) => m.name === modelName)
+            if (idx >= 0) {
+              savedRegistry[idx] = { ...savedRegistry[idx], ...payload, id: savedRegistry[idx].id || `custom_${Date.now()}` }
+            } else {
+              savedRegistry.unshift({ ...payload, id: `custom_${Date.now()}` })
+            }
+            localStorage.setItem('afx_saved_models', JSON.stringify(savedRegistry.slice(0, 50)))
+          } else {
+            const newEntry = { ...payload, id: `custom_${Date.now()}` }
+            const filtered = savedRegistry.filter((m) => m.name !== modelName)
+            filtered.unshift(newEntry)
+            localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+          }
         } else {
-          const updatedPub = publishedRegistry.map((p) => (p.name === modelName ? { ...p, nodes: payload.nodes, edges: payload.edges } : p))
+          const updatedPub = publishedRegistry.map((p) => (p.name === modelName ? { ...p, nodes: payload.nodes, edges: payload.edges, updatedAt: now.toISOString() } : p))
           localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
         }
 
@@ -1019,7 +1036,11 @@ export default function Finalize() {
         console.warn('Storage save warning:', err)
       }
 
-      toast.success(`Model "${modelName}" saved successfully!`)
+      if (mode === 'overwrite') {
+        toast.success(`Model "${modelName}" updated successfully (overwritten)!`)
+      } else {
+        toast.success(`Saved as new model version "${modelName}"!`)
+      }
       setSaveAsOpen(false)
     } catch (e) {
       toast.error('Failed to save model: ' + e.message)
@@ -1102,13 +1123,23 @@ export default function Finalize() {
             </span>
           </div>
 
-          {/* Action Buttons: Save As button */}
+          {/* Action Buttons: Edit Model & Save As buttons */}
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleEditModel}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs border border-line bg-surface hover:bg-surface2 text-ink hover:border-brand/40"
+              title="Edit model ontology and parameters in Business Input stage"
+            >
+              <Edit3 size={14} className="text-brand" />
+              <span>Edit Model</span>
+            </button>
+
             <button
               type="button"
               onClick={handleSaveAs}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs btn-ghost border-[#10b981]/50 text-[#10b981] hover:bg-[#10b981]/10 hover:border-[#10b981]"
-              title="Save current model snapshot"
+              title="Save current model snapshot (Overwrite or Save as New Version)"
             >
               <Save size={14} className="text-[#10b981]" />
               <span>Save As</span>

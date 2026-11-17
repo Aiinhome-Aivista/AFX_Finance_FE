@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   Download,
+  Edit3,
   ExternalLink,
   Layers,
   Save,
@@ -173,7 +174,7 @@ export default function DigitalTwinExplorer() {
     setSaveAsOpen(true)
   }
 
-  const executeSaveAs = (modelName) => {
+  const executeSaveAs = (modelName, mode = 'overwrite') => {
     try {
       const now = new Date()
       const payload = {
@@ -209,12 +210,19 @@ export default function DigitalTwinExplorer() {
       localStorage.setItem('agentforgex_saved_models', JSON.stringify(existing))
 
       const afxSaved = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-      const filtered = afxSaved.filter((m) => m.name !== modelName)
-      filtered.unshift({
-        ...payload,
-        savedAt: payload.createdAt,
-      })
-      localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+      if (mode === 'overwrite') {
+        const idx = afxSaved.findIndex((m) => m.name === modelName)
+        if (idx >= 0) {
+          afxSaved[idx] = { ...afxSaved[idx], ...payload, id: afxSaved[idx].id || payload.id }
+        } else {
+          afxSaved.unshift(payload)
+        }
+        localStorage.setItem('afx_saved_models', JSON.stringify(afxSaved.slice(0, 50)))
+      } else {
+        const filtered = afxSaved.filter((m) => m.name !== modelName)
+        filtered.unshift(payload)
+        localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
+      }
 
       domains.saveCustomModel({
         name: modelName,
@@ -226,7 +234,11 @@ export default function DigitalTwinExplorer() {
         createdAt: payload.createdAt,
       }).catch((err) => console.warn('Backend custom model save warning:', err))
 
-      toast.success(`Model "${modelName}" saved successfully!`)
+      if (mode === 'overwrite') {
+        toast.success(`Model "${modelName}" updated successfully (overwritten)!`)
+      } else {
+        toast.success(`Saved as new model version "${modelName}"!`)
+      }
       setSaveAsOpen(false)
     } catch (e) {
       toast.error('Failed to save model: ' + e.message)
@@ -278,11 +290,20 @@ export default function DigitalTwinExplorer() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <Link
+              to={`/finance/${slug}/finalize`}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs border border-line bg-surface hover:bg-surface2 text-ink hover:border-brand/40"
+              title="Edit model architecture and review calibrations"
+            >
+              <Edit3 size={14} className="text-brand" />
+              <span>Edit Model</span>
+            </Link>
+
             <button
               type="button"
               onClick={handleSaveAs}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs btn-ghost border-[#10b981]/50 text-[#10b981] hover:bg-[#10b981]/10 hover:border-[#10b981]"
-              title="Save current model snapshot"
+              title="Save current model snapshot (Overwrite or Save as New Version)"
             >
               <Save size={14} className="text-[#10b981]" />
               <span>Save As</span>
