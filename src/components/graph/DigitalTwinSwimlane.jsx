@@ -401,7 +401,9 @@ function buildSwimlaneSvgString(model, opts = {}) {
 
       sv.push(`<rect x="8" y="${y}" width="${LBL}" height="${LH}" fill="${headerBg}" stroke="${headerBorder}" stroke-width="1"${ag ? `><title>${esc(ag.onto)} — ${esc(ag.hitl || 'autonomous')}</title></rect>` : '/>'}`)
 
-      const nm = wrap(ln, 15).slice(0, 3)
+      // Strip emoji / icons so left lane headers show clean text without broken symbols/pictures
+      const cleanLn = ln.replace(/^[\p{Emoji}\p{Extended_Pictographic}\u200d\s🤖]+/gu, '').trim()
+      const nm = wrap(cleanLn || ln, 15).slice(0, 3)
       const extra = ag ? 1 : 0
       const sy = y + LH / 2 - (nm.length - 1 + extra) * 7
       nm.forEach((w, k) => {
@@ -552,9 +554,9 @@ function buildSwimlaneSvgString(model, opts = {}) {
         sv.push(`<text x="${x}" y="${y - 4 + k * 11 + (wd.length === 1 ? 4 : 0)}" text-anchor="middle" style="font:700 8.8px Inter,system-ui;fill:${txtFill}">${esc(w)}</text>`)
       })
       let dc = null
-      if (s.hitl) dc = ['#FEF3C7', '#B45309', '👤 HITL — ' + (s.hitlWhy || 'approval').slice(0, 16)]
-      else if (isAgent) dc = ['#EDE9FE', '#6D28D9', '🤖 AGENT — autonomous']
-      else if (s.act === 'assist') dc = ['#EDE9FE', '#6D28D9', '🤖 assist · human leads']
+      if (s.hitl) dc = ['#FEF3C7', '#B45309', 'HITL: ' + (s.hitlWhy || 'approval').slice(0, 16)]
+      else if (isAgent) dc = ['#EDE9FE', '#6D28D9', 'AGENT — autonomous']
+      else if (s.act === 'assist') dc = ['#EDE9FE', '#6D28D9', 'Assist · human leads']
       if (dc) {
         sv.push(`<rect x="${x - 52}" y="${y + 31}" width="104" height="12" rx="6" fill="${dc[0]}" stroke="#E2E8F0"/><text x="${x}" y="${y + 40}" text-anchor="middle" style="font:700 7.4px Inter,system-ui;fill:${dc[1]}">${esc(dc[2])}</text>`)
       }
@@ -570,9 +572,9 @@ function buildSwimlaneSvgString(model, opts = {}) {
       })
       const chipY = y + BH / 2 - 16
       let cc = null
-      if (s.hitl) cc = ['#FEF3C7', '#B45309', '👤 HITL — ' + (s.hitlWhy || 'approval').slice(0, 26)]
-      else if (isAgent) cc = ['#EDE9FE', '#5B21B6', '🤖 AGENT — autonomous']
-      else if (s.act === 'assist') cc = ['#EDE9FE', '#6D28D9', '🤖 AGENT-ASSISTED · human leads']
+      if (s.hitl) cc = ['#FEF3C7', '#B45309', 'HITL — ' + (s.hitlWhy || 'approval').slice(0, 26)]
+      else if (isAgent) cc = ['#EDE9FE', '#5B21B6', 'AGENT — autonomous']
+      else if (s.act === 'assist') cc = ['#EDE9FE', '#6D28D9', 'AGENT-ASSISTED · human leads']
       if (cc) {
         sv.push(`<rect x="${x - BW / 2 + 6}" y="${chipY}" width="${BW - 12}" height="13" rx="6.5" fill="${cc[0]}"/><text x="${x}" y="${chipY + 9.5}" text-anchor="middle" style="font:700 7.6px Inter,system-ui;fill:${cc[1]}">${esc(cc[2])}</text>`)
       }
@@ -583,7 +585,7 @@ function buildSwimlaneSvgString(model, opts = {}) {
 
     // Ontology Anchor Label
     if (s.icom) {
-      sv.push(`<text x="${x}" y="${y - BH / 2 - 12}" text-anchor="middle" style="font:700 8.2px Inter,system-ui;fill:#059669;paint-order:stroke;stroke:#FFFFFF;stroke-width:3px">⬒ ${esc(s.icom)}</text>`)
+      sv.push(`<text x="${x}" y="${y - BH / 2 - 12}" text-anchor="middle" style="font:700 8.2px Inter,system-ui;fill:#059669;paint-order:stroke;stroke:#FFFFFF;stroke-width:3px">${esc(s.icom)}</text>`)
     }
   })
 
