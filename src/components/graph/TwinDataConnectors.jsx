@@ -452,7 +452,7 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
                     <span className="text-[#10b981] hover:underline">Click to browse</span> or drag and drop your CSV / XLSX file here
                   </p>
                   <p className="text-[11px] text-muted">
-                    Supports .CSV, .TSV, .XLSX up to 50MB · Automatic column mapping
+                    Supports .CSV, .TSV, .XLSX up to 100MB · Automatic column mapping
                   </p>
                 </div>
               )}
