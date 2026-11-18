@@ -779,6 +779,12 @@ export default function DomainGraph() {
   }
 
   const defaultSaveName = useMemo(() => {
+    // If this is a fresh new session, do not inherit previously selected active model name
+    if (isFresh) {
+      const now = new Date()
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
+    }
     // 1. From navigation route state
     if (location.state?.modelName) {
       return location.state.modelName
@@ -807,7 +813,7 @@ export default function DomainGraph() {
     const now = new Date()
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
-  }, [slug, location.state])
+  }, [slug, location.state, isFresh])
 
   const handleSaveAs = () => {
     setSaveAsOpen(true)
@@ -1319,6 +1325,7 @@ export default function DomainGraph() {
         defaultName={defaultSaveName}
         domainName={domain?.name || 'Finance Model'}
         entityCount={base?.nodes?.length || 0}
+        isFresh={isFresh}
         onSave={executeSaveAs}
         onClose={() => setSaveAsOpen(false)}
       />

@@ -210,6 +210,16 @@ export default function DigitalTwinExplorer() {
       localStorage.setItem('agentforgex_saved_models', JSON.stringify(existing))
 
       const afxSaved = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
+      const publishedRegistry = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
+      const isAlreadyPublished = publishedRegistry.some((p) => p.name === modelName)
+
+      if (isAlreadyPublished) {
+        const updatedPub = publishedRegistry.map((p) =>
+          p.name === modelName ? { ...p, nodes: payload.nodes, edges: payload.edges, updatedAt: now.toISOString() } : p
+        )
+        localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
+      }
+
       if (mode === 'overwrite') {
         const idx = afxSaved.findIndex((m) => m.name === modelName)
         if (idx >= 0) {
