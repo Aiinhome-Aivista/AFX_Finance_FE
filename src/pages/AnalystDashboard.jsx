@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, Database, Info, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Database, Info, RefreshCw, Sparkles } from 'lucide-react'
 import Layout from '../components/common/Layout'
 import { EmptyState, ErrorState, Loading } from '../components/common/States'
 import useAsync from '../components/common/useAsync'
@@ -72,15 +72,13 @@ export default function AnalystDashboard() {
   return (
     <Layout wide hideWorkflowBar hideNext>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <Link to="/finance" className="btn-ghost btn-sm inline-flex items-center gap-1.5"><ArrowLeft size={14} /> Models</Link>
+        <Link to="/finance/models" className="btn-ghost btn-sm inline-flex items-center gap-1.5"><ArrowLeft size={14} /> Models</Link>
         {d?.model && (
           <div className="min-w-0">
             <h1 className="truncate text-lg font-bold text-ink">{d.model.name}</h1>
             <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted">
-              <span className="inline-flex items-center gap-1 text-brand"><ShieldCheck size={12} /> Published {d.model.version}</span>
-              <span>by {d.model.owner_name}</span>
-              {d.model.published_at && <span>· {new Date(d.model.published_at).toLocaleDateString()}</span>}
-              {d.date_range && <span>· Data {d.date_range.from} → {d.date_range.to}</span>}
+              {d.model.published_at && <span>{new Date(d.model.published_at).toLocaleDateString()}</span>}
+              {d.date_range && <span>{d.model.published_at ? '· ' : ''}Data {d.date_range.from} → {d.date_range.to}</span>}
             </p>
           </div>
         )}

@@ -113,7 +113,7 @@ export default function AnalystChatDock({ wf, modelName, version }) {
             {open ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
           </button>
           <h2 className="flex items-center gap-1.5 text-sm font-extrabold text-ink"><Sparkles size={14} className="text-brand" />Speak to your data</h2>
-          <span className="truncate text-xs text-muted">{modelName}{version ? ` · ${version}` : ''}</span>
+          <span className="truncate text-xs text-muted">{modelName}</span>
         </div>
 
         {open && (

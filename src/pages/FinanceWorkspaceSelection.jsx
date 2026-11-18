@@ -456,9 +456,6 @@ export default function FinanceWorkspaceSelection() {
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
                           <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
-                              <ShieldCheck size={12} /> Certified Twin
-                            </span>
                             {!isAnalyst && (
                               <button
                                 type="button"
@@ -472,7 +469,7 @@ export default function FinanceWorkspaceSelection() {
                           </div>
                         </div>
                         <p className="text-xs text-mute mt-1">
-                          Domain: {m.domainName || m.slug?.replace(/-/g, ' ')} · Governed Architecture
+                          Domain: {(m.domainName || m.slug?.replace(/-/g, ' ') || '').replace(/\s*[·-]\s*Governed Architecture/i, '')}
                         </p>
                         <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
                           <span>Published on {m.publishedAt ? new Date(m.publishedAt).toLocaleDateString() : 'Recent'}</span>
@@ -626,9 +623,6 @@ export default function FinanceWorkspaceSelection() {
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
                           <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-600 dark:text-emerald-400">
-                              <ShieldCheck size={12} /> Certified Twin
-                            </span>
                             {!isAnalyst && (
                               <button
                                 type="button"
@@ -642,7 +636,7 @@ export default function FinanceWorkspaceSelection() {
                           </div>
                         </div>
                         <p className="text-xs text-mute mt-1">
-                          Domain: {m.domainName || m.slug?.replace(/-/g, ' ')} · Governed Architecture
+                          Domain: {(m.domainName || m.slug?.replace(/-/g, ' ') || '').replace(/\s*[·-]\s*Governed Architecture/i, '')}
                         </p>
                         <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
                           <span>Published on {m.publishedAt ? new Date(m.publishedAt).toLocaleDateString() : 'Recent'}</span>
