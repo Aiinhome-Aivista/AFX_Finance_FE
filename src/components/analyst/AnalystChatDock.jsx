@@ -25,9 +25,11 @@ function AssistantMessage({ m, onAsk }) {
     <div className="max-w-[92%] space-y-2 rounded-2xl rounded-tl-sm border border-line bg-surface2 px-4 py-3 text-sm text-ink">
       <p className={m.unanswerable ? 'text-muted' : ''}>{m.content}</p>
       {m.chart && (
-        <div className="rounded-xl border border-line bg-surface p-2">
-          <p className="px-1 text-xs font-semibold text-muted">{pretty(m.chart.title)}</p>
-          <Chart chart={m.chart} />
+        <div className="max-w-md rounded-xl border border-line bg-surface p-2 shadow-2xs">
+          <p className="px-1 text-[11px] font-semibold text-muted">{pretty(m.chart.title)}</p>
+          <div className="h-44 w-full">
+            <Chart chart={m.chart} />
+          </div>
         </div>
       )}
       {rows.length > 1 && (

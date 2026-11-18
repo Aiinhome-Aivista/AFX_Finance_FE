@@ -42,7 +42,7 @@ export function BarChart({ data }) {
   const bw = (W - M.l - M.r) / data.length
   const ih = H - M.t - M.b
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full text-ink" role="img">
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full text-ink" preserveAspectRatio="xMidYMid meet" role="img">
       <Axes max={max} />
       {data.map((d, i) => {
         const h = Math.max((Math.max(d.value, 0) / max) * ih, 1)
@@ -70,7 +70,7 @@ export function LineChart({ data }) {
   const path = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
   const step = Math.ceil(data.length / 8)
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full text-ink" role="img">
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full text-ink" preserveAspectRatio="xMidYMid meet" role="img">
       <Axes max={max} />
       <path d={`${path} L${pts[pts.length - 1][0]},${M.t + ih} L${pts[0][0]},${M.t + ih} Z`} fill={PALETTE[0]} opacity="0.12" />
       <path d={path} fill="none" stroke={PALETTE[0]} strokeWidth="2.2" strokeLinejoin="round" />
