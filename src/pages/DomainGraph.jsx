@@ -595,6 +595,7 @@ export default function DomainGraph() {
       toast.success(`Generated ${res.nodes?.length || 0} entities and ${res.edges?.length || 0} relationships with LLM!`)
       setShowAiModal(false)
       wf.reload().catch(() => { })
+      flows.reload().catch(() => { })
       chat.get(slug).then(setSnap).catch(() => { })
     } catch (e) {
       toast.error(e.message || 'Failed to generate Knowledge Graph with LLM.')
@@ -1166,6 +1167,7 @@ export default function DomainGraph() {
                     flows.reload(),
                     blocks.reload(),
                     chat.get(slug).then(setSnap).catch(() => { }),
+                    flowKey ? domains.flow(flowKey, slug).then(setFlowDetail).catch(() => { }) : Promise.resolve(),
                   ]).finally(() => {
                     setUpdatingGraph(false)
                   })

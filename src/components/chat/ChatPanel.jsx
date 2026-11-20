@@ -451,7 +451,7 @@ export default function ChatPanel({
                       }`}
                   >
                     {KIND_LABEL[m.kind]}
-                    {m.meta?.followup ? ' · Follow-up' : ''}
+                    {m.meta?.followup ? ' · Follow-up' : m.meta?.repeated ? ' · Please Answer' : ''}
                   </span>
                 )}
                 <span className="whitespace-pre-wrap">{formatCleanContent(m.content)}</span>
@@ -502,54 +502,54 @@ export default function ChatPanel({
       <div className="border-t border-line/70 p-3 bg-surface/95">
         <div className="space-y-2">
           {/* Context chip if a node is selected */}
-            {askNode && (
-              <div className="flex items-center justify-between gap-2 rounded-xl bg-brand/10 border border-brand/25 px-2.5 py-1.5 text-xs">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <Zap size={13} className="text-brand shrink-0" />
-                  <span className="text-muted">Target:</span>
-                  <span className="font-semibold text-brand truncate">{nodeName || askNode}</span>
-                </div>
-                {onSwitchToDetails && (
-                  <button
-                    onClick={onSwitchToDetails}
-                    className="text-[11px] font-semibold text-brand hover:underline shrink-0 cursor-pointer"
-                  >
-                    View specs →
-                  </button>
-                )}
+          {askNode && (
+            <div className="flex items-center justify-between gap-2 rounded-xl bg-brand/10 border border-brand/25 px-2.5 py-1.5 text-xs">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Zap size={13} className="text-brand shrink-0" />
+                <span className="text-muted">Target:</span>
+                <span className="font-semibold text-brand truncate">{nodeName || askNode}</span>
               </div>
-            )}
+              {onSwitchToDetails && (
+                <button
+                  onClick={onSwitchToDetails}
+                  className="text-[11px] font-semibold text-brand hover:underline shrink-0 cursor-pointer"
+                >
+                  View specs →
+                </button>
+              )}
+            </div>
+          )}
 
-            {/* Session decision quick banner if awaiting decision */}
-            {activeSnap.awaiting_session_decision && !isComplete && (
-              <div className="flex items-center justify-between gap-2 rounded-xl bg-amber-500/10 border border-amber-500/25 px-3 py-2 text-xs">
-                <span className="font-semibold text-amber-600 dark:text-amber-400">
-                  Ready to proceed, or continue exploring?
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => handleDecision('continue')}
-                    className="rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-ink hover:text-brand transition cursor-pointer disabled:opacity-50"
-                  >
-                    Continue
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => handleDecision('proceed')}
-                    className="rounded-lg bg-brand px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand/90 transition cursor-pointer shadow-2xs disabled:opacity-50"
-                  >
-                    Proceed
-                  </button>
-                </div>
+          {/* Session decision quick banner if awaiting decision */}
+          {activeSnap.awaiting_session_decision && !isComplete && (
+            <div className="flex items-center justify-between gap-2 rounded-xl bg-amber-500/10 border border-amber-500/25 px-3 py-2 text-xs">
+              <span className="font-semibold text-amber-600 dark:text-amber-400">
+                Ready to proceed, or continue exploring?
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => handleDecision('continue')}
+                  className="rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-ink hover:text-brand transition cursor-pointer disabled:opacity-50"
+                >
+                  Continue
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => handleDecision('proceed')}
+                  className="rounded-lg bg-brand px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand/90 transition cursor-pointer shadow-2xs disabled:opacity-50"
+                >
+                  Proceed
+                </button>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Mode selection chips */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              {/* <button
+          {/* Mode selection chips */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {/* <button
                 type="button"
                 className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition cursor-pointer border ${
                   mode === 'chat' || (!q && mode !== 'ask')
@@ -561,20 +561,20 @@ export default function ChatPanel({
                 Graph Copilot
               </button> */}
 
-              {q && (
-                <button
-                  type="button"
-                  className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition cursor-pointer border ${mode === 'answer'
-                    ? 'bg-brand text-white border-brand shadow-2xs font-semibold'
-                    : 'border-line bg-surface2 text-muted hover:text-ink'
-                    }`}
-                  onClick={() => setMode('answer')}
-                >
-                  Answer
-                </button>
-              )}
+            {q && (
+              <button
+                type="button"
+                className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition cursor-pointer border ${mode === 'answer'
+                  ? 'bg-brand text-white border-brand shadow-2xs font-semibold'
+                  : 'border-line bg-surface2 text-muted hover:text-ink'
+                  }`}
+                onClick={() => setMode('answer')}
+              >
+                Answer
+              </button>
+            )}
 
-              {/* <button
+            {/* <button
                 type="button"
                 className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition cursor-pointer border ${mode === 'ask'
                     ? 'bg-brand text-white border-brand shadow-2xs font-semibold'
@@ -587,53 +587,53 @@ export default function ChatPanel({
                 {askNode ? `Ask about “${nodeName || askNode}”` : 'Ask selected node'}
               </button> */}
 
-              {q && (
-                <button
-                  type="button"
-                  className="ml-auto inline-flex items-center gap-1 rounded-lg border border-line bg-surface2 px-2.5 py-1 text-[11px] font-medium text-muted hover:text-ink cursor-pointer disabled:opacity-40"
-                  onClick={skip}
-                  disabled={busy || !q}
-                  title="Skip this question"
-                >
-                  <SkipForward size={11} /> Skip
-                </button>
-              )}
-            </div>
-
-            {/* Input Form */}
-            <form onSubmit={send} className="relative flex items-stretch gap-2">
-              <textarea
-                className="input min-h-[46px] max-h-32 flex-1 resize-none rounded-xl border border-line bg-surface px-3 py-2 text-xs sm:text-[13px] text-ink placeholder:text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand shadow-2xs"
-                rows={2}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                maxLength={4000}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    send(e)
-                  }
-                }}
-                placeholder={
-                  mode === 'ask'
-                    ? `Ask about ${nodeName || 'this entity'}…`
-                    : mode === 'answer' && q
-                      ? 'Type your answer…'
-                      : 'Ask a question or describe your process…'
-                }
-                disabled={busy}
-                aria-label="Message the assistant"
-              />
-
+            {q && (
               <button
-                type="submit"
-                className="grid w-11 shrink-0 place-items-center rounded-xl bg-brand text-white shadow-sm transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 cursor-pointer"
-                disabled={busy || !text.trim()}
-                aria-label="Send message"
+                type="button"
+                className="ml-auto inline-flex items-center gap-1 rounded-lg border border-line bg-surface2 px-2.5 py-1 text-[11px] font-medium text-muted hover:text-ink cursor-pointer disabled:opacity-40"
+                onClick={skip}
+                disabled={busy || !q}
+                title="Skip this question"
               >
-                <Send size={15} />
+                <SkipForward size={11} /> Skip
               </button>
-            </form>
+            )}
           </div>
+
+          {/* Input Form */}
+          <form onSubmit={send} className="relative flex items-stretch gap-2">
+            <textarea
+              className="input min-h-[46px] max-h-32 flex-1 resize-none rounded-xl border border-line bg-surface px-3 py-2 text-xs sm:text-[13px] text-ink placeholder:text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand shadow-2xs"
+              rows={2}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              maxLength={4000}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  send(e)
+                }
+              }}
+              placeholder={
+                mode === 'ask'
+                  ? `Ask about ${nodeName || 'this entity'}…`
+                  : mode === 'answer' && q
+                    ? 'Type your answer…'
+                    : 'Ask a question or describe your process…'
+              }
+              disabled={busy}
+              aria-label="Message the assistant"
+            />
+
+            <button
+              type="submit"
+              className="grid w-11 shrink-0 place-items-center rounded-xl bg-brand text-white shadow-sm transition hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 cursor-pointer"
+              disabled={busy || !text.trim()}
+              aria-label="Send message"
+            >
+              <Send size={15} />
+            </button>
+          </form>
+        </div>
       </div>
 
       <ConfirmDialog

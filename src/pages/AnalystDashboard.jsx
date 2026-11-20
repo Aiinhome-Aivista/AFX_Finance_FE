@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, Database, Info, RefreshCw, Sparkles } from 'lucide-react'
+import { ArrowLeft, Database, Info, RefreshCw, Sparkles } from 'lucide-react'
 import Layout from '../components/common/Layout'
 import { EmptyState, ErrorState, Loading } from '../components/common/States'
 import useAsync from '../components/common/useAsync'
@@ -98,11 +98,6 @@ export default function AnalystDashboard() {
       {d && d.status === 'no_data' && (
         <div className="space-y-3">
           <EmptyState icon={Database} title="No data to analyse yet" hint={d.message} className="card min-h-[30vh] justify-center" />
-          {d.warnings?.length > 0 && (
-            <ul className="space-y-1 rounded-xl border border-warn/30 bg-warn/5 p-3 text-xs text-warn" role="status">
-              {d.warnings.map((w) => <li key={w} className="flex gap-2"><AlertTriangle size={13} className="mt-0.5 shrink-0" />{w}</li>)}
-            </ul>
-          )}
         </div>
       )}
 
@@ -114,11 +109,6 @@ export default function AnalystDashboard() {
               <div className="grid gap-5 md:grid-cols-2">{d.charts.map((c) => <ChartCard key={c.id} chart={c} />)}</div>
             ) : (
               <EmptyState icon={Info} title="No charts could be built" hint="The data has no numeric, date or category columns that chart cleanly." className="card" />
-            )}
-            {d.warnings?.length > 0 && (
-              <ul className="space-y-1 rounded-xl border border-warn/30 bg-warn/5 p-3 text-xs text-warn" role="status">
-                {d.warnings.map((w) => <li key={w} className="flex gap-2"><AlertTriangle size={13} className="mt-0.5 shrink-0" />{w}</li>)}
-              </ul>
             )}
           </div>
 
