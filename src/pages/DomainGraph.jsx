@@ -155,7 +155,7 @@ export default function DomainGraph() {
   const { slug } = useParams()
   const nav = useNavigate()
   const location = useLocation()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const toast = useToast()
   const domainKey = SLUG_TO_DOM[slug] || SLUG_TO_DOM[slug?.replace(/_/g, '-')] || 'all'
   const [activeDomainFilter, setActiveDomainFilter] = useState(domainKey)
@@ -281,9 +281,19 @@ export default function DomainGraph() {
 
   // Load chat conversation, proposals, and HTML graph whenever slug changes
   useEffect(() => {
-    setIsGapMode(false)
-    setGapData(null)
-    setLeftViewMode('graph')
+    const currentMode = searchParams.get('mode')
+    if (currentMode === 'upload') {
+      setIsGapMode(false)
+      setGapData(null)
+      setLeftViewMode('upload')
+    } else if (currentMode === 'gap') {
+      setIsGapMode(true)
+      setLeftViewMode('graph')
+    } else {
+      setIsGapMode(false)
+      setGapData(null)
+      setLeftViewMode('graph')
+    }
     setParsingProgress(null)
     setActiveDomainFilter(domainKey)
     setSelected(null)
@@ -498,17 +508,18 @@ export default function DomainGraph() {
         })
       } else {
         setIsGapMode(false)
-        setLeftViewMode('graph')
+        const isUp = searchParams.get('mode') === 'upload'
+        setLeftViewMode(isUp ? 'upload' : 'graph')
         updateDomainWorkflow(slug, {
           isKG1Ready: true,
           hasFiles: false,
           isGapMode: false,
           isFinalized: false,
-          viewMode: 'graph',
+          viewMode: isUp ? 'upload' : 'graph',
         })
       }
     }
-  }, [slug, isFresh, location.state])
+  }, [slug, isFresh, location.state, searchParams])
 
   // Bidirectional communication with graph iframe
   useEffect(() => {
@@ -901,7 +912,7 @@ export default function DomainGraph() {
     }
   }
 
-  const isUploadModeActive = searchParams.get('mode') === 'upload' || leftViewMode === 'upload'
+  const isUploadModeActive = !isGapMode && (searchParams.get('mode') === 'upload' || leftViewMode === 'upload')
 
   const nextConfig = useMemo(() => {
     if (isGapMode) {
@@ -1015,13 +1026,18 @@ export default function DomainGraph() {
       {/* Main Grid: Left Area (Graph or Upload) | Right Chatbot */}
       <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_440px]">
         {/* Left Column: Toggles between Knowledge Graph Canvas and Drag & Drop Upload Zone (MOM Step 3) */}
-        {leftViewMode === 'upload' ? (
+        {isUploadModeActive ? (
           <div className="h-[calc(100vh-90px)] min-h-[500px]">
             <TelemetryUploadZone
               slug={slug}
               initialFiles={domainFiles.data?.files}
               initialLoading={domainFiles.loading}
-              onBackToGraph={() => setLeftViewMode('graph')}
+              onBackToGraph={() => {
+                setLeftViewMode('graph')
+                const next = new URLSearchParams(searchParams)
+                next.delete('mode')
+                setSearchParams(next)
+              }}
               onProceedToGapAnalysis={handleProceedToGapAnalysis}
               onProcessingUpdate={(fileName, stage) =>
                 setParsingProgress({ fileName, stage, timestamp: Date.now() })
@@ -1144,8 +1160,13 @@ export default function DomainGraph() {
                 onProposal={setProposal}
                 onSwitchToDetails={() => setActiveRightTab('details')}
                 onAnsweringChange={setUpdatingGraph}
-                onNextToUpload={() => setLeftViewMode('upload')}
-                isUploadOpen={leftViewMode === 'upload'}
+                onNextToUpload={() => {
+                  setLeftViewMode('upload')
+                  const next = new URLSearchParams(searchParams)
+                  next.set('mode', 'upload')
+                  setSearchParams(next)
+                }}
+                isUploadOpen={isUploadModeActive}
                 parsingProgress={parsingProgress}
                 locked={false}
                 disabledReason={undefined}
