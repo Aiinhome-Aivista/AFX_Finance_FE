@@ -52,6 +52,79 @@ export function getDynamicTwinModel({ domainName = 'Finance', slug = '', nodes =
     branch: [],
   })
 
+  // Dynamic Graph-driven generation: If nodes exist in the digital twin knowledge graph,
+  // build the process flow, lanes, and steps directly from the verified nodes!
+  if (Array.isArray(nodes) && nodes.length >= 3) {
+    const validNodes = nodes.filter((n) => (n.name || n.label || n.n) && n.kind !== 'meta')
+    if (validNodes.length >= 3) {
+      const dynamicSteps = []
+      const dynamicAgents = []
+      const roleMap = new Map()
+
+      // Derive roles from node attributes, group_name, or semantic role
+      validNodes.forEach((node, idx) => {
+        const name = node.name || node.label || node.n || `Step ${idx + 1}`
+        const group = (node.group_name || node.group || '').toLowerCase()
+        const nodeRole = (node.role || '').toLowerCase()
+        const isCore = nodeRole === 'core' || group.includes('f1') || group.includes('f2') || group.includes('core')
+        const isApprovalOrControl = name.toLowerCase().includes('variance') || name.toLowerCase().includes('control') || name.toLowerCase().includes('approval') || name.toLowerCase().includes('review')
+        const isCalculationOrAgent = name.toLowerCase().includes('calendar') || name.toLowerCase().includes('agent') || name.toLowerCase().includes('engine') || name.toLowerCase().includes('driver') || name.toLowerCase().includes('simulation')
+
+        let lane
+        let stepType = 'task'
+        let agentId = null
+        let hitl = false
+        let hitlWhy = null
+
+        if (isCalculationOrAgent) {
+          lane = `🤖 ${name.split(' ')[0]} Agent`
+          stepType = 'system'
+          agentId = `dynAgent_${idx}`
+          dynamicAgents.push({ id: agentId, n: lane.replace('🤖 ', ''), onto: `${name} §D${idx + 1}` })
+        } else if (isApprovalOrControl) {
+          lane = isPlanning ? 'Controller' : isReporting ? 'Commercial Controller' : 'Review Controller'
+          stepType = 'approval'
+          hitl = true
+          hitlWhy = 'policy tolerance check'
+        } else {
+          lane = isCore ? (isPlanning ? 'FP&A Lead' : isReporting ? 'Key Account Manager' : 'Process Lead') : 'Operations Owner'
+        }
+
+        if (!lane.startsWith('🤖')) {
+          roleMap.set(lane, (roleMap.get(lane) || 0) + 1)
+        }
+
+        // Clean action verb label
+        let actionLabel = name
+        if (!/^[A-Z][a-z]+ing\b|^[A-Z][a-z]+e?\b/.test(name)) {
+          actionLabel = isApprovalOrControl ? `Review & Authorize ${name}` : `Execute & Process ${name}`
+        }
+
+        dynamicSteps.push(st(lane, actionLabel, stepType, agentId, hitl, hitlWhy, name))
+      })
+
+      // Link linear & decision flow
+      dynamicSteps.forEach((s, i) => {
+        if (!s.next) s.next = i + 1 < dynamicSteps.length ? [{ to: i + 1, label: '' }] : []
+      })
+
+      const humanRoles = Array.from(roleMap.keys())
+      const roleA = humanRoles[0] || 'Operations Lead'
+      const roleB = humanRoles[1] || 'Process Controller'
+      const roleC = humanRoles[2] || 'Business Approver'
+
+      const dynamicConfig = {
+        unitLabel: isPlanning ? 'Submissions / day' : isReporting ? 'Contracts / day' : 'Transactions / day',
+        sliderDefault: isPlanning ? 30 : 45,
+        roleA: { label: roleA, default: 2 },
+        roleB: { label: roleB, default: 2 },
+        roleC: { label: roleC, default: 2 },
+      }
+
+      return { steps: dynamicSteps, agentsList: dynamicAgents, simConfig: dynamicConfig }
+    }
+  }
+
   let steps = []
   let agentsList = []
   let simConfig = {
