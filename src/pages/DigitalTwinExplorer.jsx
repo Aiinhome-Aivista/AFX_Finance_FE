@@ -255,7 +255,7 @@ export default function DigitalTwinExplorer() {
     }
   }
 
-  if (wf.loading && !wf.data) {
+  if ((wf.loading && !wf.data) || (fin.loading && !fin.data)) {
     return (
       <Layout wide hideNext>
         <Loading label="Loading Enterprise Digital Twin..." />

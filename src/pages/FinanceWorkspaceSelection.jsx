@@ -6,6 +6,35 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { domains } from '../api'
 
+const DOMAIN_NAME_TO_SLUG = {
+  'planning, budgeting and forecasting': 'planning-budgeting-forecasting',
+  'management reporting and gross-to-net': 'management-reporting-gross-to-net',
+  'cost and profitability management': 'cost-profitability-management',
+  'working capital and treasury': 'working-capital-treasury',
+  'consolidation, close and statutory': 'consolidation-close-statutory',
+  'consolidation, close & statutory': 'consolidation-close-statutory',
+  'statement analysis and valuation': 'statement-analysis-valuation',
+  'statement analysis & valuation': 'statement-analysis-valuation',
+  'risk, governance and controls': 'risk-governance-controls',
+  'risk, governance & controls': 'risk-governance-controls',
+  'epm platforms and operating model': 'epm-platforms-operating-model',
+  'epm platforms & operating model': 'epm-platforms-operating-model',
+}
+
+const resolveModelSlug = (model) => {
+  if (!model) return 'planning-budgeting-forecasting'
+  if (model.slug && model.slug !== 'planning-budgeting-forecasting') return model.slug
+  if (model.domainSlug) return model.domainSlug
+  if (model.domainName) {
+    const key = model.domainName.toLowerCase().replace(/\s*[·-]\s*governed architecture/i, '').trim()
+    if (DOMAIN_NAME_TO_SLUG[key]) return DOMAIN_NAME_TO_SLUG[key]
+    for (const [dName, slug] of Object.entries(DOMAIN_NAME_TO_SLUG)) {
+      if (key.includes(dName) || dName.includes(key)) return slug
+    }
+  }
+  return model.slug || 'planning-budgeting-forecasting'
+}
+
 const sortModelsByRecent = (list) => {
   return [...(list || [])]
     .filter((m) => m && m.name && m.name.trim())
@@ -195,10 +224,11 @@ export default function FinanceWorkspaceSelection() {
     const m = savedModels.find((x) => x.name === targetName)
     if (!m) return
 
+    const resolvedSlug = resolveModelSlug(m)
     const pubItem = {
       name: m.name,
-      slug: m.slug || 'planning-budgeting-forecasting',
-      domainName: m.domainName || (m.slug ? m.slug.replace(/-/g, ' ') : 'Planning, Budgeting and Forecasting'),
+      slug: resolvedSlug,
+      domainName: m.domainName || (resolvedSlug ? resolvedSlug.replace(/-/g, ' ') : 'Planning, Budgeting and Forecasting'),
       publishedAt: new Date().toISOString(),
       governed: true,
       nodes: m.nodes || [],
@@ -248,25 +278,24 @@ export default function FinanceWorkspaceSelection() {
     if (selectedPublishedModel) {
       const pub = publishedModels.find((m) => m.name === selectedPublishedModel)
       if (pub) {
+        const targetSlug = resolveModelSlug(pub)
+        const cleanSlug = targetSlug.replace(/\s+/g, '-').toLowerCase()
         localStorage.setItem('afx_active_model_name', pub.name)
-        if (pub.slug) {
-          const cleanSlug = pub.slug.replace(/\s+/g, '-').toLowerCase()
-          localStorage.setItem(`afx_custom_name_${pub.slug}`, pub.name)
-          localStorage.setItem(`afx_custom_name_${cleanSlug}`, pub.name)
-          localStorage.setItem(`afx_model_snapshot_${pub.slug}`, JSON.stringify(pub))
-          localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(pub))
-        }
+        localStorage.setItem(`afx_custom_name_${targetSlug}`, pub.name)
+        localStorage.setItem(`afx_custom_name_${cleanSlug}`, pub.name)
+        localStorage.setItem(`afx_model_snapshot_${targetSlug}`, JSON.stringify(pub))
+        localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(pub))
         if (isAnalyst) {
           if (pub.workflow_id) {
-            nav(`/finance/${pub.slug || 'planning-budgeting-forecasting'}/dashboard?wf=${pub.workflow_id}`)
+            nav(`/finance/${targetSlug}/dashboard?wf=${pub.workflow_id}`)
           } else {
-            nav(`/finance/${pub.slug || 'planning-budgeting-forecasting'}/twin`, {
+            nav(`/finance/${targetSlug}/twin`, {
               state: { modelName: pub.name, model: pub },
             })
           }
           return
         }
-        nav(`/finance/${pub.slug || 'planning-budgeting-forecasting'}/twin`, {
+        nav(`/finance/${targetSlug}/twin`, {
           state: { modelName: pub.name },
         })
         return
@@ -276,13 +305,14 @@ export default function FinanceWorkspaceSelection() {
     if (selectedMyModel) {
       const my = savedModels.find((m) => m.name === selectedMyModel)
       if (my) {
-        localStorage.setItem('afx_active_model_name', my.name)
-        const targetSlug = my.slug || 'planning-budgeting-forecasting'
+        const targetSlug = resolveModelSlug(my)
         const cleanSlug = targetSlug.replace(/\s+/g, '-').toLowerCase()
+        localStorage.setItem('afx_active_model_name', my.name)
         localStorage.setItem(`afx_custom_name_${targetSlug}`, my.name)
         localStorage.setItem(`afx_custom_name_${cleanSlug}`, my.name)
         localStorage.setItem(`afx_model_snapshot_${targetSlug}`, JSON.stringify(my))
         localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(my))
+        localStorage.setItem(`afx_model_snapshot_${my.name}`, JSON.stringify(my))
         localStorage.setItem(`afx_model_snapshot_${my.name}`, JSON.stringify(my))
 
         if (my.stage === 'twin' || my.isTwin) {
