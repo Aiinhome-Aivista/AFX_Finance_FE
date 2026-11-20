@@ -4,6 +4,14 @@
 @tailwind components;
 @tailwind utilities;
 
+html, body, #root {
+  background-color: #0a0a0a;
+  color-scheme: dark;
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
 :root {
   --bg: 255 255 255;
   --surface: 255 255 255;

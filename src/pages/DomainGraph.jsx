@@ -300,11 +300,6 @@ export default function DomainGraph() {
     setSelectedNodeData(null)
     setAiGraph(null)
     g.setData(null)
-    try {
-      Object.keys(localStorage).forEach((k) => {
-        if (k.startsWith('afx_custom_graph_')) localStorage.removeItem(k)
-      })
-    } catch { }
     setFlowKey(null)
     setFlowDetail(null)
     setPicked(null)
@@ -397,35 +392,7 @@ export default function DomainGraph() {
   // Restore saved workspace progress if an existing workspace was selected
   useEffect(() => {
     if (isFresh || !slug) return
-    const activeName = location.state?.modelName || localStorage.getItem('afx_active_model_name')
-    const cleanSlug = slug.replace(/\s+/g, '-').toLowerCase()
-    let saved = location.state?.model
-
-    if (!saved && activeName) {
-      try {
-        const savedList = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-        saved = savedList.find((m) => m && m.name === activeName)
-      } catch { }
-      if (!saved) {
-        try {
-          const pubList = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
-          saved = pubList.find((m) => m && m.name === activeName)
-        } catch { }
-      }
-      if (!saved) {
-        try {
-          const snapByName = localStorage.getItem(`afx_model_snapshot_${activeName}`)
-          if (snapByName) saved = JSON.parse(snapByName)
-        } catch { }
-      }
-    }
-
-    if (!saved) {
-      try {
-        const snap = localStorage.getItem(`afx_model_snapshot_${slug}`) || localStorage.getItem(`afx_model_snapshot_${cleanSlug}`)
-        if (snap) saved = JSON.parse(snap)
-      } catch { }
-    }
+    const saved = location.state?.model
 
     if (saved && saved.nodes && saved.nodes.length > 0) {
       const isGap = Boolean(
@@ -791,41 +758,13 @@ export default function DomainGraph() {
   }
 
   const defaultSaveName = useMemo(() => {
-    // If this is a fresh new session, do not inherit previously selected active model name
-    if (isFresh) {
-      const now = new Date()
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-      return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
-    }
-    // 1. From navigation route state
-    if (location.state?.modelName) {
+    if (!isFresh && location.state?.modelName) {
       return location.state.modelName
     }
-    // 2. From currently active selected model
-    const activeModel = localStorage.getItem('afx_active_model_name')
-    if (activeModel) {
-      return activeModel
-    }
-    // 3. From domain custom name
-    const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
-    const customForSlug = localStorage.getItem(`afx_custom_name_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_custom_name_${cleanSlug}`) : null)
-    if (customForSlug) {
-      return customForSlug
-    }
-    // 4. From model snapshot
-    try {
-      const snap = localStorage.getItem(`afx_model_snapshot_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_model_snapshot_${cleanSlug}`) : null)
-      if (snap) {
-        const parsed = JSON.parse(snap)
-        if (parsed?.name) return parsed.name
-      }
-    } catch { }
-
-    // Fallback: Date-based default name
     const now = new Date()
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
-  }, [slug, location.state, isFresh])
+  }, [location.state, isFresh])
 
   const handleSaveAs = () => {
     setSaveAsOpen(true)
@@ -850,61 +789,21 @@ export default function DomainGraph() {
         leftViewMode: leftViewMode || 'graph',
       }
 
-      // Persist saved model snapshot to application storage and backend database dynamically
-      try {
-        const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
-        localStorage.setItem('afx_active_model_name', modelName)
-        localStorage.setItem(`afx_custom_name_${slug}`, modelName)
-        if (cleanSlug) {
-          localStorage.setItem(`afx_custom_name_${cleanSlug}`, modelName)
-        }
-        localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
-        if (cleanSlug) {
-          localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(payload))
-        }
-        localStorage.setItem(`afx_model_snapshot_${modelName}`, JSON.stringify(payload))
-
-        const publishedRegistry = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
-        const isAlreadyPublished = publishedRegistry.some((p) => p.name === modelName)
-
-        if (!isAlreadyPublished) {
-          const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-          if (mode === 'overwrite') {
-            const idx = savedRegistry.findIndex((m) => m.name === modelName)
-            if (idx >= 0) {
-              savedRegistry[idx] = { ...savedRegistry[idx], ...payload, id: savedRegistry[idx].id || `custom_${Date.now()}` }
-            } else {
-              savedRegistry.unshift({ ...payload, id: `custom_${Date.now()}` })
-            }
-            localStorage.setItem('afx_saved_models', JSON.stringify(savedRegistry.slice(0, 50)))
-          } else {
-            const newEntry = { ...payload, id: `custom_${Date.now()}` }
-            const filtered = savedRegistry.filter((m) => m.name !== modelName)
-            filtered.unshift(newEntry)
-            localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
-          }
-        } else {
-          const updatedPub = publishedRegistry.map((p) => (p.name === modelName ? { ...p, nodes: payload.nodes, edges: payload.edges, isGapMode: payload.isGapMode, stage: payload.stage, updatedAt: now.toISOString() } : p))
-          localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
-        }
-
-        domains.saveCustomModel({
-          name: modelName,
-          slug,
-          domainName: domain?.name || 'Planning, Budgeting and Forecasting',
-          nodes: payload.nodes,
-          edges: payload.edges,
-          savedAt: payload.savedAt,
-          createdAt: payload.savedAt,
-        }).catch((err) => console.warn('Backend custom model save warning:', err))
-      } catch (err) {
-        console.warn('Storage save warning:', err)
-      }
+      // Persist saved model directly to backend database API
+      domains.saveCustomModel({
+        name: modelName,
+        slug,
+        domainName: domain?.name || 'Planning, Budgeting and Forecasting',
+        nodes: payload.nodes,
+        edges: payload.edges,
+        savedAt: payload.savedAt,
+        createdAt: payload.savedAt,
+      }).catch((err) => console.warn('Backend custom model save warning:', err))
 
       if (mode === 'overwrite') {
-        toast.success(`Model "${modelName}" updated successfully (overwritten)!`)
+        toast.success(`Model "${modelName}" updated successfully in database!`)
       } else {
-        toast.success(`Saved as new model version "${modelName}"!`)
+        toast.success(`Model "${modelName}" saved successfully in database!`)
       }
       setSaveAsOpen(false)
     } catch (e) {
@@ -972,7 +871,7 @@ export default function DomainGraph() {
             {/* Finance master-data spine button */}
             <button
               type="button"
-              onClick={() => setActiveDomainFilter('spine')}
+              onClick={() => setActiveDomainFilter(activeDomainFilter === 'spine' ? domainKey : 'spine')}
               className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${activeDomainFilter === 'spine'
                 ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
                 : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
