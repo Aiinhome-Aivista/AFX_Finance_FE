@@ -972,7 +972,7 @@ export default function DomainGraph() {
             {/* Finance master-data spine button */}
             <button
               type="button"
-              onClick={() => setActiveDomainFilter('spine')}
+              onClick={() => setActiveDomainFilter(activeDomainFilter === 'spine' ? domainKey : 'spine')}
               className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${activeDomainFilter === 'spine'
                 ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
                 : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
