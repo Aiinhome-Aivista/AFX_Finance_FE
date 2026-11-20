@@ -148,27 +148,10 @@ export default function DigitalTwinExplorer() {
     if (location.state?.modelName) {
       return location.state.modelName
     }
-    const activeModel = localStorage.getItem('afx_active_model_name')
-    if (activeModel) {
-      return activeModel
-    }
-    const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
-    const customForSlug = localStorage.getItem(`afx_custom_name_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_custom_name_${cleanSlug}`) : null)
-    if (customForSlug) {
-      return customForSlug
-    }
-    try {
-      const snap = localStorage.getItem(`afx_model_snapshot_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_model_snapshot_${cleanSlug}`) : null)
-      if (snap) {
-        const parsed = JSON.parse(snap)
-        if (parsed?.name) return parsed.name
-      }
-    } catch { }
-
     const now = new Date()
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
-  }, [slug, location.state])
+  }, [location.state])
 
   const handleSaveAs = () => {
     setSaveAsOpen(true)
@@ -193,47 +176,7 @@ export default function DigitalTwinExplorer() {
         isTwin: true,
       }
 
-      const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
-      localStorage.setItem('afx_active_model_name', modelName)
-      localStorage.setItem(`afx_custom_name_${slug}`, modelName)
-      if (cleanSlug) {
-        localStorage.setItem(`afx_custom_name_${cleanSlug}`, modelName)
-      }
-      localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
-      if (cleanSlug) {
-        localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(payload))
-      }
-      localStorage.setItem(`afx_model_snapshot_${modelName}`, JSON.stringify(payload))
-
-      const existing = JSON.parse(localStorage.getItem('agentforgex_saved_models') || '[]')
-      existing.unshift(payload)
-      localStorage.setItem('agentforgex_saved_models', JSON.stringify(existing))
-
-      const afxSaved = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-      const publishedRegistry = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
-      const isAlreadyPublished = publishedRegistry.some((p) => p.name === modelName)
-
-      if (isAlreadyPublished) {
-        const updatedPub = publishedRegistry.map((p) =>
-          p.name === modelName ? { ...p, nodes: payload.nodes, edges: payload.edges, updatedAt: now.toISOString() } : p
-        )
-        localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
-      }
-
-      if (mode === 'overwrite') {
-        const idx = afxSaved.findIndex((m) => m.name === modelName)
-        if (idx >= 0) {
-          afxSaved[idx] = { ...afxSaved[idx], ...payload, id: afxSaved[idx].id || payload.id }
-        } else {
-          afxSaved.unshift(payload)
-        }
-        localStorage.setItem('afx_saved_models', JSON.stringify(afxSaved.slice(0, 50)))
-      } else {
-        const filtered = afxSaved.filter((m) => m.name !== modelName)
-        filtered.unshift(payload)
-        localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
-      }
-
+      // Persist saved model directly to backend database API
       domains.saveCustomModel({
         name: modelName,
         slug,
@@ -245,13 +188,13 @@ export default function DigitalTwinExplorer() {
       }).catch((err) => console.warn('Backend custom model save warning:', err))
 
       if (mode === 'overwrite') {
-        toast.success(`Model "${modelName}" updated successfully (overwritten)!`)
+        toast.success(`Digital Twin "${modelName}" updated successfully in database!`)
       } else {
-        toast.success(`Saved as new model version "${modelName}"!`)
+        toast.success(`Digital Twin "${modelName}" saved successfully in database!`)
       }
       setSaveAsOpen(false)
     } catch (e) {
-      toast.error('Failed to save model: ' + e.message)
+      toast.error('Failed to save digital twin: ' + e.message)
     }
   }
 

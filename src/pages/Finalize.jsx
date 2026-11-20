@@ -937,27 +937,10 @@ export default function Finalize() {
     if (location.state?.modelName) {
       return location.state.modelName
     }
-    const activeModel = localStorage.getItem('afx_active_model_name')
-    if (activeModel) {
-      return activeModel
-    }
-    const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
-    const customForSlug = localStorage.getItem(`afx_custom_name_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_custom_name_${cleanSlug}`) : null)
-    if (customForSlug) {
-      return customForSlug
-    }
-    try {
-      const snap = localStorage.getItem(`afx_model_snapshot_${slug}`) || (cleanSlug ? localStorage.getItem(`afx_model_snapshot_${cleanSlug}`) : null)
-      if (snap) {
-        const parsed = JSON.parse(snap)
-        if (parsed?.name) return parsed.name
-      }
-    } catch { }
-
     const now = new Date()
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
-  }, [slug, location.state])
+  }, [location.state])
 
   const handleSaveAs = () => {
     setSaveAsOpen(true)
@@ -985,61 +968,21 @@ export default function Finalize() {
         isGapMode: false,
       }
 
-      // Persist saved model snapshot to application storage and backend database dynamically
-      try {
-        const cleanSlug = slug ? slug.replace(/\s+/g, '-').toLowerCase() : ''
-        localStorage.setItem('afx_active_model_name', modelName)
-        localStorage.setItem(`afx_custom_name_${slug}`, modelName)
-        if (cleanSlug) {
-          localStorage.setItem(`afx_custom_name_${cleanSlug}`, modelName)
-        }
-        localStorage.setItem(`afx_model_snapshot_${slug}`, JSON.stringify(payload))
-        if (cleanSlug) {
-          localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(payload))
-        }
-        localStorage.setItem(`afx_model_snapshot_${modelName}`, JSON.stringify(payload))
-
-        const publishedRegistry = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
-        const isAlreadyPublished = publishedRegistry.some((p) => p.name === modelName)
-
-        if (!isAlreadyPublished) {
-          const savedRegistry = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-          if (mode === 'overwrite') {
-            const idx = savedRegistry.findIndex((m) => m.name === modelName)
-            if (idx >= 0) {
-              savedRegistry[idx] = { ...savedRegistry[idx], ...payload, id: savedRegistry[idx].id || `custom_${Date.now()}` }
-            } else {
-              savedRegistry.unshift({ ...payload, id: `custom_${Date.now()}` })
-            }
-            localStorage.setItem('afx_saved_models', JSON.stringify(savedRegistry.slice(0, 50)))
-          } else {
-            const newEntry = { ...payload, id: `custom_${Date.now()}` }
-            const filtered = savedRegistry.filter((m) => m.name !== modelName)
-            filtered.unshift(newEntry)
-            localStorage.setItem('afx_saved_models', JSON.stringify(filtered.slice(0, 50)))
-          }
-        } else {
-          const updatedPub = publishedRegistry.map((p) => (p.name === modelName ? { ...p, nodes: payload.nodes, edges: payload.edges, updatedAt: now.toISOString() } : p))
-          localStorage.setItem('afx_published_models', JSON.stringify(updatedPub))
-        }
-
-        domains.saveCustomModel({
-          name: modelName,
-          slug,
-          domainName: d?.name || 'Planning, Budgeting and Forecasting',
-          nodes: payload.nodes,
-          edges: payload.edges,
-          savedAt: payload.savedAt,
-          createdAt: payload.savedAt,
-        }).catch((err) => console.warn('Backend custom model save warning:', err))
-      } catch (err) {
-        console.warn('Storage save warning:', err)
-      }
+      // Persist saved model directly to backend database API
+      domains.saveCustomModel({
+        name: modelName,
+        slug,
+        domainName: d?.name || 'Planning, Budgeting and Forecasting',
+        nodes: payload.nodes,
+        edges: payload.edges,
+        savedAt: payload.savedAt,
+        createdAt: payload.savedAt,
+      }).catch((err) => console.warn('Backend custom model save warning:', err))
 
       if (mode === 'overwrite') {
-        toast.success(`Model "${modelName}" updated successfully (overwritten)!`)
+        toast.success(`Model "${modelName}" updated successfully in database!`)
       } else {
-        toast.success(`Saved as new model version "${modelName}"!`)
+        toast.success(`Model "${modelName}" saved successfully in database!`)
       }
       setSaveAsOpen(false)
     } catch (e) {

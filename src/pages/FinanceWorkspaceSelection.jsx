@@ -21,25 +21,11 @@ export default function FinanceWorkspaceSelection() {
   const { isAnalyst } = useAuth()
   const toast = useToast()
 
-  // 1. My Finance Models: Populated dynamically from backend (and cached locally)
-  const [savedModels, setSavedModels] = useState(() => {
-    try {
-      const data = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-      return Array.isArray(data) ? sortModelsByRecent(data) : []
-    } catch {
-      return []
-    }
-  })
+  // 1. My Finance Models: Populated directly from backend database API
+  const [savedModels, setSavedModels] = useState([])
 
-  // 2. Published Models: Populated dynamically from backend (and cached locally)
-  const [publishedModels, setPublishedModels] = useState(() => {
-    try {
-      const data = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
-      return Array.isArray(data) ? data : []
-    } catch {
-      return []
-    }
-  })
+  // 2. Published Models: Populated directly from backend database API
+  const [publishedModels, setPublishedModels] = useState([])
 
   const [selectedMyModel, setSelectedMyModel] = useState(null)
   const [selectedPublishedModel, setSelectedPublishedModel] = useState(null)
@@ -52,12 +38,9 @@ export default function FinanceWorkspaceSelection() {
     }, 3500)
   }
 
-  // Fetch dynamically from backend database on mount so changes are visible across all browsers & sessions
+  // Fetch dynamically from backend database on mount - database is the single source of truth
   useEffect(() => {
     let alive = true
-
-    const localSaved = JSON.parse(localStorage.getItem('afx_saved_models') || '[]')
-    const localPublished = JSON.parse(localStorage.getItem('afx_published_models') || '[]')
 
     domains
       .customModels()
@@ -65,75 +48,8 @@ export default function FinanceWorkspaceSelection() {
         if (!alive) return
         const beSaved = res?.saved_models || []
         const bePublished = res?.published_models || []
-
-        const mergeWithLocalDates = (beList) => {
-          const merged = (beList || []).map((bm) => {
-            const lm = localSaved.find((x) => x.name === bm.name)
-            const beTs = new Date(bm.savedAt || bm.updatedAt || bm.createdAt || 0).getTime()
-            const localTs = new Date(lm?.savedAt || lm?.updatedAt || lm?.createdAt || 0).getTime()
-            const chosenSavedAt = (localTs > beTs ? lm?.savedAt : bm.savedAt) || bm.savedAt || lm?.savedAt || bm.createdAt || lm?.createdAt
-            return {
-              ...bm,
-              ...lm,
-              nodes: bm.nodes || lm?.nodes,
-              edges: bm.edges || lm?.edges,
-              flows: bm.flows || lm?.flows,
-              stage: bm.stage || lm?.stage,
-              isGapMode: bm.isGapMode ?? lm?.isGapMode,
-              gapData: bm.gapData || lm?.gapData,
-              savedAt: chosenSavedAt,
-            }
-          })
-          return sortModelsByRecent(merged)
-        }
-
-        // If local storage has published models not in backend, or local saved models not in backend, sync them
-        const missingPubInBe = localPublished.filter((lp) => !bePublished.some((bp) => bp.name === lp.name))
-        const missingSavedInBe = localSaved.filter((ls) => !beSaved.some((bs) => bs.name === ls.name) && !bePublished.some((bp) => bp.name === ls.name))
-
-        if (missingPubInBe.length > 0 || missingSavedInBe.length > 0) {
-          const syncSaved = localSaved.map((ls) => ({
-            name: ls.name,
-            slug: ls.slug,
-            domainName: ls.domainName,
-            savedAt: ls.savedAt || ls.createdAt,
-            createdAt: ls.createdAt || ls.savedAt,
-            nodes: ls.nodes,
-            edges: ls.edges,
-          }))
-          const syncPublished = localPublished.map((lp) => ({
-            name: lp.name,
-            slug: lp.slug,
-            domainName: lp.domainName,
-            publishedAt: lp.publishedAt || lp.savedAt,
-          }))
-
-          domains
-            .syncCustomModels({ saved: syncSaved, published: syncPublished })
-            .then((syncRes) => {
-              if (!alive) return
-              const nextSaved = mergeWithLocalDates(syncRes?.saved_models || beSaved)
-              const nextPub = syncRes?.published_models || bePublished
-              setSavedModels(nextSaved)
-              setPublishedModels(nextPub)
-              localStorage.setItem('afx_saved_models', JSON.stringify(nextSaved))
-              localStorage.setItem('afx_published_models', JSON.stringify(nextPub))
-            })
-            .catch(() => {
-              const finalSaved = mergeWithLocalDates(beSaved)
-              setSavedModels(finalSaved)
-              setPublishedModels(bePublished)
-              localStorage.setItem('afx_saved_models', JSON.stringify(finalSaved))
-              localStorage.setItem('afx_published_models', JSON.stringify(bePublished))
-            })
-        } else {
-          // Backend is the source of truth across all browsers
-          const finalSaved = mergeWithLocalDates(beSaved)
-          setSavedModels(finalSaved)
-          setPublishedModels(bePublished)
-          localStorage.setItem('afx_saved_models', JSON.stringify(finalSaved))
-          localStorage.setItem('afx_published_models', JSON.stringify(bePublished))
-        }
+        setSavedModels(sortModelsByRecent(beSaved))
+        setPublishedModels(bePublished)
       })
       .catch((err) => {
         console.warn('Backend custom models fetch error:', err)
@@ -166,7 +82,6 @@ export default function FinanceWorkspaceSelection() {
     const displayName = (modelName || '').replace(/_/g, ' ')
     const updated = sortModelsByRecent(savedModels.filter((m) => m.name !== modelName))
     setSavedModels(updated)
-    localStorage.setItem('afx_saved_models', JSON.stringify(updated))
     if (selectedMyModel === modelName) {
       setSelectedMyModel(updated[0]?.name || null)
     }
@@ -179,7 +94,6 @@ export default function FinanceWorkspaceSelection() {
     const displayName = (modelName || '').replace(/_/g, ' ')
     const updated = publishedModels.filter((m) => m.name !== modelName)
     setPublishedModels(updated)
-    localStorage.setItem('afx_published_models', JSON.stringify(updated))
     if (selectedPublishedModel === modelName) {
       setSelectedPublishedModel(updated[0]?.name || null)
     }
@@ -209,12 +123,10 @@ export default function FinanceWorkspaceSelection() {
     // 1. Add to Published Models
     const nextPublished = [pubItem, ...publishedModels.filter((p) => p.name !== targetName)]
     setPublishedModels(nextPublished)
-    localStorage.setItem('afx_published_models', JSON.stringify(nextPublished))
 
     // 2. Remove from My Finance Models (transfer across)
     const nextSaved = sortModelsByRecent(savedModels.filter((x) => x.name !== targetName))
     setSavedModels(nextSaved)
-    localStorage.setItem('afx_saved_models', JSON.stringify(nextSaved))
 
     // 3. Update selection state to newly published model
     setSelectedPublishedModel(pubItem.name)
@@ -231,12 +143,10 @@ export default function FinanceWorkspaceSelection() {
       .then((res) => {
         if (res?.published_models) {
           setPublishedModels(res.published_models)
-          localStorage.setItem('afx_published_models', JSON.stringify(res.published_models))
         }
         if (res?.saved_models) {
           const sorted = sortModelsByRecent(res.saved_models)
           setSavedModels(sorted)
-          localStorage.setItem('afx_saved_models', JSON.stringify(sorted))
         }
       })
       .catch((err) => console.warn('Backend custom model publish warning:', err))
@@ -248,14 +158,6 @@ export default function FinanceWorkspaceSelection() {
     if (selectedPublishedModel) {
       const pub = publishedModels.find((m) => m.name === selectedPublishedModel)
       if (pub) {
-        localStorage.setItem('afx_active_model_name', pub.name)
-        if (pub.slug) {
-          const cleanSlug = pub.slug.replace(/\s+/g, '-').toLowerCase()
-          localStorage.setItem(`afx_custom_name_${pub.slug}`, pub.name)
-          localStorage.setItem(`afx_custom_name_${cleanSlug}`, pub.name)
-          localStorage.setItem(`afx_model_snapshot_${pub.slug}`, JSON.stringify(pub))
-          localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(pub))
-        }
         if (isAnalyst) {
           if (pub.workflow_id) {
             nav(`/finance/${pub.slug || 'planning-budgeting-forecasting'}/dashboard?wf=${pub.workflow_id}`)
@@ -267,7 +169,7 @@ export default function FinanceWorkspaceSelection() {
           return
         }
         nav(`/finance/${pub.slug || 'planning-budgeting-forecasting'}/twin`, {
-          state: { modelName: pub.name },
+          state: { modelName: pub.name, model: pub },
         })
         return
       }
@@ -276,14 +178,7 @@ export default function FinanceWorkspaceSelection() {
     if (selectedMyModel) {
       const my = savedModels.find((m) => m.name === selectedMyModel)
       if (my) {
-        localStorage.setItem('afx_active_model_name', my.name)
         const targetSlug = my.slug || 'planning-budgeting-forecasting'
-        const cleanSlug = targetSlug.replace(/\s+/g, '-').toLowerCase()
-        localStorage.setItem(`afx_custom_name_${targetSlug}`, my.name)
-        localStorage.setItem(`afx_custom_name_${cleanSlug}`, my.name)
-        localStorage.setItem(`afx_model_snapshot_${targetSlug}`, JSON.stringify(my))
-        localStorage.setItem(`afx_model_snapshot_${cleanSlug}`, JSON.stringify(my))
-        localStorage.setItem(`afx_model_snapshot_${my.name}`, JSON.stringify(my))
 
         if (my.stage === 'twin' || my.isTwin) {
           nav(`/finance/${targetSlug}/twin`, {
@@ -328,21 +223,6 @@ export default function FinanceWorkspaceSelection() {
   const handleNewModel = () => {
     sessionStorage.setItem('afx_fresh_session', 'true')
     sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
-    localStorage.removeItem('afx_active_model_name')
-
-    try {
-      Object.keys(localStorage).forEach((k) => {
-        if (
-          k.startsWith('afx_custom_name_') ||
-          k.startsWith('afx_custom_graph_') ||
-          k.startsWith('afx_gap_cache_') ||
-          k.startsWith('afx_working_graph_')
-        ) {
-          localStorage.removeItem(k)
-        }
-      })
-    } catch { }
-
     domains.resetWorkspace?.().catch?.(() => { })
     nav('/finance?fresh=1')
   }
