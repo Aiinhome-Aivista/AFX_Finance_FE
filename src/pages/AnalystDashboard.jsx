@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, Loading } from '../components/common/States'
 import useAsync from '../components/common/useAsync'
 import Chart from '../components/analyst/MiniCharts'
 import AnalystChatDock from '../components/analyst/AnalystChatDock'
+import MetricReviewCard from '../components/analyst/MetricReviewCard'
 import { analyst } from '../api'
 import { useAuth } from '../context/AuthContext'
 
@@ -110,6 +111,7 @@ export default function AnalystDashboard() {
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div className="min-w-0 space-y-5">
             {d.summary && <SummaryCard summary={d.summary} />}
+            {!isAnalyst && <MetricReviewCard wf={wf} />}
             {d.charts.length > 0 ? (
               <div className="grid gap-5 md:grid-cols-2">{d.charts.map((c) => <ChartCard key={c.id} chart={c} />)}</div>
             ) : (
@@ -131,8 +133,8 @@ export default function AnalystDashboard() {
                 {d.data_sources.map((s) => (
                   <li key={s.id} className="flex justify-between gap-2">
                     <span className="truncate">{s.name}</span>
-                    <span className="shrink-0" title={s.document ? 'Document: not used for metrics or chat' : undefined}>
-                      {s.document ? `${s.ext.toUpperCase()} · reference` : s.rows != null ? `${s.rows.toLocaleString()} rows` : s.ext.toUpperCase()}
+                    <span className="shrink-0" title={s.document ? 'Document: searched to explain answers in chat; not used for the metrics' : undefined}>
+                      {s.document ? `${s.ext.toUpperCase()} · searchable` : s.rows != null ? `${s.rows.toLocaleString()} rows` : s.ext.toUpperCase()}
                     </span>
                   </li>
                 ))}

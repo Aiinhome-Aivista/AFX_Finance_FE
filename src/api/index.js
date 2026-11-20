@@ -97,6 +97,8 @@ export const files = {
 export const analyst = {
   chat: (wf, question, history) => http.post(`/published/${wf}/chat`, { question, history }, { timeout: 3 * 60 * 1000 }).then(d),
   dashboard: (wf, refresh) => http.get(`/published/${wf}/dashboard`, { params: refresh ? { refresh: 1 } : {}, timeout: 5 * 60 * 1000 }).then(d),
+  graphMetrics: (wf) => http.get(`/published/${wf}/graph/metrics`).then(d),
+  reviewMetric: (wf, body) => http.post(`/published/${wf}/graph/metrics/review`, body).then(d),
 }
 export const evaluation = {
   summary: (slug) => {

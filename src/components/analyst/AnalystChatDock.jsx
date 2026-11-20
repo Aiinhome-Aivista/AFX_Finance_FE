@@ -11,7 +11,9 @@ function describeSpec(spec) {
   if (!spec) return null
   const parts = [`Table: ${spec.table}`]
   parts.push(
-    'Calculated: ' + spec.metrics.map((m) => `${m.fn}${m.column ? ` of ${pretty(m.column)}` : ' of rows'}`).join(', '),
+    'Calculated: ' + spec.metrics.map((m) => (m.fn === 'formula'
+      ? `${m.as} = ${String(m.formula).replace(/[[\]]/g, '')}`
+      : `${m.fn}${m.column ? ` of ${pretty(m.column)}` : ' of rows'}`)).join(', '),
   )
   if (spec.group_by?.length) parts.push('Grouped by: ' + spec.group_by.map((g) => pretty(g.column) + (g.bucket ? ` (${g.bucket})` : '')).join(', '))
   if (spec.filters?.length) parts.push('Filtered: ' + spec.filters.map((f) => `${pretty(f.column)} ${f.op} ${JSON.stringify(f.value)}`).join(' and '))
@@ -23,7 +25,17 @@ function AssistantMessage({ m, onAsk }) {
   const spec = describeSpec(m.spec)
   return (
     <div className="max-w-[92%] space-y-2 rounded-2xl rounded-tl-sm border border-line bg-surface2 px-4 py-3 text-sm text-ink">
-      <p className={m.unanswerable ? 'text-muted' : ''}>{m.content}</p>
+      {m.intent && !m.unanswerable && (
+        <span className="inline-block rounded bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand">
+          {{ AGGREGATION: 'Calculated', HYBRID: 'Calculated + explained', INSIGHT: 'Insight' }[m.intent] || m.intent}
+        </span>
+      )}
+      <p className={m.unanswerable ? 'text-muted' : 'font-medium'}>{m.content}</p>
+      {m.drivers?.length > 0 && (
+        <ul className="list-disc space-y-0.5 pl-5 text-xs text-ink">
+          {m.drivers.map((d, i) => <li key={i}>{d}</li>)}
+        </ul>
+      )}
       {m.chart && (
         <div className="rounded-xl border border-line bg-surface p-2">
           <p className="px-1 text-xs font-semibold text-muted">{pretty(m.chart.title)}</p>
@@ -53,6 +65,20 @@ function AssistantMessage({ m, onAsk }) {
           <ul className="mt-1 list-disc space-y-0.5 pl-4">
             {spec.map((p) => <li key={p}>{p}</li>)}
             {m.matchedRows != null && <li>{m.matchedRows.toLocaleString()} matching records</li>}
+          </ul>
+        </details>
+      )}
+      {m.evidence?.length > 0 && (
+        <details className="text-xs text-muted">
+          <summary className="cursor-pointer font-semibold">Evidence used ({m.evidence.length})</summary>
+          <ul className="mt-1 space-y-1">
+            {m.evidence.map((e, i) => (
+              <li key={i} className="rounded-lg border border-line bg-surface p-2">
+                <span className="mr-1.5 rounded bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-brand">{e.source}</span>
+                {e.text}
+                {e.citation && <span className="ml-1 italic">[{e.citation}]</span>}
+              </li>
+            ))}
           </ul>
         </details>
       )}
@@ -96,6 +122,7 @@ export default function AnalystChatDock({ wf, modelName, version }) {
       setMessages((p) => [...p, {
         role: 'assistant', content: r.answer, table: r.table, chart: r.chart, spec: r.spec, matchedRows: r.matched_rows,
         notes: r.notes, followUps: r.follow_ups, unanswerable: r.unanswerable,
+        intent: r.intent, drivers: r.drivers, evidence: r.evidence,
       }])
     } catch (e) {
       setMessages((p) => [...p, { role: 'assistant', content: e.message || 'Something went wrong.', unanswerable: true, followUps: [] }])
