@@ -76,18 +76,28 @@ export const graphs = {
   experience: (slug) => http.get(`/domains/${slug}/experience`).then(d),
 }
 export const files = {
-  list: (slug) => {
+  list: (slug, opts = {}) => {
     const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
-    return http.get(`/domains/${clean}/files`).then(d)
+    const params = {}
+    if (opts?.stage) params.stage = opts.stage
+    if (opts?.fresh) params.fresh = 1
+    if (opts?.wf) params.wf = opts.wf
+    return http.get(`/domains/${clean}/files`, { params }).then(d)
   },
   get: (id) => http.get(`/files/${id}`).then(d),
   remove: (id) => http.delete(`/files/${id}`).then(d),
-  upload: (slug, file, onProgress) => {
+  upload: (slug, file, onProgress, stage = 'business_data', opts = {}) => {
     const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
     const fd = new FormData()
     fd.append('file', file)
+    fd.append('stage', stage)
+    const params = { stage }
+    if (opts?.wf) params.wf = opts.wf
+    const headers = { 'Content-Type': 'multipart/form-data' }
+    if (opts?.wf) headers['X-Workflow-Id'] = String(opts.wf)
     return http.post(`/domains/${clean}/files`, fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      params,
+      headers,
       timeout: 5 * 60 * 1000,
       onUploadProgress: (e) => onProgress && e.total && onProgress(Math.round((e.loaded / e.total) * 100)),
     }).then(d)

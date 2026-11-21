@@ -159,6 +159,9 @@ export default function FinanceWorkspaceSelection() {
       const pub = publishedModels.find((m) => m.name === selectedPublishedModel)
       if (pub) {
         const targetSlug = pub.slug || 'planning-budgeting-forecasting'
+        sessionStorage.setItem(`afx_active_wf_${targetSlug}`, String(pub.workflow_id || ''))
+        sessionStorage.setItem(`afx_active_model_${targetSlug}`, pub.name)
+        sessionStorage.removeItem('afx_fresh_session')
         const queryParams = `?wf=${pub.workflow_id || ''}&model=${encodeURIComponent(pub.name)}`
         if (isAnalyst) {
           if (pub.workflow_id) {
@@ -181,6 +184,9 @@ export default function FinanceWorkspaceSelection() {
       const my = savedModels.find((m) => m.name === selectedMyModel)
       if (my) {
         const targetSlug = my.slug || 'planning-budgeting-forecasting'
+        sessionStorage.setItem(`afx_active_wf_${targetSlug}`, String(my.workflow_id || ''))
+        sessionStorage.setItem(`afx_active_model_${targetSlug}`, my.name)
+        sessionStorage.removeItem('afx_fresh_session')
         const queryParams = `?wf=${my.workflow_id || ''}&model=${encodeURIComponent(my.name)}`
 
         if (my.stage === 'twin' || my.isTwin) {
