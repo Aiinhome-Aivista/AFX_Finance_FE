@@ -228,10 +228,11 @@ export default function DomainGraph() {
   }
 
   const isFresh = searchParams.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true'
-  const wf = useAsync(() => domains.workflow(slug), [slug])
+  const wfParam = searchParams.get('wf')
+  const wf = useAsync(() => domains.workflow(slug, wfParam), [slug, wfParam])
   const finalized = Boolean(!isFresh && wf.data?.finalized_version_number)
   const dom = useAsync(() => domains.list(), [])
-  const g = useAsync(() => domains.graph(slug, neighbours), [slug, neighbours])
+  const g = useAsync(() => domains.graph(slug, neighbours, isFresh, wfParam), [slug, neighbours, isFresh, wfParam])
   const blocks = useAsync(() => domains.blocks(slug), [slug])
   const flows = useAsync(() => domains.flows(slug), [slug])
   const domainFiles = useAsync(() => filesApi.list(slug), [slug])
@@ -328,6 +329,9 @@ export default function DomainGraph() {
 
     if (isFresh) {
       sessionStorage.removeItem('afx_fresh_session')
+      setAiGraph(null)
+      setGapData(null)
+      setIsGapMode(false)
       setSnap({
         conversation_id: null,
         messages: [],
@@ -344,25 +348,35 @@ export default function DomainGraph() {
         isFinalized: false,
         viewMode: 'chat',
       })
-      domains
-        .reset(slug)
-        .then(() => {
-          wf.reload().catch(() => { })
-          domainFiles.reload().catch(() => { })
-          chat
-            .start(slug)
-            .then(setSnap)
-            .catch(() => {
-              chat.get(slug).then(setSnap).catch(() => { })
-            })
+      chat
+        .start(slug, true, searchParams.get('wf'))
+        .then((res) => {
+          sessionStorage.removeItem('afx_fresh_session')
+          setSnap(res)
+          if (res?.workflow_id) {
+            sessionStorage.setItem(`afx_active_wf_${slug}`, String(res.workflow_id))
+          }
         })
         .catch(() => {
-          chat.start(slug).then(setSnap).catch(() => { })
+          chat.get(slug, searchParams.get('wf')).then((res) => {
+            sessionStorage.removeItem('afx_fresh_session')
+            setSnap(res)
+            if (res?.workflow_id) {
+              sessionStorage.setItem(`afx_active_wf_${slug}`, String(res.workflow_id))
+            }
+          }).catch(() => {
+            sessionStorage.removeItem('afx_fresh_session')
+          })
         })
     } else {
       chat
-        .get(slug)
-        .then(setSnap)
+        .get(slug, searchParams.get('wf'))
+        .then((res) => {
+          setSnap(res)
+          if (res?.workflow_id) {
+            sessionStorage.setItem(`afx_active_wf_${slug}`, String(res.workflow_id))
+          }
+        })
         .catch(() => {
           setSnap({
             conversation_id: null,
@@ -391,8 +405,9 @@ export default function DomainGraph() {
 
   // Restore saved workspace progress if an existing workspace was selected
   useEffect(() => {
-    if (isFresh || !slug) return
+    if (isFresh || searchParams.get('fresh') === '1' || !slug) return
     const saved = location.state?.model
+    if (!saved || !saved.name) return
 
     if (saved && saved.nodes && saved.nodes.length > 0) {
       const isGap = Boolean(
@@ -449,11 +464,13 @@ export default function DomainGraph() {
             {
               role: 'assistant',
               kind: 'system',
+              content: 'Domain Discovery complete. All set for Gap Analysis.',
               text: 'Domain Discovery complete. All set for Gap Analysis.',
             },
             {
               role: 'assistant',
               kind: 'gap_summary',
+              content: `**FINANCE DATA ASSISTANT**\n\n**Gap Analysis Complete.**\n\nI compared your telemetry with your domain baseline model.\n\n- **Discrepancies (RED)**: ${discrepancyCount} discrepancy element(s)\n- **Matched Elements**: ${Math.max(0, saved.nodes.length - discrepancyCount)} verified entity(ies)\n\nAll discrepancies are highlighted in RED on your Knowledge Graph. Let's review these gaps so we can finalize your Digital Twin.`,
               text: `**FINANCE DATA ASSISTANT**\n\n**Gap Analysis Complete.**\n\nI compared your telemetry with your domain baseline model.\n\n- **Discrepancies (RED)**: ${discrepancyCount} discrepancy element(s)\n- **Matched Elements**: ${Math.max(0, saved.nodes.length - discrepancyCount)} verified entity(ies)\n\nAll discrepancies are highlighted in RED on your Knowledge Graph. Let's review these gaps so we can finalize your Digital Twin.`,
             },
           ],
@@ -790,14 +807,24 @@ export default function DomainGraph() {
       }
 
       // Persist saved model directly to backend database API
+      const currentWf = searchParams.get('wf')
       domains.saveCustomModel({
         name: modelName,
         slug,
+        wf: currentWf || undefined,
         domainName: domain?.name || 'Planning, Budgeting and Forecasting',
         nodes: payload.nodes,
         edges: payload.edges,
         savedAt: payload.savedAt,
         createdAt: payload.savedAt,
+      }).then((res) => {
+        if (res?.workflow_id) {
+          const next = new URLSearchParams(window.location.search)
+          next.set('wf', res.workflow_id)
+          next.set('model', modelName)
+          next.delete('fresh')
+          setSearchParams(next, { replace: true })
+        }
       }).catch((err) => console.warn('Backend custom model save warning:', err))
 
       if (mode === 'overwrite') {
@@ -813,17 +840,37 @@ export default function DomainGraph() {
 
   const isUploadModeActive = !isGapMode && (searchParams.get('mode') === 'upload' || leftViewMode === 'upload')
 
+  useEffect(() => {
+    if (!slug) return
+    const curWf = searchParams.get('wf') || snap?.workflow_id
+    if (curWf) {
+      sessionStorage.setItem(`afx_active_wf_${slug}`, String(curWf))
+    }
+    const curModel = searchParams.get('model')
+    if (curModel) {
+      sessionStorage.setItem(`afx_active_model_${slug}`, curModel)
+    }
+  }, [slug, searchParams, snap?.workflow_id])
+
   const nextConfig = useMemo(() => {
+    const sp = new URLSearchParams(window.location.search)
+    const curWf = sp.get('wf') || sessionStorage.getItem(`afx_active_wf_${slug}`)
+    const curModel = sp.get('model') || sessionStorage.getItem(`afx_active_model_${slug}`)
+    const qs = new URLSearchParams()
+    if (curWf) qs.set('wf', curWf)
+    if (curModel) qs.set('model', curModel)
+    const qStr = qs.toString() ? `?${qs.toString()}` : ''
+
     if (isGapMode) {
       return {
         label: 'Next: Review',
-        onNext: () => nav(`/finance/${slug}/finalize`),
+        onNext: () => nav(`/finance/${slug}/finalize${qStr}`),
       }
     }
     if (isUploadModeActive) {
       return {
         label: 'Next: Review',
-        onNext: () => nav(`/finance/${slug}/finalize`),
+        onNext: () => nav(`/finance/${slug}/finalize${qStr}`),
       }
     }
     // Business Input view -> navigates to Data Input view
@@ -831,7 +878,7 @@ export default function DomainGraph() {
       label: 'Next: Data Input',
       onNext: () => {
         setLeftViewMode('upload')
-        nav(`/finance/${slug}?mode=upload`)
+        nav(`/finance/${slug}?mode=upload${curWf ? `&wf=${curWf}` : ''}${curModel ? `&model=${encodeURIComponent(curModel)}` : ''}`)
       },
     }
   }, [isGapMode, isUploadModeActive, slug, nav])

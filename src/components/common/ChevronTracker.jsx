@@ -177,7 +177,26 @@ export default function ChevronTracker() {
           </div>
         )
 
-        const targetRoute = stage.getRoute(effectiveSlug)
+        const sp = new URLSearchParams(location.search)
+        const curWf = sp.get('wf') || (effectiveSlug ? sessionStorage.getItem(`afx_active_wf_${effectiveSlug}`) : null)
+        const curModel = sp.get('model') || (effectiveSlug ? sessionStorage.getItem(`afx_active_model_${effectiveSlug}`) : null)
+        const qs = new URLSearchParams()
+        if (curWf) qs.set('wf', curWf)
+        if (curModel) qs.set('model', curModel)
+        const qStr = qs.toString() ? `?${qs.toString()}` : ''
+
+        let targetRoute = stage.getRoute(effectiveSlug)
+        if (effectiveSlug && (curWf || curModel)) {
+          if (stage.id === 3) {
+            targetRoute = `/finance/${effectiveSlug}?mode=upload&${qs.toString()}`
+          } else if (stage.id === 2) {
+            targetRoute = `/finance/${effectiveSlug}${qStr}`
+          } else if (stage.id === 4) {
+            targetRoute = `/finance/${effectiveSlug}/finalize${qStr}`
+          } else if (stage.id === 5) {
+            targetRoute = `/finance/${effectiveSlug}/twin${qStr}`
+          }
+        }
 
         if (isLocked) {
           return (

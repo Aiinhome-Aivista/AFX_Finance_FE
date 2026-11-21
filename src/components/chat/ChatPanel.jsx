@@ -29,6 +29,7 @@ const KIND_LABEL = {
   intro: 'Welcome',
   system: 'System',
   telemetry: 'Finance Data Assistant',
+  gap_summary: 'Gap Analysis',
 }
 
 function formatCleanContent(text) {
@@ -454,7 +455,7 @@ export default function ChatPanel({
                     {m.meta?.followup ? ' · Follow-up' : m.meta?.repeated ? ' · Please Answer' : ''}
                   </span>
                 )}
-                <span className="whitespace-pre-wrap">{formatCleanContent(m.content)}</span>
+                <span className="whitespace-pre-wrap">{formatCleanContent(m.content || m.text)}</span>
               </div>
             </div>
           )

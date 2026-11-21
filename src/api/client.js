@@ -32,6 +32,38 @@ const http = axios.create({ baseURL: (apiBase ? apiBase : '') + '/api', timeout:
 http.interceptors.request.use((cfg) => {
   const t = tokenStore.get()
   if (t) cfg.headers.Authorization = `Bearer ${t}`
+
+  try {
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location?.search || '')
+      const isFresh = sp.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true'
+      let wf = sp.get('wf')
+      let model = sp.get('model')
+
+      // Fallback: check active workspace in sessionStorage for this domain if not in current URL and NOT a fresh session
+      if (isFresh) {
+        wf = null
+        model = null
+      } else if (!wf && window.location?.pathname) {
+        const parts = window.location.pathname.split('/').filter(Boolean)
+        if (parts[0] === 'finance' && parts[1]) {
+          const domSlug = parts[1]
+          wf = sessionStorage.getItem(`afx_active_wf_${domSlug}`)
+          if (!model) {
+            model = sessionStorage.getItem(`afx_active_model_${domSlug}`)
+          }
+        }
+      }
+
+      if (wf && !cfg.headers['X-Workflow-Id']) {
+        cfg.headers['X-Workflow-Id'] = wf
+      }
+      if (model && !cfg.headers['X-Model-Name']) {
+        cfg.headers['X-Model-Name'] = model
+      }
+    }
+  } catch {}
+
   return cfg
 })
 

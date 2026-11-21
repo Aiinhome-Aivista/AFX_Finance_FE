@@ -167,7 +167,7 @@ export default function FinanceLanding() {
     const targetSlug = DOMAIN_SLUGS[dKey]
     if (targetSlug) {
       const isFresh = searchParams.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true'
-      nav(`/finance/${targetSlug}${isFresh ? '?fresh=1' : ''}`)
+      nav(`/finance/${targetSlug}${isFresh ? '?fresh=1' : ''}`, { state: isFresh ? null : location.state })
     }
   }
 

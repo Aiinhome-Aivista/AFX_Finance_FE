@@ -158,17 +158,19 @@ export default function FinanceWorkspaceSelection() {
     if (selectedPublishedModel) {
       const pub = publishedModels.find((m) => m.name === selectedPublishedModel)
       if (pub) {
+        const targetSlug = pub.slug || 'planning-budgeting-forecasting'
+        const queryParams = `?wf=${pub.workflow_id || ''}&model=${encodeURIComponent(pub.name)}`
         if (isAnalyst) {
           if (pub.workflow_id) {
-            nav(`/finance/${pub.slug || 'planning-budgeting-forecasting'}/dashboard?wf=${pub.workflow_id}`)
+            nav(`/finance/${targetSlug}/dashboard?wf=${pub.workflow_id}`)
           } else {
-            nav(`/finance/${pub.slug || 'planning-budgeting-forecasting'}/twin`, {
+            nav(`/finance/${targetSlug}/twin${queryParams}`, {
               state: { modelName: pub.name, model: pub },
             })
           }
           return
         }
-        nav(`/finance/${pub.slug || 'planning-budgeting-forecasting'}/twin`, {
+        nav(`/finance/${targetSlug}/twin${queryParams}`, {
           state: { modelName: pub.name, model: pub },
         })
         return
@@ -179,21 +181,22 @@ export default function FinanceWorkspaceSelection() {
       const my = savedModels.find((m) => m.name === selectedMyModel)
       if (my) {
         const targetSlug = my.slug || 'planning-budgeting-forecasting'
+        const queryParams = `?wf=${my.workflow_id || ''}&model=${encodeURIComponent(my.name)}`
 
         if (my.stage === 'twin' || my.isTwin) {
-          nav(`/finance/${targetSlug}/twin`, {
+          nav(`/finance/${targetSlug}/twin${queryParams}`, {
             state: { modelName: my.name, model: my },
           })
           return
         }
         if (my.stage === 'finalize') {
-          nav(`/finance/${targetSlug}/finalize`, {
+          nav(`/finance/${targetSlug}/finalize${queryParams}`, {
             state: { modelName: my.name, model: my },
           })
           return
         }
 
-        nav(`/finance/${targetSlug}`, {
+        nav(`/finance/${targetSlug}${queryParams}`, {
           state: { modelName: my.name, model: my },
         })
         return
@@ -221,10 +224,14 @@ export default function FinanceWorkspaceSelection() {
   }, [selectedPublishedModel, selectedMyModel])
 
   const handleNewModel = () => {
+    Object.keys(sessionStorage).forEach((k) => {
+      if (k.startsWith('afx_active_wf_') || k.startsWith('afx_active_model_')) {
+        sessionStorage.removeItem(k)
+      }
+    })
     sessionStorage.setItem('afx_fresh_session', 'true')
     sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
-    domains.resetWorkspace?.().catch?.(() => { })
-    nav('/finance?fresh=1')
+    nav('/finance?fresh=1', { state: null, replace: true })
   }
 
   return (

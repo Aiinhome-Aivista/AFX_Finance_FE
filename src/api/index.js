@@ -23,7 +23,12 @@ export const domains = {
   deleteCustomModel: (name) => http.delete(`/workspace/custom-models/${encodeURIComponent(name)}`).then(d),
   syncCustomModels: () => Promise.resolve({ saved_models: [], published_models: [] }),
   get: (slug) => http.get(`/domains/${slug}`).then(d),
-  graph: (slug, neighbours = true) => http.get(`/domains/${slug}/graph`, { params: { neighbours: neighbours ? 1 : 0 } }).then(d),
+  graph: (slug, neighbours = true, fresh = false, wf = null) => {
+    const params = { neighbours: neighbours ? 1 : 0 }
+    if (fresh) params.fresh = 1
+    if (wf) params.wf = wf
+    return http.get(`/domains/${slug}/graph`, { params }).then(d)
+  },
   blocks: (slug) => http.get(`/domains/${slug}/blocks`).then(d),
   flows: (slug) => http.get(`/domains/${slug}/flows`).then(d),
   select: (slug) => http.post(`/domains/${slug}/select`).then(d),
@@ -42,8 +47,13 @@ export const ontology = {
   search: (q, domain, scope) => http.get('/search', { params: { q, domain, scope } }).then(d),
 }
 export const chat = {
-  get: (slug) => http.get(`/domains/${slug}/conversation`).then(d),
-  start: (slug) => http.post(`/domains/${slug}/conversation`).then(d),
+  get: (slug, wf = null) => http.get(`/domains/${slug}/conversation`, { params: wf ? { wf } : {} }).then(d),
+  start: (slug, fresh = false, wf = null) => {
+    const params = {}
+    if (fresh) params.fresh = 1
+    if (wf) params.wf = wf
+    return http.post(`/domains/${slug}/conversation`, null, { params }).then(d)
+  },
   answer: (slug, message) => http.post(`/domains/${slug}/conversation/answer`, { message }).then(d),
   message: (slug, message, node_key) => http.post(`/domains/${slug}/conversation/message`, { message, node_key }).then(d),
   askNode: (slug, node_key, question) => http.post(`/domains/${slug}/conversation/ask-node`, { node_key, question }).then(d),

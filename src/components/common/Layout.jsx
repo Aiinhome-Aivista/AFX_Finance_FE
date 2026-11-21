@@ -37,20 +37,28 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
 
     if (parts[0] === 'finance' && parts[1]) {
       const slug = parts[1]
+      const sp = new URLSearchParams(search)
+      const curWf = sp.get('wf') || sessionStorage.getItem(`afx_active_wf_${slug}`)
+      const curModel = sp.get('model') || sessionStorage.getItem(`afx_active_model_${slug}`)
+      const qs = new URLSearchParams()
+      if (curWf) qs.set('wf', curWf)
+      if (curModel) qs.set('model', curModel)
+      const qStr = qs.toString() ? `?${qs.toString()}` : ''
+
       if (parts[2] === 'twin') {
         nav('/finance')
         return
       }
       if (parts[2] === 'finalize') {
-        nav(`/finance/${slug}/twin`)
+        nav(`/finance/${slug}/twin${qStr}`)
         return
       }
       if (search.includes('upload') || search.includes('gap')) {
-        nav(`/finance/${slug}/finalize`)
+        nav(`/finance/${slug}/finalize${qStr}`)
         return
       }
       // Business Input -> Data Input
-      nav(`/finance/${slug}?mode=upload`)
+      nav(`/finance/${slug}?mode=upload${curWf ? `&wf=${curWf}` : ''}${curModel ? `&model=${encodeURIComponent(curModel)}` : ''}`)
       return
     }
 

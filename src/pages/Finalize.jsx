@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
@@ -715,13 +715,34 @@ export default function Finalize() {
   const navigate = useNavigate()
   const location = useLocation()
   const toast = useToast()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const cleanSlug = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
   const domainKey = SLUG_TO_DOM[cleanSlug] || 'f1'
   const domainMeta = DOMMETA[domainKey] || DOMMETA.f1
 
-  const wf = useAsync(() => domains.workflow(slug), [slug])
-  const fin = useAsync(() => graphs.finalization(slug), [slug], { immediate: true })
+  const wfParam = searchParams.get('wf') || (slug ? sessionStorage.getItem(`afx_active_wf_${slug}`) : null)
+  const modelParam = searchParams.get('model') || (slug ? sessionStorage.getItem(`afx_active_model_${slug}`) : null)
+
+  const wsQuery = useMemo(() => {
+    const qs = new URLSearchParams()
+    if (wfParam) qs.set('wf', wfParam)
+    if (modelParam) qs.set('model', modelParam)
+    return qs.toString() ? `?${qs.toString()}` : ''
+  }, [wfParam, modelParam])
+
+  useEffect(() => {
+    if (!slug) return
+    if (wfParam && !searchParams.get('wf')) {
+      const next = new URLSearchParams(searchParams)
+      next.set('wf', wfParam)
+      if (modelParam) next.set('model', modelParam)
+      setSearchParams(next, { replace: true })
+    }
+  }, [slug, wfParam, modelParam, searchParams, setSearchParams])
+
+  const wf = useAsync(() => domains.workflow(slug, wfParam), [slug, wfParam])
+  const fin = useAsync(() => graphs.finalization(slug, wfParam), [slug, wfParam], { immediate: true })
   const g = useAsync(() => domains.graph(slug, false), [slug])
 
   const domainName =
@@ -766,7 +787,12 @@ export default function Finalize() {
     if (!slug) return
     chat
       .get(slug)
-      .then(setSnap)
+      .then((s) => {
+        setSnap(s)
+        if (s?.workflow_id) {
+          sessionStorage.setItem(`afx_active_wf_${slug}`, String(s.workflow_id))
+        }
+      })
       .catch(() => {
         setSnap({
           conversation_id: null,
@@ -902,11 +928,11 @@ export default function Finalize() {
       toast.success('Digital Twin finalised & governed! Enterprise workflow complete.')
       setDlg(null)
       updateDomainWorkflow(slug, { isFinalized: true })
-      navigate(`/finance/${slug}/twin`)
+      navigate(`/finance/${slug}/twin${wsQuery}`)
     } catch (e) {
       toast.error(e.message)
       setDlg(null)
-      navigate(`/finance/${slug}/twin`)
+      navigate(`/finance/${slug}/twin${wsQuery}`)
     } finally {
       setBusy(false)
     }
@@ -924,7 +950,7 @@ export default function Finalize() {
         viewMode: 'chat',
       })
       await Promise.all([wf.reload(), fin.reload(), g.reload()])
-      navigate(`/finance/${slug}`)
+      navigate(`/finance/${slug}${wsQuery}`)
     } catch (e) {
       toast.error(e.message)
       setDlg(null)
@@ -948,7 +974,7 @@ export default function Finalize() {
 
   const handleEditModel = () => {
     // Navigate back to Step 2 Business Input so user can edit graph, prompts, and calibration parameters
-    navigate(`/finance/${slug}`)
+    navigate(`/finance/${slug}${wsQuery}`)
   }
 
   const executeSaveAs = (modelName, mode = 'overwrite') => {
@@ -969,14 +995,24 @@ export default function Finalize() {
       }
 
       // Persist saved model directly to backend database API
+      const currentWf = searchParams.get('wf')
       domains.saveCustomModel({
         name: modelName,
         slug,
+        wf: currentWf || undefined,
         domainName: d?.name || 'Planning, Budgeting and Forecasting',
         nodes: payload.nodes,
         edges: payload.edges,
         savedAt: payload.savedAt,
         createdAt: payload.savedAt,
+      }).then((res) => {
+        if (res?.workflow_id) {
+          const next = new URLSearchParams(window.location.search)
+          next.set('wf', res.workflow_id)
+          next.set('model', modelName)
+          next.delete('fresh')
+          setSearchParams(next, { replace: true })
+        }
       }).catch((err) => console.warn('Backend custom model save warning:', err))
 
       if (mode === 'overwrite') {
@@ -994,7 +1030,7 @@ export default function Finalize() {
     if (finalized) {
       return {
         label: 'Next: Digital Twin',
-        onNext: () => navigate(`/finance/${slug}/twin`),
+        onNext: () => navigate(`/finance/${slug}/twin${wsQuery}`),
       }
     }
     return {
@@ -1164,7 +1200,7 @@ export default function Finalize() {
                   onProposal={setProposal}
                   onSwitchToDetails={() => setActiveRightTab('details')}
                   onAnsweringChange={setUpdatingGraph}
-                  onNextToUpload={() => navigate(`/finance/${slug}?mode=upload`)}
+                  onNextToUpload={() => navigate(`/finance/${slug}?mode=upload${wfParam ? `&wf=${wfParam}` : ''}${modelParam ? `&model=${encodeURIComponent(modelParam)}` : ''}`)}
                   isUploadOpen={false}
                   parsingProgress={null}
                   locked={false}

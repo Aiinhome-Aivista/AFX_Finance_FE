@@ -29,7 +29,7 @@ import { useWorkflow } from '../context/WorkflowContext'
 export default function DigitalTwinExplorer() {
   const { slug } = useParams()
   const location = useLocation()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const wfParam = searchParams.get('wf')
   const { isAnalyst } = useAuth()
   const toast = useToast()
@@ -177,14 +177,24 @@ export default function DigitalTwinExplorer() {
       }
 
       // Persist saved model directly to backend database API
+      const currentWf = searchParams.get('wf')
       domains.saveCustomModel({
         name: modelName,
         slug,
+        wf: currentWf || undefined,
         domainName: domainName || 'Planning, Budgeting and Forecasting',
         nodes: payload.nodes,
         edges: payload.edges,
         savedAt: payload.savedAt,
         createdAt: payload.createdAt,
+      }).then((res) => {
+        if (res?.workflow_id) {
+          const next = new URLSearchParams(window.location.search)
+          next.set('wf', res.workflow_id)
+          next.set('model', modelName)
+          next.delete('fresh')
+          setSearchParams(next, { replace: true })
+        }
       }).catch((err) => console.warn('Backend custom model save warning:', err))
 
       if (mode === 'overwrite') {
