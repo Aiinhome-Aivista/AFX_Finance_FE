@@ -562,7 +562,7 @@ export default function ChatPanel({
                 Graph Copilot
               </button> */}
 
-            {q && (
+            {/* {q && (
               <button
                 type="button"
                 className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition cursor-pointer border ${mode === 'answer'
@@ -573,7 +573,7 @@ export default function ChatPanel({
               >
                 Answer
               </button>
-            )}
+            )} */}
 
             {/* <button
                 type="button"
@@ -618,7 +618,7 @@ export default function ChatPanel({
                 mode === 'ask'
                   ? `Ask about ${nodeName || 'this entity'}…`
                   : mode === 'answer' && q
-                    ? 'Type your answer…'
+                    ? 'Share your inputs..'
                     : 'Ask a question or describe your process…'
               }
               disabled={busy}

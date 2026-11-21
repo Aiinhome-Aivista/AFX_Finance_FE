@@ -87,9 +87,9 @@ export default function AuthPage({ mode }) {
 
           {/* Heading: 2 lines with action on line 1 and 'AgentForgeX Finance' on line 2 */}
           <h1 className="text-2xl sm:text-[26px] font-bold tracking-tight text-white leading-tight">
-            <span>{isReg ? 'Create account' : 'Sign in'}</span>
+            <span>{isReg ? 'Create account' : 'Sign in'} to</span>
             <span className="block mt-1 bg-gradient-to-r from-[#34d399] via-[#2dd4bf] to-[#22d3ee] bg-clip-text text-transparent whitespace-nowrap">
-              AgentForgeX Finance
+              AgentForgeX
             </span>
           </h1>
 
@@ -207,7 +207,7 @@ export default function AuthPage({ mode }) {
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-neutral-400" />
               <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-                VERIFY YOU ARE HUMAN
+                VERIFY YOU ARE A HUMAN
               </span>
             </div>
 
@@ -272,9 +272,10 @@ export default function AuthPage({ mode }) {
 
         {/* Bottom Section */}
         <p className="mt-5 text-center text-xs text-neutral-400">
-          {isReg ? 'Already registered?' : 'New to AgentForgeX Finance?'}{' '}
+          {isReg ? 'Already registered?' : 'New to AgentForgeX?'}{' '}
           <Link
-            to={isReg ? '/login' : '/register'}
+            // to={isReg ? '/login' : '/register'}
+            to={isReg ? '/login' : ' '}
             className="font-semibold text-[#10b981] hover:text-[#34d399] transition underline-offset-2 hover:underline ml-1"
           >
             {isReg ? 'Sign in' : 'Create account'}

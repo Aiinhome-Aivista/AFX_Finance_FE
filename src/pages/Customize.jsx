@@ -32,11 +32,11 @@ export default function Customize() {
   const graph = useAsync(() => (viewVersion === null ? graphs.working(slug) : graphs.versionGraph(slug, viewVersion)), [slug, viewVersion], { immediate: false })
   const ready = wf.data?.steps?.[2]?.status === 'completed'
 
-  useEffect(() => { if (ready) { graph.reload().catch(() => {}); vers.reload().catch(() => {}) } }, [ready, viewVersion]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (ready) { graph.reload().catch(() => { }); vers.reload().catch(() => { }) } }, [ready, viewVersion]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!ready) return
     chat.get(slug).then(setSnap, (e) => toast.error(e.message))
-    graphs.proposals(slug).then((r) => setProposal(r.proposals.find((p) => p.status === 'pending' && p.source === 'chat') || null), () => {})
+    graphs.proposals(slug).then((r) => setProposal(r.proposals.find((p) => p.status === 'pending' && p.source === 'chat') || null), () => { })
   }, [ready, slug]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const finalized = !!wf.data?.finalized_version_number
@@ -51,7 +51,7 @@ export default function Customize() {
       setProposal(null)
       if (r.version) { toast.success(`${r.version.label} created. New and changed items are highlighted.`); setViewVersion(null); await Promise.all([graph.reload(), vers.reload(), wf.reload()]) }
       else toast.success('Proposal rejected. Your graph is unchanged.')
-      chat.get(slug).then(setSnap).catch(() => {})
+      chat.get(slug).then(setSnap).catch(() => { })
     } catch (e) {
       toast.error(e.details?.length ? `${e.message} (${e.details.map((d) => d.errors?.[0]).filter(Boolean)[0] || 'dependency'})` : e.message)
       if (e.code === 'proposal_stale') setProposal(null)
@@ -81,11 +81,10 @@ export default function Customize() {
           <button
             type="button"
             onClick={() => setViewMode(viewMode === 'upload' ? 'graph' : 'upload')}
-            className={`btn btn-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all ${
-              viewMode === 'upload'
+            className={`btn btn-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all ${viewMode === 'upload'
                 ? 'btn-ghost border-[#10b981] text-[#10b981]'
                 : 'bg-[#10b981] hover:bg-[#059669] text-white shadow-emerald-500/20'
-            }`}
+              }`}
           >
             {viewMode === 'upload' ? (
               <>
@@ -102,7 +101,7 @@ export default function Customize() {
           </button>
           {latest && (
             <Link to={`/finance/${slug}/finalize`} className="btn-ghost btn-sm">
-              {finalized ? 'View finalisation' : 'Review & finalise'} <ArrowRight size={14} />
+              {finalized ? 'View finalisation' : 'Review & finalize'} <ArrowRight size={14} />
             </Link>
           )}
         </div>
@@ -134,7 +133,7 @@ export default function Customize() {
                   setParsingProgress({ fileName, stage, timestamp: Date.now() })
                 }
                 onFileUploaded={() => {
-                  chat.get(slug).then(setSnap).catch(() => {})
+                  chat.get(slug).then(setSnap).catch(() => { })
                 }}
               />
             </div>

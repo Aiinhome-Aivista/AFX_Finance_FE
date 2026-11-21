@@ -925,7 +925,7 @@ export default function Finalize() {
       await graphs.finalize(slug, { confirm: true, acknowledge_warnings: ack }).catch((err) => {
         console.warn('Backend finalize notice:', err)
       })
-      toast.success('Digital Twin finalised & governed! Enterprise workflow complete.')
+      toast.success('Digital Twin finalized & governed! Enterprise workflow complete.')
       setDlg(null)
       updateDomainWorkflow(slug, { isFinalized: true })
       navigate(`/finance/${slug}/twin${wsQuery}`)
@@ -1415,8 +1415,8 @@ export default function Finalize() {
       {/* Confirmation Dialogs */}
       <ConfirmDialog
         open={dlg === 'finalize'}
-        title="Finalise Enterprise Digital Twin?"
-        confirmLabel="Finalise as Digital Twin"
+        title="Finalize Enterprise Digital Twin?"
+        confirmLabel="Finalize as Digital Twin"
         busy={busy}
         onCancel={() => setDlg(null)}
         onConfirm={doFinalize}
@@ -1424,12 +1424,12 @@ export default function Finalize() {
         <p className="text-xs leading-relaxed text-ink">
           This locks <strong>Current "{domainName}" Template</strong> as your official Enterprise Digital Twin. All discovered entities, business rules, and dimensions will be permanently governed for financial modeling.
         </p>
-        {(d?.validation?.warnings?.length || 0) > 0 && (
+        {/* {(d?.validation?.warnings?.length || 0) > 0 && (
           <label className="mt-3 flex items-start gap-2 text-xs text-ink">
             <input type="checkbox" className="mt-0.5 accent-[#10b981]" checked={ack} onChange={(e) => setAck(e.target.checked)} />
-            <span>I have reviewed the {d.validation.warnings.length} warning(s) and want to finalise anyway.</span>
+            <span>I have reviewed the {d.validation.warnings.length} warning(s) and want to finalize anyway.</span>
           </label>
-        )}
+        )} */}
       </ConfirmDialog>
 
       <ConfirmDialog

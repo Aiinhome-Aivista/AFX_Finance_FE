@@ -31,14 +31,14 @@ function Preview({ id, onClose }) {
             {f.metadata?.note && <p className="mb-3 rounded-lg bg-surface2 p-3 text-xs text-muted">{f.metadata.note}</p>}
             <dl className="mb-4 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
               {[['Type', f.ext.toUpperCase()], ['Size', bytes(f.size_bytes)], ['Graph version', f.graph_version], ['Status', f.status],
-                ...(f.metadata ? Object.entries(f.metadata).filter(([k, v]) => ['rows_read', 'columns', 'pages', 'paragraphs', 'tables', 'statements', 'text_chars', 'sheet_count'].includes(k) && v != null).map(([k, v]) => [k.replace('_', ' '), String(v)]) : [])]
+              ...(f.metadata ? Object.entries(f.metadata).filter(([k, v]) => ['rows_read', 'columns', 'pages', 'paragraphs', 'tables', 'statements', 'text_chars', 'sheet_count'].includes(k) && v != null).map(([k, v]) => [k.replace('_', ' '), String(v)]) : [])]
                 .map(([k, v]) => <div key={k} className="rounded-lg bg-surface2 p-2"><dt className="text-muted">{k}</dt><dd className="font-medium">{v}</dd></div>)}
             </dl>
             {p?.type === 'table' && <div className="scroll-thin mb-4 overflow-x-auto rounded-lg border border-line"><table className="w-full text-left text-xs"><thead className="bg-surface2"><tr>{p.columns.map((c) => <th key={c} className="whitespace-nowrap p-2">{c}</th>)}</tr></thead><tbody>{p.rows.map((r, i) => <tr key={i} className="border-t border-line">{r.map((c, j) => <td key={j} className="whitespace-nowrap p-2">{c}</td>)}</tr>)}</tbody></table></div>}
             {p?.type === 'text' && <pre className="mb-4 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-surface2 p-3 text-xs">{p.text}</pre>}
             {p?.type === 'sql' && <><div className="mb-3 space-y-1">{Object.entries(p.tables).map(([t, cols]) => <div key={t} className="text-xs"><b>{t}</b>: <span className="font-mono text-muted">{cols.join(', ') || '—'}</span></div>)}</div><pre className="mb-4 max-h-48 overflow-auto rounded-lg bg-surface2 p-3 text-xs">{p.text}</pre></>}
             {f.mapping && (
-              <div><h4 className="h-section mb-1">Mapping to your finalised graph ({f.mapping.stats.matched_terms}/{f.mapping.stats.terms} fields matched · {f.mapping.stats.entities_touched} entities)</h4>
+              <div><h4 className="h-section mb-1">Mapping to your finalized graph ({f.mapping.stats.matched_terms}/{f.mapping.stats.terms} fields matched · {f.mapping.stats.entities_touched} entities)</h4>
                 {f.mapping.matches.length > 0 && <ul className="space-y-0.5 text-xs">{f.mapping.matches.slice(0, 40).map((m, i) => <li key={i}><span className="font-mono">{m.term}</span> → <b>{m.node_name}</b>{m.attribute ? <span className="text-muted"> · {m.attribute}</span> : null} <span className="text-muted">({Math.round(m.confidence * 100)}% {m.match_type})</span></li>)}</ul>}
                 {f.mapping.mentions?.length > 0 && <p className="mt-2 text-xs text-muted">Entities mentioned in the text: {f.mapping.mentions.slice(0, 10).map((m) => `${m.node_name} (${m.count})`).join(', ')}</p>}
                 {f.mapping.unmatched.length > 0 && <p className="mt-2 text-xs text-muted">Unmatched: {f.mapping.unmatched.slice(0, 30).join(', ')}</p>}
@@ -66,7 +66,7 @@ export default function Telemetry() {
   const input = useRef(null)
   const unlocked = wf.data?.steps?.[4]?.status === 'completed'
 
-  const refresh = useCallback(() => list.reload().catch(() => {}), [list.reload]) // eslint-disable-line react-hooks/exhaustive-deps
+  const refresh = useCallback(() => list.reload().catch(() => { }), [list.reload]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (unlocked) refresh() }, [unlocked]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { // poll while the server is still processing
     if (!list.data?.files.some((f) => f.status === 'uploaded' || f.status === 'processing')) return
@@ -74,7 +74,7 @@ export default function Telemetry() {
     return () => clearInterval(t)
   }, [list.data]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { // show the telemetry graph when KG2+ exists
-    if (wf.data?.steps?.[5]?.status === 'completed') graphs.versions(slug).then((v) => { const t = [...v.versions].reverse().find((x) => x.kind === 'telemetry'); if (t) graphs.versionGraph(slug, t.number).then(setTgraph) }).catch(() => {})
+    if (wf.data?.steps?.[5]?.status === 'completed') graphs.versions(slug).then((v) => { const t = [...v.versions].reverse().find((x) => x.kind === 'telemetry'); if (t) graphs.versionGraph(slug, t.number).then(setTgraph) }).catch(() => { })
   }, [wf.data, slug])
 
   const upload = (fileList) => {
@@ -116,10 +116,10 @@ export default function Telemetry() {
       <Link to={`/finance/${slug}/finalize`} className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft size={14} /> Finalisation</Link>
       <Stepper slug={slug} steps={wf.data.steps} current={6} />
       <h1 className="mt-4 text-xl font-semibold">Upload telemetry data</h1>
-      <p className="text-sm text-muted">Files are matched to your finalised ontology (KG{wf.data.finalized_version_number || '?'}). SQL files are only parsed as text — never executed.</p>
+      <p className="text-sm text-muted">Files are matched to your finalized ontology (KG{wf.data.finalized_version_number || '?'}). SQL files are only parsed as text — never executed.</p>
 
       {!unlocked ? (
-        <div className="card mt-4"><EmptyState icon={Lock} title="Uploads are locked" hint="Telemetry can only be added after you finalise the ontology (step 5)."><Link className="btn-primary mt-2" to={`/finance/${slug}/finalize`}>Go to finalisation</Link></EmptyState></div>
+        <div className="card mt-4"><EmptyState icon={Lock} title="Uploads are locked" hint="Telemetry can only be added after you finalize the ontology (step 5)."><Link className="btn-primary mt-2" to={`/finance/${slug}/finalize`}>Go to finalisation</Link></EmptyState></div>
       ) : (
         <div className="mt-4 space-y-4">
           <div onDragOver={(e) => { e.preventDefault(); setDrag(true) }} onDragLeave={() => setDrag(false)} onDrop={(e) => { e.preventDefault(); setDrag(false); upload(e.dataTransfer.files) }}
@@ -154,7 +154,7 @@ export default function Telemetry() {
           {proposal && <ProposalReview proposal={proposal} busy={deciding} onDecide={decide} approveLabel="Approve & create telemetry graph" />}
           {tgraph && (
             <section className="card overflow-hidden"><div className="flex items-center justify-between border-b border-line p-3"><h2 className="font-semibold">Telemetry graph · {tgraph.version.label}</h2><span className="text-xs text-muted">data sources are shown in teal</span></div>
-              <div className="h-[56vh] min-h-[380px]"><GraphCanvas nodes={tgraph.nodes} edges={tgraph.edges} selectedKey={null} onSelect={() => {}} /></div></section>
+              <div className="h-[56vh] min-h-[380px]"><GraphCanvas nodes={tgraph.nodes} edges={tgraph.edges} selectedKey={null} onSelect={() => { }} /></div></section>
           )}
         </div>
       )}

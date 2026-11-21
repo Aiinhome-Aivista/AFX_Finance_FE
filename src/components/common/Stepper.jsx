@@ -38,7 +38,7 @@ export default function Stepper({ slug, steps, current }) {
     //     <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-label="Workflow diagram" onClick={() => setShowImg(false)}>
     //       <div className="card sheet-enter max-h-[90vh] max-w-3xl overflow-auto p-3" onClick={(e) => e.stopPropagation()}>
     //         <div className="mb-2 flex items-center justify-between"><b className="text-sm">Business workflow (image1.jpg)</b><button className="btn-ghost btn-sm" onClick={() => setShowImg(false)}><X size={14} /> Close</button></div>
-    //         <img src="/workflow.jpg" alt="Six-step workflow: identify industry sector, pick a domain, produce the KG template, collect client nuances (KG-1), finalise the ontology, add telemetry data (KG-2)" className="w-full rounded-lg" />
+    //         <img src="/workflow.jpg" alt="Six-step workflow: identify industry sector, pick a domain, produce the KG template, collect client nuances (KG-1), finalize the ontology, add telemetry data (KG-2)" className="w-full rounded-lg" />
     //       </div>
     //     </div>
     //   )}
