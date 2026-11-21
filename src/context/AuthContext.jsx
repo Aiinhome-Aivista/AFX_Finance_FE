@@ -13,6 +13,20 @@ export function AuthProvider({ children }) {
   const clear = useCallback(() => {
     tokenStore.clear()
     userStore.clear()
+    try {
+      const savedTheme = localStorage.getItem('theme')
+      localStorage.clear()
+      if (savedTheme) {
+        localStorage.setItem('theme', savedTheme)
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      sessionStorage.clear()
+    } catch {
+      // ignore
+    }
     setUser(null)
   }, [])
 
@@ -55,6 +69,9 @@ export function AuthProvider({ children }) {
   }, [clear])
 
   const login = async (email, password) => {
+    try {
+      sessionStorage.clear()
+    } catch {}
     const r = await authApi.login({ email, password })
     if (r?.token) tokenStore.set(r.token)
     if (r?.user) {
