@@ -259,6 +259,14 @@ export default function DigitalTwinExplorer() {
         toast.success(`Digital Twin "${modelName}" finalized & saved! Dedicated workspace database initialized.`)
       }
       setSaveAsOpen(false)
+
+      // Auto-scroll down smoothly to Telemetry Ingestion section
+      setTimeout(() => {
+        const el = document.getElementById('telemetry-connectors-section')
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 350)
     } catch (e) {
       toast.error('Failed to save digital twin: ' + e.message)
     }
