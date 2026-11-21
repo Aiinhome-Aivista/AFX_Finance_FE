@@ -61,6 +61,12 @@ export default function DigitalTwinExplorer() {
     try {
       setLoadingDbStatus(true)
       const sp = new URLSearchParams(window.location.search)
+      const isFresh = sp.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true'
+      if (isFresh && !forcedWf && !forcedModel) {
+        setDbStatus({ ready: false, status: 'LOCKED', db_name: null })
+        return
+      }
+
       const effWf = forcedWf || wfParam || sp.get('wf') || (cleanSlug ? sessionStorage.getItem(`afx_active_wf_${cleanSlug}`) : null)
       const effModel = forcedModel || searchParams.get('model') || sp.get('model') || (cleanSlug ? sessionStorage.getItem(`afx_active_model_${cleanSlug}`) : null)
 
@@ -316,14 +322,22 @@ export default function DigitalTwinExplorer() {
               type="button"
               onClick={handleSaveAs}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs ${
-                dbStatus.ready
+                dbStatus.ready && (dbStatus.workspace_name || wf.data?.name)
                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 border border-emerald-500'
                   : 'btn-ghost border-[#10b981] text-[#10b981] hover:bg-[#10b981]/10'
               }`}
               title="Finalize & Save this model to create a dedicated workspace database and unlock telemetry upload"
             >
-              {dbStatus.ready ? <CheckCircle2 size={14} className="text-white" /> : <Save size={14} className="text-[#10b981]" />}
-              <span>{dbStatus.ready ? 'Finalized & Saved' : 'Finalize & Save'}</span>
+              {dbStatus.ready && (dbStatus.workspace_name || wf.data?.name) ? (
+                <CheckCircle2 size={14} className="text-white" />
+              ) : (
+                <Save size={14} className="text-[#10b981]" />
+              )}
+              <span>
+                {dbStatus.ready && (dbStatus.workspace_name || wf.data?.name)
+                  ? 'Finalized & Saved'
+                  : 'Finalize & Save'}
+              </span>
             </button>
           </div>
         </div>
@@ -381,7 +395,7 @@ export default function DigitalTwinExplorer() {
         <TwinDataConnectors
           slug={cleanSlug}
           domainName={domainName}
-          isFinalized={dbStatus.ready}
+          isFinalized={Boolean(dbStatus.ready && (dbStatus.workspace_name || wf.data?.name))}
           dbInfo={dbStatus}
           onRequireFinalize={handleSaveAs}
         />

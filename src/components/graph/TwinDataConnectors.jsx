@@ -94,6 +94,8 @@ export default function TwinDataConnectors({
     }
   }, [cleanSlug, getActiveWf])
 
+  const canUpload = Boolean(isFinalized && dbInfo?.ready)
+
   useEffect(() => {
     loadTelemetryFiles()
   }, [loadTelemetryFiles])
@@ -464,13 +466,13 @@ export default function TwinDataConnectors({
             <div
               onDragOver={(e) => {
                 e.preventDefault()
-                if (isFinalized) setDragOver(true)
+                if (canUpload) setDragOver(true)
               }}
               onDragLeave={() => setDragOver(false)}
               onDrop={(e) => {
                 e.preventDefault()
                 setDragOver(false)
-                if (!isFinalized) {
+                if (!canUpload) {
                   toast.error('Please click "Finalize & Save" above to initialize the workspace database first.')
                   onRequireFinalize?.()
                   return
@@ -480,7 +482,7 @@ export default function TwinDataConnectors({
                 }
               }}
               onClick={() => {
-                if (!isFinalized) {
+                if (!canUpload) {
                   toast.error('Please click "Finalize & Save" above to initialize the workspace database first.')
                   onRequireFinalize?.()
                   return
@@ -488,7 +490,7 @@ export default function TwinDataConnectors({
                 fileInputRef.current?.click()
               }}
               className={`p-8 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center transition-all ${
-                !isFinalized
+                !canUpload
                   ? 'border-amber-300 dark:border-amber-800/60 bg-amber-50/30 dark:bg-amber-950/20 cursor-pointer hover:border-amber-400'
                   : dragOver
                   ? 'border-[#10b981] bg-emerald-50/50 dark:bg-emerald-950/20 cursor-pointer'
@@ -500,16 +502,16 @@ export default function TwinDataConnectors({
                 type="file"
                 accept=".csv,text/csv"
                 className="hidden"
-                disabled={!isFinalized}
+                disabled={!canUpload}
                 onChange={handleFileChange}
               />
 
               <div className={`h-12 w-12 rounded-2xl flex items-center justify-center mb-3 shadow-xs ${
-                !isFinalized
+                !canUpload
                   ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
                   : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
               }`}>
-                {!isFinalized ? (
+                {!canUpload ? (
                   <Lock size={22} />
                 ) : uploadingCsv ? (
                   <RefreshCw size={24} className="animate-spin text-[#10b981]" />
@@ -518,7 +520,7 @@ export default function TwinDataConnectors({
                 )}
               </div>
 
-              {!isFinalized ? (
+              {!canUpload ? (
                 <div className="space-y-1.5 py-1 max-w-md mx-auto select-none">
                   <p className="text-xs font-bold text-ink flex items-center justify-center gap-1.5">
                     <span>CSV Telemetry Ingestion Locked</span>
