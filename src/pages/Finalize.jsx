@@ -1000,7 +1000,7 @@ export default function Finalize() {
         name: modelName,
         slug,
         wf: currentWf || undefined,
-        domainName: d?.name || 'Planning, Budgeting and Forecasting',
+        domainName: d?.name,
         nodes: payload.nodes,
         edges: payload.edges,
         savedAt: payload.savedAt,

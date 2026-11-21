@@ -182,7 +182,7 @@ export default function DigitalTwinExplorer() {
         name: modelName,
         slug,
         wf: currentWf || undefined,
-        domainName: domainName || 'Planning, Budgeting and Forecasting',
+        domainName: domainName,
         nodes: payload.nodes,
         edges: payload.edges,
         savedAt: payload.savedAt,
@@ -292,8 +292,8 @@ export default function DigitalTwinExplorer() {
                 type="button"
                 onClick={() => setFitMode('fit')}
                 className={`px-3 py-1 rounded-lg text-xs font-bold border transition cursor-pointer ${fitMode === 'fit'
-                    ? 'bg-[#10B981] text-white border-[#10B981] shadow-xs'
-                    : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                  ? 'bg-[#10B981] text-white border-[#10B981] shadow-xs'
+                  : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
                   }`}
               >
                 Fit width
@@ -302,8 +302,8 @@ export default function DigitalTwinExplorer() {
                 type="button"
                 onClick={() => setFitMode('actual')}
                 className={`px-3 py-1 rounded-lg text-xs font-bold border transition cursor-pointer ${fitMode === 'actual'
-                    ? 'bg-[#10B981] text-white border-[#10B981] shadow-xs'
-                    : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                  ? 'bg-[#10B981] text-white border-[#10B981] shadow-xs'
+                  : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
                   }`}
               >
                 Actual size
