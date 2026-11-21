@@ -20,7 +20,7 @@ import { bytes, timeAgo } from '../../lib/format'
 import { useToast } from '../../context/ToastContext'
 
 const ALLOWED = ['csv', 'xlsx', 'pdf', 'txt', 'docx', 'sql']
-const MAX_MB = 25
+const MAX_MB = 5
 
 export default function TelemetryUploadZone({
   slug,
@@ -188,7 +188,7 @@ export default function TelemetryUploadZone({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           {onBackToGraph && (
             <button
               type="button"
@@ -199,7 +199,7 @@ export default function TelemetryUploadZone({
               <span>View Graph</span>
             </button>
           )}
-        </div>
+        </div> */}
       </div>
 
       {/* Upload & Files Workspace */}

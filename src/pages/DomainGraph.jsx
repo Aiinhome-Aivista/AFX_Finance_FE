@@ -925,27 +925,29 @@ export default function DomainGraph() {
               </span>
             </div>
 
-            {/* Finance master-data spine button */}
-            <button
-              type="button"
-              onClick={() => setActiveDomainFilter(activeDomainFilter === 'spine' ? domainKey : 'spine')}
-              className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${activeDomainFilter === 'spine'
-                ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
-                : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
-                }`}
-              title="Finance master-data spine"
-            >
-              <span
-                className="h-2 w-2 rounded-full shrink-0 transition-transform group-hover:scale-125"
-                style={{
-                  backgroundColor: activeDomainFilter === 'spine' ? '#FFFFFF' : '#38BDF8',
-                  boxShadow: activeDomainFilter === 'spine' ? '0 0 8px rgba(255,255,255,0.8)' : undefined,
-                }}
-              />
-              <span className="font-semibold text-xs sm:text-[13px] tracking-tight whitespace-nowrap">
-                Finance master-data spine
-              </span>
-            </button>
+            {/* Finance master-data spine button (hidden on Data Input page, visible on Business page) */}
+            {!isUploadModeActive && (
+              <button
+                type="button"
+                onClick={() => setActiveDomainFilter(activeDomainFilter === 'spine' ? domainKey : 'spine')}
+                className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${activeDomainFilter === 'spine'
+                  ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
+                  : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
+                  }`}
+                title="Finance master-data spine"
+              >
+                <span
+                  className="h-2 w-2 rounded-full shrink-0 transition-transform group-hover:scale-125"
+                  style={{
+                    backgroundColor: activeDomainFilter === 'spine' ? '#FFFFFF' : '#38BDF8',
+                    boxShadow: activeDomainFilter === 'spine' ? '0 0 8px rgba(255,255,255,0.8)' : undefined,
+                  }}
+                />
+                <span className="font-semibold text-xs sm:text-[13px] tracking-tight whitespace-nowrap">
+                  Finance master-data spine
+                </span>
+              </button>
+            )}
 
             {/* AgentForgeX Generated Badge directly in 1st line after selected domain */}
             {(() => {

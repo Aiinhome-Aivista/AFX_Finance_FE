@@ -263,9 +263,16 @@ export default function FinanceWorkspaceSelection() {
                 Finance Workspace
               </h1>
               <p className="text-xs sm:text-sm text-mute">
-                {isAnalyst
-                  ? 'Select a governed digital twin model from Published Models and click Go.'
-                  : 'Select your customized model on the left, use the arrow to publish as a Governed Digital Twin on the right, then click Go.'}
+                {isAnalyst ? (
+                  <>
+                    Select a governed <span className="text-[#10b981] font-semibold">Digital Twin</span> model from Published Models and click Go.
+                  </>
+                ) : (
+                  <>
+                    Select your customized model on the left, use the arrow to publish as a governed{' '}
+                    <span className="text-[#10b981] font-semibold">Digital Twin</span> on the right, then click Go.
+                  </>
+                )}
               </p>
             </div>
 
