@@ -228,7 +228,7 @@ export default function TelemetryUploadZone({
             Drag & drop your data files here
           </p>
           <p className="mt-1 text-xs text-muted max-w-sm">
-            Supported formats: <strong>CSV, XLSX, PDF, TXT, DOCX, SQL</strong> (up to {MAX_MB} MB each)
+            Supported formats: <strong>CSV, XLSX, PDF, TXT, DOCX, SQL</strong> (up to {MAX_MB} MB)
           </p>
 
           <button
