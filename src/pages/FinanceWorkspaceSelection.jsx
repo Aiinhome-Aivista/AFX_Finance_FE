@@ -112,7 +112,7 @@ export default function FinanceWorkspaceSelection() {
     const pubItem = {
       name: m.name,
       slug: m.slug || 'planning-budgeting-forecasting',
-      domainName: m.domainName || (m.slug ? m.slug.replace(/-/g, ' ') : 'Planning, Budgeting and Forecasting'),
+      domainName: m.domainName || (m.slug ? m.slug.replace(/-/g, ' ') : ' '),
       publishedAt: new Date().toISOString(),
       governed: true,
       nodes: m.nodes || [],
@@ -436,7 +436,7 @@ export default function FinanceWorkspaceSelection() {
                           </div>
                         </div>
                         <p className="text-xs text-mute mt-1">
-                          Domain: {m.domainName || (m.slug ? m.slug.replace(/-/g, ' ') : 'Planning, Budgeting and Forecasting')}
+                          Domain: {m.domainName || (m.slug ? m.slug.replace(/-/g, ' ') : ' ')}
                         </p>
                         <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
                           <span>Saved on {m.savedAt ? new Date(m.savedAt).toLocaleDateString() : (m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'Recent')}</span>
@@ -578,8 +578,8 @@ export default function FinanceWorkspaceSelection() {
               onClick={handleGo}
               disabled={!selectedTargetModel}
               className={`inline-flex items-center gap-2 rounded-xl px-7 py-2.5 text-sm font-bold transition-all ${selectedTargetModel
-                  ? 'cursor-pointer bg-[#10b981] text-[#0b1320] shadow-md shadow-[#10b981]/30 ring-2 ring-[#10b981]/50 hover:bg-[#34d399]'
-                  : 'bg-surface2 border border-line text-mute opacity-50 cursor-not-allowed'
+                ? 'cursor-pointer bg-[#10b981] text-[#0b1320] shadow-md shadow-[#10b981]/30 ring-2 ring-[#10b981]/50 hover:bg-[#34d399]'
+                : 'bg-surface2 border border-line text-mute opacity-50 cursor-not-allowed'
                 }`}
             >
               <span>Go</span>
