@@ -52,17 +52,33 @@ export default function TelemetryUploadZone({
 
   const processedCount = fileList.filter((f) => f.status === 'processed').length
 
+  const getActiveWf = useCallback(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search)
+      return sp.get('wf') || (slug ? sessionStorage.getItem(`afx_active_wf_${slug}`) : null)
+    } catch {
+      return null
+    }
+  }, [slug])
+
   // Fetch uploaded files
   const loadFiles = useCallback(async () => {
     try {
-      const res = await filesApi.list(slug)
+      const curWf = getActiveWf()
+      const sp = new URLSearchParams(window.location.search)
+      const isFresh = sp.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true'
+      const res = await filesApi.list(slug, {
+        stage: 'business_data',
+        fresh: isFresh,
+        ...(curWf ? { wf: curWf } : {}),
+      })
       setFileList(res.files || [])
     } catch (err) {
       // silently fail if initial fetch
     } finally {
       setLoadingFiles(false)
     }
-  }, [slug])
+  }, [slug, getActiveWf])
 
   useEffect(() => {
     loadFiles()
@@ -103,11 +119,18 @@ export default function TelemetryUploadZone({
       onProcessingUpdate?.(file.name, 'start')
 
       try {
-        const uploaded = await filesApi.upload(slug, file, (pct) => {
-          setQueue((q) =>
-            q.map((item) => (item.id === tempId ? { ...item, pct } : item))
-          )
-        })
+        const curWf = getActiveWf()
+        const uploaded = await filesApi.upload(
+          slug,
+          file,
+          (pct) => {
+            setQueue((q) =>
+              q.map((item) => (item.id === tempId ? { ...item, pct } : item))
+            )
+          },
+          'business_data',
+          curWf ? { wf: curWf } : {}
+        )
 
         setQueue((q) => q.filter((item) => item.id !== tempId))
         toast.success(`Uploaded ${file.name}`)

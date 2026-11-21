@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Globe,
   UploadCloud,
@@ -19,6 +19,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Zap,
+  Trash2,
 } from 'lucide-react'
 import { useToast } from '../../context/ToastContext'
 import { files as filesApi } from '../../api'
@@ -38,6 +39,8 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
   const [uploadingCsv, setUploadingCsv] = useState(false)
   const [csvUploadSuccess, setCsvUploadSuccess] = useState(null)
   const [dragOver, setDragOver] = useState(false)
+  const [telemetryFiles, setTelemetryFiles] = useState([])
+  const [loadingTelemetry, setLoadingTelemetry] = useState(false)
 
   // Snowflake State
   const [snowflakeConnecting, setSnowflakeConnecting] = useState(false)
@@ -54,6 +57,48 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
   const cleanSlug = (slug || 'finance').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
   const apiEndpoint = `https://api.agentforgex.ai/v1/twin/${cleanSlug}/telemetry`
   const apiKey = `afx_live_sec_8f92b7_${cleanSlug.slice(0, 6)}c3e89`
+
+  const getActiveWf = useCallback(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search)
+      return sp.get('wf') || (cleanSlug ? sessionStorage.getItem(`afx_active_wf_${cleanSlug}`) : null)
+    } catch {
+      return null
+    }
+  }, [cleanSlug])
+
+  const loadTelemetryFiles = useCallback(async () => {
+    try {
+      setLoadingTelemetry(true)
+      const curWf = getActiveWf()
+      const sp = new URLSearchParams(window.location.search)
+      const isFresh = sp.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true'
+      const res = await filesApi.list(cleanSlug, {
+        stage: 'telemetry',
+        fresh: isFresh,
+        ...(curWf ? { wf: curWf } : {}),
+      })
+      setTelemetryFiles(res.files || [])
+    } catch {
+      // ignore
+    } finally {
+      setLoadingTelemetry(false)
+    }
+  }, [cleanSlug, getActiveWf])
+
+  useEffect(() => {
+    loadTelemetryFiles()
+  }, [loadTelemetryFiles])
+
+  const handleDeleteTelemetry = async (fileId, fileName) => {
+    try {
+      await filesApi.remove(fileId)
+      toast.success(`Deleted ${fileName}`)
+      loadTelemetryFiles()
+    } catch (err) {
+      toast.error(err.message)
+    }
+  }
 
   const sampleJsonPayload = JSON.stringify(
     {
@@ -118,8 +163,8 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
 
   const processCsvFile = async (file) => {
     const ext = file.name.split('.').pop()?.toLowerCase()
-    if (!['csv', 'tsv', 'xlsx', 'txt'].includes(ext)) {
-      toast.error('Please upload a valid CSV or spreadsheet file (.csv, .xlsx, .tsv)')
+    if (ext !== 'csv') {
+      toast.error('Only .csv files are supported. Please upload a valid CSV file.')
       return
     }
 
@@ -128,7 +173,8 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
 
     try {
       if (filesApi && filesApi.upload) {
-        await filesApi.upload(cleanSlug, file)
+        const curWf = getActiveWf()
+        await filesApi.upload(cleanSlug, file, null, 'telemetry', curWf ? { wf: curWf } : {})
       }
     } catch (err) {
       // Do not fake a success: the file was not stored, so nothing downstream (e.g. the Analyst dashboard) can use it.
@@ -149,6 +195,7 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
         timestamp: new Date().toLocaleTimeString(),
       }
       setCsvUploadSuccess(res)
+      loadTelemetryFiles()
       toast.success(`Successfully uploaded and parsed "${file.name}"!`)
     }, 1100)
   }
@@ -227,7 +274,7 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
               </span>
             </div>
             <p className="text-[11px] text-muted line-clamp-2 leading-relaxed">
-              Import historical drivers, cost center allocations, and trial balances from spreadsheets.
+              Import historical drivers, cost center allocations, and trial balances from CSV files.
             </p>
           </div>
         </button>
@@ -401,7 +448,7 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
             <div className="pb-3 border-b border-line">
               <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
                 <UploadCloud size={14} className="text-[#10b981]" />
-                <span>CSV & Spreadsheet Batch Ingestion</span>
+                <span>CSV Batch Ingestion</span>
               </h4>
             </div>
 
@@ -428,7 +475,7 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv,.tsv,.xlsx,.txt"
+                accept=".csv,text/csv"
                 className="hidden"
                 onChange={handleFileChange}
               />
@@ -449,10 +496,10 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
               ) : (
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-ink">
-                    <span className="text-[#10b981] hover:underline">Click to browse</span> or drag and drop your CSV / XLSX file here
+                    <span className="text-[#10b981] hover:underline">Click to browse</span> or drag and drop your CSV file here
                   </p>
                   <p className="text-[11px] text-muted">
-                    Supports .CSV, .TSV, .XLSX up to 100MB · Automatic column mapping
+                    Supports .CSV only (up to 100MB) · Automatic column mapping
                   </p>
                 </div>
               )}
@@ -492,6 +539,74 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
                 </div>
               </div>
             )}
+
+            {/* Dedicated Telemetry Ingestion Logs */}
+            <div className="mt-4 pt-4 border-t border-line/60">
+              <div className="flex items-center justify-between mb-2.5">
+                <h5 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
+                  <Database size={13} className="text-[#10b981]" />
+                  <span>Ingested Telemetry Logs ({telemetryFiles.length})</span>
+                </h5>
+                <button
+                  type="button"
+                  onClick={loadTelemetryFiles}
+                  className="text-[11px] text-muted hover:text-ink flex items-center gap-1 font-medium transition cursor-pointer"
+                  title="Refresh telemetry files"
+                >
+                  <RefreshCw size={11} className={loadingTelemetry ? 'animate-spin' : ''} />
+                  <span>Refresh</span>
+                </button>
+              </div>
+
+              {telemetryFiles.length === 0 ? (
+                <div className="rounded-xl border border-line/60 bg-surface2/30 p-4 text-center text-xs text-muted">
+                  No telemetry spreadsheets ingested yet. Drop a CSV/XLSX above to feed live twin telemetry.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {telemetryFiles.map((tf) => (
+                    <div
+                      key={tf.id}
+                      className="p-3 rounded-xl bg-surface border border-line shadow-2xs flex flex-wrap items-center justify-between gap-3 hover:border-[#10b981]/40 transition"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                          <FileSpreadsheet size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-ink truncate">{tf.name}</p>
+                          <p className="text-[10px] text-muted flex items-center gap-1.5">
+                            <span>{(tf.size_bytes / 1024).toFixed(1)} KB</span>
+                            <span>•</span>
+                            <span className="text-emerald-600 dark:text-emerald-400 font-medium">Ingested into Twin</span>
+                            {tf.created_at && (
+                              <>
+                                <span>•</span>
+                                <span>{new Date(tf.created_at).toLocaleTimeString()}</span>
+                              </>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40">
+                          Live Ingested
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTelemetry(tf.id, tf.name)}
+                          className="p-1 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition cursor-pointer"
+                          title="Delete telemetry file"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

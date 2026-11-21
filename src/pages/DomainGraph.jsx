@@ -235,7 +235,7 @@ export default function DomainGraph() {
   const g = useAsync(() => domains.graph(slug, neighbours, isFresh, wfParam), [slug, neighbours, isFresh, wfParam])
   const blocks = useAsync(() => domains.blocks(slug), [slug])
   const flows = useAsync(() => domains.flows(slug), [slug])
-  const domainFiles = useAsync(() => filesApi.list(slug), [slug])
+  const domainFiles = useAsync(() => filesApi.list(slug, { stage: 'business_data', fresh: isFresh, wf: wfParam }), [slug, isFresh, wfParam])
   const hasUploadedFiles = Boolean(!isFresh && domainFiles.data?.files && domainFiles.data.files.length > 0)
   const { updateDomainWorkflow } = useWorkflow()
 
@@ -355,6 +355,11 @@ export default function DomainGraph() {
           setSnap(res)
           if (res?.workflow_id) {
             sessionStorage.setItem(`afx_active_wf_${slug}`, String(res.workflow_id))
+            const sp = new URLSearchParams(window.location.search)
+            if (!sp.get('wf')) {
+              sp.set('wf', String(res.workflow_id))
+              setSearchParams(sp, { replace: true })
+            }
           }
         })
         .catch(() => {
@@ -363,6 +368,11 @@ export default function DomainGraph() {
             setSnap(res)
             if (res?.workflow_id) {
               sessionStorage.setItem(`afx_active_wf_${slug}`, String(res.workflow_id))
+              const sp = new URLSearchParams(window.location.search)
+              if (!sp.get('wf')) {
+                sp.set('wf', String(res.workflow_id))
+                setSearchParams(sp, { replace: true })
+              }
             }
           }).catch(() => {
             sessionStorage.removeItem('afx_fresh_session')
