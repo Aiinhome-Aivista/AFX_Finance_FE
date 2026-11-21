@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -7,6 +7,7 @@ import {
   Edit3,
   ExternalLink,
   Layers,
+  Lock,
   Save,
   Share2,
   Workflow,
@@ -52,6 +53,41 @@ export default function DigitalTwinExplorer() {
 
   const d = fin.data
   const finalized = Boolean(wf.data?.finalized_version_number)
+
+  const [dbStatus, setDbStatus] = useState({ ready: false, status: 'LOCKED', db_name: null })
+  const [loadingDbStatus, setLoadingDbStatus] = useState(true)
+
+  const checkDbStatus = useCallback(async (forcedWf, forcedModel) => {
+    try {
+      setLoadingDbStatus(true)
+      const sp = new URLSearchParams(window.location.search)
+      const effWf = forcedWf || wfParam || sp.get('wf') || (cleanSlug ? sessionStorage.getItem(`afx_active_wf_${cleanSlug}`) : null)
+      const effModel = forcedModel || searchParams.get('model') || sp.get('model') || (cleanSlug ? sessionStorage.getItem(`afx_active_model_${cleanSlug}`) : null)
+
+      const res = await domains.workspaceDbStatus(cleanSlug, {
+        wf: effWf || undefined,
+        model: effModel || undefined,
+      })
+      if (res && res.ready) {
+        setDbStatus(res)
+      } else if (!forcedWf) {
+        setDbStatus(res || { ready: false, status: 'LOCKED' })
+      }
+    } catch {
+      if (!forcedWf) {
+        setDbStatus({ ready: false, status: 'LOCKED' })
+      }
+    } finally {
+      setLoadingDbStatus(false)
+    }
+  }, [cleanSlug, wfParam, searchParams])
+
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search)
+    const initialWf = wfParam || sp.get('wf') || (cleanSlug ? sessionStorage.getItem(`afx_active_wf_${cleanSlug}`) : null)
+    const initialModel = searchParams.get('model') || sp.get('model') || location.state?.modelName || (cleanSlug ? sessionStorage.getItem(`afx_active_model_${cleanSlug}`) : null)
+    checkDbStatus(initialWf, initialModel)
+  }, [checkDbStatus, cleanSlug, wfParam, searchParams, location.state])
 
   useEffect(() => {
     if (slug && wf.data) {
@@ -177,7 +213,7 @@ export default function DigitalTwinExplorer() {
       }
 
       // Persist saved model directly to backend database API
-      const currentWf = searchParams.get('wf')
+      const currentWf = searchParams.get('wf') || (cleanSlug ? sessionStorage.getItem(`afx_active_wf_${cleanSlug}`) : null)
       domains.saveCustomModel({
         name: modelName,
         slug,
@@ -188,19 +224,33 @@ export default function DigitalTwinExplorer() {
         savedAt: payload.savedAt,
         createdAt: payload.createdAt,
       }).then((res) => {
-        if (res?.workflow_id) {
+        const wfId = res?.workflow_id || currentWf
+        if (wfId) {
           const next = new URLSearchParams(window.location.search)
-          next.set('wf', res.workflow_id)
+          next.set('wf', String(wfId))
           next.set('model', modelName)
           next.delete('fresh')
           setSearchParams(next, { replace: true })
+          sessionStorage.setItem(`afx_active_wf_${cleanSlug}`, String(wfId))
+          sessionStorage.setItem(`afx_active_model_${cleanSlug}`, modelName)
+          sessionStorage.removeItem('afx_fresh_session')
         }
+        // Instantly unlock CSV Telemetry Ingestion in UI!
+        setDbStatus({
+          ready: true,
+          status: 'READY',
+          db_name: res?.db_name || `ws_${wfId}_${modelName.toLowerCase().replace(/[^a-z0-9_]/g, '_')}`,
+          workflow_id: wfId,
+          workspace_name: modelName,
+          tables: [],
+        })
+        checkDbStatus(wfId, modelName)
       }).catch((err) => console.warn('Backend custom model save warning:', err))
 
       if (mode === 'overwrite') {
-        toast.success(`Digital Twin "${modelName}" updated successfully in database!`)
+        toast.success(`Digital Twin "${modelName}" finalized & updated! Workspace database ready.`)
       } else {
-        toast.success(`Digital Twin "${modelName}" saved successfully in database!`)
+        toast.success(`Digital Twin "${modelName}" finalized & saved! Dedicated workspace database initialized.`)
       }
       setSaveAsOpen(false)
     } catch (e) {
@@ -265,11 +315,15 @@ export default function DigitalTwinExplorer() {
             <button
               type="button"
               onClick={handleSaveAs}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs btn-ghost border-[#10b981]/50 text-[#10b981] hover:bg-[#10b981]/10 hover:border-[#10b981]"
-              title="Save current model snapshot (Overwrite or Save as New Version)"
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+                dbStatus.ready
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 border border-emerald-500'
+                  : 'btn-ghost border-[#10b981] text-[#10b981] hover:bg-[#10b981]/10'
+              }`}
+              title="Finalize & Save this model to create a dedicated workspace database and unlock telemetry upload"
             >
-              <Save size={14} className="text-[#10b981]" />
-              <span>Save As</span>
+              {dbStatus.ready ? <CheckCircle2 size={14} className="text-white" /> : <Save size={14} className="text-[#10b981]" />}
+              <span>{dbStatus.ready ? 'Finalized & Saved' : 'Finalize & Save'}</span>
             </button>
           </div>
         </div>
@@ -324,13 +378,20 @@ export default function DigitalTwinExplorer() {
         </section>
 
         {/* Live Data & Telemetry Connectors (API, Upload CSV, Snowflake) */}
-        <TwinDataConnectors slug={cleanSlug} domainName={domainName} />
+        <TwinDataConnectors
+          slug={cleanSlug}
+          domainName={domainName}
+          isFinalized={dbStatus.ready}
+          dbInfo={dbStatus}
+          onRequireFinalize={handleSaveAs}
+        />
       </div>
 
       {/* Save As In-Window Modal */}
       <SaveAsModal
         open={saveAsOpen}
         defaultName={defaultSaveName}
+        title="Finalize & Save Workspace"
         domainName={domainName || 'Finance Model'}
         entityCount={productionGraph.nodes.length || 0}
         onSave={executeSaveAs}

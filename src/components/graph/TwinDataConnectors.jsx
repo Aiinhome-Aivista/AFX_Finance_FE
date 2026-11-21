@@ -20,11 +20,18 @@ import {
   ShieldCheck,
   Zap,
   Trash2,
+  Lock,
 } from 'lucide-react'
 import { useToast } from '../../context/ToastContext'
 import { files as filesApi } from '../../api'
 
-export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }) {
+export default function TwinDataConnectors({
+  slug = '',
+  domainName = 'Finance',
+  isFinalized = false,
+  dbInfo = null,
+  onRequireFinalize = null,
+}) {
   const toast = useToast()
   const [activeTab, setActiveTab] = useState('csv') // 'csv' active; 'api' & 'snowflake' disabled
   const [copiedKey, setCopiedKey] = useState(false)
@@ -60,12 +67,13 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
 
   const getActiveWf = useCallback(() => {
     try {
+      if (dbInfo?.workflow_id) return dbInfo.workflow_id
       const sp = new URLSearchParams(window.location.search)
       return sp.get('wf') || (cleanSlug ? sessionStorage.getItem(`afx_active_wf_${cleanSlug}`) : null)
     } catch {
       return null
     }
-  }, [cleanSlug])
+  }, [cleanSlug, dbInfo?.workflow_id])
 
   const loadTelemetryFiles = useCallback(async () => {
     try {
@@ -456,42 +464,76 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
             <div
               onDragOver={(e) => {
                 e.preventDefault()
-                setDragOver(true)
+                if (isFinalized) setDragOver(true)
               }}
               onDragLeave={() => setDragOver(false)}
               onDrop={(e) => {
                 e.preventDefault()
                 setDragOver(false)
+                if (!isFinalized) {
+                  toast.error('Please click "Finalize & Save" above to initialize the workspace database first.')
+                  onRequireFinalize?.()
+                  return
+                }
                 if (e.dataTransfer.files?.length) {
                   processCsvFile(e.dataTransfer.files[0])
                 }
               }}
-              onClick={() => fileInputRef.current?.click()}
-              className={`p-8 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center transition-all cursor-pointer ${dragOver
-                  ? 'border-[#10b981] bg-emerald-50/50 dark:bg-emerald-950/20'
-                  : 'border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 hover:border-slate-400 hover:bg-slate-50'
-                }`}
+              onClick={() => {
+                if (!isFinalized) {
+                  toast.error('Please click "Finalize & Save" above to initialize the workspace database first.')
+                  onRequireFinalize?.()
+                  return
+                }
+                fileInputRef.current?.click()
+              }}
+              className={`p-8 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center transition-all ${
+                !isFinalized
+                  ? 'border-amber-300 dark:border-amber-800/60 bg-amber-50/30 dark:bg-amber-950/20 cursor-pointer hover:border-amber-400'
+                  : dragOver
+                  ? 'border-[#10b981] bg-emerald-50/50 dark:bg-emerald-950/20 cursor-pointer'
+                  : 'border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 hover:border-slate-400 hover:bg-slate-50 cursor-pointer'
+              }`}
             >
               <input
                 ref={fileInputRef}
                 type="file"
                 accept=".csv,text/csv"
                 className="hidden"
+                disabled={!isFinalized}
                 onChange={handleFileChange}
               />
 
-              <div className="h-12 w-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3">
-                {uploadingCsv ? (
+              <div className={`h-12 w-12 rounded-2xl flex items-center justify-center mb-3 shadow-xs ${
+                !isFinalized
+                  ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                  : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
+              }`}>
+                {!isFinalized ? (
+                  <Lock size={22} />
+                ) : uploadingCsv ? (
                   <RefreshCw size={24} className="animate-spin text-[#10b981]" />
                 ) : (
                   <UploadCloud size={24} />
                 )}
               </div>
 
-              {uploadingCsv ? (
+              {!isFinalized ? (
+                <div className="space-y-1.5 py-1 max-w-md mx-auto select-none">
+                  <p className="text-xs font-bold text-ink flex items-center justify-center gap-1.5">
+                    <span>CSV Telemetry Ingestion Locked</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                      Locked
+                    </span>
+                  </p>
+                  <p className="text-[11px] text-muted leading-relaxed">
+                    Please click <span className="font-bold text-[#10b981] hover:underline cursor-pointer">Finalize & Save</span> in the top bar to create this workspace's dedicated database and unlock live telemetry ingestion.
+                  </p>
+                </div>
+              ) : uploadingCsv ? (
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-ink">Uploading & Parsing Telemetry Data...</p>
-                  <p className="text-[11px] text-muted">Running schema validation against ontology entities</p>
+                  <p className="text-[11px] text-muted">Ingesting records directly into workspace database...</p>
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -499,7 +541,7 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
                     <span className="text-[#10b981] hover:underline">Click to browse</span> or drag and drop your CSV file here
                   </p>
                   <p className="text-[11px] text-muted">
-                    Supports .CSV only (up to 100MB) · Automatic column mapping
+                    Supports .CSV only (up to 100MB) · Directly ingested into workspace database {dbInfo?.db_name ? `(${dbInfo.db_name})` : ''}
                   </p>
                 </div>
               )}
@@ -560,7 +602,7 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
 
               {telemetryFiles.length === 0 ? (
                 <div className="rounded-xl border border-line/60 bg-surface2/30 p-4 text-center text-xs text-muted">
-                  No telemetry spreadsheets ingested yet. Drop a CSV/XLSX above to feed live twin telemetry.
+                  No telemetry CSV ingested yet. Drop a CSV file above to ingest live twin telemetry into this workspace's database.
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -578,7 +620,7 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
                           <p className="text-[10px] text-muted flex items-center gap-1.5">
                             <span>{(tf.size_bytes / 1024).toFixed(1)} KB</span>
                             <span>•</span>
-                            <span className="text-emerald-600 dark:text-emerald-400 font-medium">Ingested into Twin</span>
+                            <span className="text-emerald-600 dark:text-emerald-400 font-medium">Ingested into Workspace DB</span>
                             {tf.created_at && (
                               <>
                                 <span>•</span>
@@ -591,7 +633,7 @@ export default function TwinDataConnectors({ slug = '', domainName = 'Finance' }
 
                       <div className="flex items-center gap-2">
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40">
-                          Live Ingested
+                          Live Ingested in DB
                         </span>
                         <button
                           type="button"

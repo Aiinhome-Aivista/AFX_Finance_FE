@@ -22,6 +22,13 @@ export const domains = {
   publishCustomModel: (body) => http.post('/workspace/custom-models/publish', body).then(d),
   deleteCustomModel: (name) => http.delete(`/workspace/custom-models/${encodeURIComponent(name)}`).then(d),
   syncCustomModels: () => Promise.resolve({ saved_models: [], published_models: [] }),
+  workspaceDbStatus: (slug, opts = {}) => {
+    const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
+    const params = {}
+    if (opts.wf) params.wf = opts.wf
+    if (opts.model) params.model = opts.model
+    return http.get(`/domains/${clean}/workspace-db-status`, { params }).then(d)
+  },
   get: (slug) => http.get(`/domains/${slug}`).then(d),
   graph: (slug, neighbours = true, fresh = false, wf = null) => {
     const params = { neighbours: neighbours ? 1 : 0 }

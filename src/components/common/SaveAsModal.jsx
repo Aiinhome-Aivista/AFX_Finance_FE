@@ -18,6 +18,7 @@ function getNextVersionName(name) {
 export default function SaveAsModal({
   open,
   defaultName = '',
+  title = 'Save Model Snapshot',
   domainName = 'Finance Domain',
   entityCount = 0,
   isPublished = false,
@@ -171,7 +172,7 @@ export default function SaveAsModal({
           </div>
           <div className="min-w-0 pr-6">
             <h3 id="save-as-modal-title" className="text-base font-bold text-ink tracking-tight flex items-center gap-2">
-              <span>Save Model Snapshot</span>
+              <span>{title}</span>
               {isConflictingExistingName ? (
                 <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-semibold text-red-600 dark:text-red-400 border border-red-500/25">
                   Name Collision
