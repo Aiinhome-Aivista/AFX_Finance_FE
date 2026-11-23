@@ -14,6 +14,8 @@ import Finalize from './pages/Finalize'
 import Telemetry from './pages/Telemetry'
 import DigitalTwinExplorer from './pages/DigitalTwinExplorer'
 import AnalystDashboard from './pages/AnalystDashboard'
+import CiCdPlanPage from './pages/CiCdPlanPage'
+import SecurityPlanPage from './pages/SecurityPlanPage'
 
 const P = ({ children, allowedRoles, redirectTo }) => (
   <ProtectedRoute allowedRoles={allowedRoles} redirectTo={redirectTo}>
@@ -104,6 +106,10 @@ export default function App() {
       />
       <Route path="/finance/:slug/dashboard" element={<P><AnalystDashboard /></P>} />
       <Route path="/finance/:slug/twin" element={<P><DigitalTwinExplorer /></P>} />
+      <Route path="/cicd" element={<P><CiCdPlanPage /></P>} />
+      <Route path="/cicd-plan" element={<P><CiCdPlanPage /></P>} />
+      <Route path="/security" element={<P><SecurityPlanPage /></P>} />
+      <Route path="/security-plan" element={<P><SecurityPlanPage /></P>} />
       <Route
         path="/finance/:slug/telemetry"
         element={

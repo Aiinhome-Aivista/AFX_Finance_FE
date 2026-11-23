@@ -1,5 +1,6 @@
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { BrainCircuit, ChevronRight, LogOut, Moon, Sun, User } from 'lucide-react'
+import { BrainCircuit, ChevronDown, ChevronRight, ExternalLink, GitBranch, LogOut, Moon, ShieldCheck, Sun, User } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import ChevronTracker from './ChevronTracker'
@@ -9,10 +10,27 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
   const { theme, toggle } = useTheme()
   const nav = useNavigate()
   const loc = useLocation()
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const profileRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    setProfileMenuOpen(false)
+  }, [loc.pathname])
   const roleLabel = isAnalyst ? 'Data Analyst' : 'Data Architect'
-  const isModelSelectionPage = hideWorkflowBar || loc.pathname === '/apps'
+  const isArchitecturePage = loc.pathname.startsWith('/cicd') || loc.pathname.startsWith('/security')
+  const isModelSelectionPage = hideWorkflowBar || loc.pathname === '/apps' || isArchitecturePage
   const isLandingOrOverview = loc.pathname === '/finance' || loc.pathname === '/finance/'
-  const isFinalStep = hideNext || loc.pathname.endsWith('/twin') || isLandingOrOverview
+  const isFinalStep = hideNext || loc.pathname.endsWith('/twin') || isLandingOrOverview || isArchitecturePage
   const shouldHideNext = isFinalStep
 
   const handleNext = () => {
@@ -116,15 +134,124 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
             <span className="hidden md:inline-flex items-center px-2.5 py-1 rounded-xl bg-[#10b981]/10 border border-[#10b981]/25 text-[11px] font-semibold text-[#10b981]">
               {roleLabel}
             </span>
-            <div
-              className="hidden sm:inline-flex items-center gap-1.5 max-w-[160px] px-2.5 py-1 rounded-xl bg-surface2 border border-line text-xs font-semibold text-ink shadow-2xs"
-              title={user?.email}
-            >
-              <User size={13} className="shrink-0 text-[#10b981]" />
-              <span className="truncate">
-                {user?.display_name || user?.email}
-              </span>
+
+            {/* Profile Dropdown */}
+            <div className="relative" ref={profileRef}>
+              <button
+                type="button"
+                onClick={() => setProfileMenuOpen((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-semibold transition cursor-pointer select-none ${
+                  profileMenuOpen
+                    ? 'bg-surface border-[#10b981] text-ink shadow-sm'
+                    : 'bg-surface2 hover:bg-surface border-line text-ink shadow-2xs'
+                }`}
+                title="Profile & Architecture Plans"
+                data-testid="profile-dropdown-btn"
+              >
+                <User size={13} className="shrink-0 text-[#10b981]" />
+                <span className="truncate max-w-[80px]">
+                  {user?.display_name || user?.email || 'Profile'}
+                </span>
+                <ChevronDown
+                  size={12}
+                  className={`text-muted transition-transform duration-200 ${
+                    profileMenuOpen ? 'rotate-180 text-[#10b981]' : ''
+                  }`}
+                />
+              </button>
+
+              {/* Dropdown Menu */}
+              {profileMenuOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-surface border border-line shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  {/* User info */}
+                  <div className="px-3 py-2.5 border-b border-line mb-1.5">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-xs font-bold text-ink truncate">
+                        {user?.display_name || 'Active User'}
+                      </span>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/30 shrink-0">
+                        {roleLabel}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted truncate">{user?.email || 'Authenticated Session'}</p>
+                  </div>
+
+                  {/* Engineering & Architecture Plans */}
+                  <div className="px-1 py-1">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted px-2 py-1">
+                      Engineering Architecture
+                    </div>
+
+                    {/* CI/CD Plan */}
+                    <Link
+                      to="/cicd-plan"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setProfileMenuOpen(false)}
+                      className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium transition ${
+                        loc.pathname === '/cicd-plan' || loc.pathname === '/cicd'
+                          ? 'bg-[#10b981]/15 text-[#10b981] font-semibold border border-[#10b981]/30'
+                          : 'text-ink hover:bg-surface2'
+                      }`}
+                    >
+                      <div className="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center shrink-0">
+                        <GitBranch size={13} className="text-[#10b981]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-semibold text-ink leading-tight flex items-center justify-between">
+                          <span>CI/CD Plan</span>
+                          <ExternalLink size={11} className="text-muted ml-1" />
+                        </div>
+                        <div className="text-[10px] text-muted truncate">Pipeline, Jenkins & Docker</div>
+                      </div>
+                    </Link>
+
+                    {/* Security Plan */}
+                    <Link
+                      to="/security-plan"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setProfileMenuOpen(false)}
+                      className={`flex items-center gap-2.5 px-2.5 py-2 mt-1 rounded-xl text-xs font-medium transition ${
+                        loc.pathname === '/security-plan' || loc.pathname === '/security'
+                          ? 'bg-indigo-500/15 text-indigo-400 font-semibold border border-indigo-500/30'
+                          : 'text-ink hover:bg-surface2'
+                      }`}
+                    >
+                      <div className="w-6 h-6 rounded-lg bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center shrink-0">
+                        <ShieldCheck size={13} className="text-indigo-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-semibold text-ink leading-tight flex items-center justify-between">
+                          <span>Security Plan</span>
+                          <ExternalLink size={11} className="text-muted ml-1" />
+                        </div>
+                        <div className="text-[10px] text-muted truncate">Zero-Trust, RBAC & Isolation</div>
+                      </div>
+                    </Link>
+                  </div>
+
+                  <div className="my-1.5 border-t border-line" />
+
+                  {/* Logout option */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setProfileMenuOpen(false)
+                      await logout()
+                      nav('/login')
+                    }}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium text-bad hover:bg-bad/10 transition cursor-pointer"
+                  >
+                    <div className="w-6 h-6 rounded-lg bg-bad/10 border border-bad/20 flex items-center justify-center shrink-0">
+                      <LogOut size={13} className="text-bad" />
+                    </div>
+                    <span className="font-semibold">Sign Out</span>
+                  </button>
+                </div>
+              )}
             </div>
+
             <button
               className="btn-ghost btn-sm hover:!text-bad hover:!border-bad/40"
               onClick={async () => {
