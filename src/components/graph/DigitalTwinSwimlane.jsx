@@ -1065,8 +1065,8 @@ export default function DigitalTwinSwimlane({
         />
       </div>
 
-      {/* Run the Twin Live Simulation Panel (Light Theme) */}
-      <div className="bg-white border-t border-slate-200 p-5 flex flex-col gap-3.5">
+
+      {/* <div className="bg-white border-t border-slate-200 p-5 flex flex-col gap-3.5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
@@ -1104,7 +1104,7 @@ export default function DigitalTwinSwimlane({
           </div>
         </div>
 
-        {/* Sliders & Capacity Inputs */}
+        
         <div className="flex flex-wrap items-center gap-5 bg-slate-50 border border-slate-200 rounded-xl p-3.5">
           <div className="flex flex-col gap-1 min-w-[180px]">
             <div className="flex justify-between text-[11px] font-semibold text-slate-600">
@@ -1160,7 +1160,7 @@ export default function DigitalTwinSwimlane({
           </div>
         </div>
 
-        {/* Live Metrics Grid (Clean Light Cards) */}
+        
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-2xs">
             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Throughput (rolling day)</div>
@@ -1186,7 +1186,7 @@ export default function DigitalTwinSwimlane({
           </div>
         </div>
 
-        {/* Lane Utilization Bars */}
+        
         {Object.keys(simMetrics.util).length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 bg-slate-50 border border-slate-200 rounded-xl p-3.5">
             {Object.keys(simMetrics.util).map((lane) => {
@@ -1209,7 +1209,7 @@ export default function DigitalTwinSwimlane({
           </div>
         )}
 
-        {/* Bottleneck Alert */}
+        
         {simMetrics.unstable.length > 0 && (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
             <AlertTriangle size={15} className="shrink-0 text-red-600" />
@@ -1218,7 +1218,7 @@ export default function DigitalTwinSwimlane({
             </span>
           </div>
         )}
-      </div>
+      </div> */}
     </div>
   )
 }

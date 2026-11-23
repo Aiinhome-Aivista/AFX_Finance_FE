@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, FolderKanban, Plus, ShieldCheck, Sparkles, Trash2, CheckCircle2 } from 'lucide-react'
 import Layout from '../components/common/Layout'
+import ConfirmDialog from '../components/common/ConfirmDialog'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { domains } from '../api'
@@ -29,6 +30,8 @@ export default function FinanceWorkspaceSelection() {
 
   const [selectedMyModel, setSelectedMyModel] = useState(null)
   const [selectedPublishedModel, setSelectedPublishedModel] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [toastMsg, setToastMsg] = useState('')
 
   const showToast = (msg) => {
@@ -79,26 +82,43 @@ export default function FinanceWorkspaceSelection() {
 
   const handleDeleteSavedModel = (e, modelName) => {
     e.stopPropagation()
-    const displayName = (modelName || '').replace(/_/g, ' ')
-    const updated = sortModelsByRecent(savedModels.filter((m) => m.name !== modelName))
-    setSavedModels(updated)
-    if (selectedMyModel === modelName) {
-      setSelectedMyModel(updated[0]?.name || null)
-    }
-    domains.deleteCustomModel(modelName).catch((err) => console.warn('Delete model API warning:', err))
-    toast.success(`"${displayName}" workspace deleted successfully!`)
+    setDeleteTarget({ name: modelName, type: 'saved' })
   }
 
   const handleDeletePublishedModel = (e, modelName) => {
     e.stopPropagation()
+    setDeleteTarget({ name: modelName, type: 'published' })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return
+    const { name: modelName, type } = deleteTarget
     const displayName = (modelName || '').replace(/_/g, ' ')
-    const updated = publishedModels.filter((m) => m.name !== modelName)
-    setPublishedModels(updated)
-    if (selectedPublishedModel === modelName) {
-      setSelectedPublishedModel(updated[0]?.name || null)
+    setIsDeleting(true)
+
+    try {
+      await domains.deleteCustomModel(modelName)
+      if (type === 'saved') {
+        const updated = sortModelsByRecent(savedModels.filter((m) => m.name !== modelName))
+        setSavedModels(updated)
+        if (selectedMyModel === modelName) {
+          setSelectedMyModel(updated[0]?.name || null)
+        }
+      } else {
+        const updated = publishedModels.filter((m) => m.name !== modelName)
+        setPublishedModels(updated)
+        if (selectedPublishedModel === modelName) {
+          setSelectedPublishedModel(updated[0]?.name || null)
+        }
+      }
+      toast.success(`"${displayName}" workspace and database deleted successfully!`)
+      setDeleteTarget(null)
+    } catch (err) {
+      console.error('Delete model API error:', err)
+      toast.error('Failed to delete workspace: ' + (err.message || 'Server error'))
+    } finally {
+      setIsDeleting(false)
     }
-    domains.deleteCustomModel(modelName).catch((err) => console.warn('Delete published model API warning:', err))
-    toast.success(`"${displayName}" workspace deleted successfully!`)
   }
 
   // Method 2: Publish action (moves model from My Finance Models to Published Models and saves to backend database)
@@ -593,8 +613,26 @@ export default function FinanceWorkspaceSelection() {
               <ArrowRight size={16} />
             </button>
           </div>
-        </div >
-      </div >
-    </Layout >
+        </div>
+      </div>
+
+      {/* Modern In-App Confirmation Popup for Deleting Workspace */}
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete Workspace?"
+        confirmLabel="Delete"
+        danger
+        busy={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => !isDeleting && setDeleteTarget(null)}
+      >
+        <p className="text-sm">
+          Are you sure you want to permanently delete{' '}
+          <span className="font-semibold text-ink">
+            &ldquo;{(deleteTarget?.name || '').replace(/_/g, ' ')}&rdquo;
+          </span>?
+        </p>
+      </ConfirmDialog>
+    </Layout>
   )
 }
