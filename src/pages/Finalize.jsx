@@ -968,6 +968,18 @@ export default function Finalize() {
     return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
   }, [location.state])
 
+  const activeWorkspaceName = useMemo(() => {
+    return searchParams.get('model') || (slug ? sessionStorage.getItem(`afx_active_model_${slug}`) : null) || sessionStorage.getItem('afx_current_workspace') || sessionStorage.getItem('afx_active_model_name') || ''
+  }, [searchParams, slug])
+
+  const handleSaveProgress = () => {
+    if (activeWorkspaceName) {
+      executeSaveAs(activeWorkspaceName, 'overwrite')
+    } else {
+      setSaveAsOpen(true)
+    }
+  }
+
   const handleSaveAs = () => {
     setSaveAsOpen(true)
   }
@@ -1025,9 +1037,9 @@ export default function Finalize() {
       }).catch((err) => console.warn('Backend custom model save warning:', err))
 
       if (mode === 'overwrite') {
-        toast.success(`Model "${modelName}" updated successfully in database!`)
+        toast.success(`Progress saved to "${modelName.replace(/_/g, ' ')}"!`)
       } else {
-        toast.success(`Model "${modelName}" saved successfully in database!`)
+        toast.success(`Workspace "${modelName.replace(/_/g, ' ')}" saved successfully!`)
       }
       setSaveAsOpen(false)
     } catch (e) {
@@ -1135,13 +1147,23 @@ export default function Finalize() {
 
             <button
               type="button"
-              onClick={handleSaveAs}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs btn-ghost border-[#10b981]/50 text-[#10b981] hover:bg-[#10b981]/10 hover:border-[#10b981]"
-              title="Save current model snapshot (Overwrite or Save as New Version)"
+              onClick={handleSaveProgress}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs bg-[#10b981] hover:bg-[#059669] text-[#0b1320]"
+              title={activeWorkspaceName ? `Save progress to "${activeWorkspaceName.replace(/_/g, ' ')}"` : 'Save workspace'}
             >
-              <Save size={14} className="text-[#10b981]" />
-              <span>Save As</span>
+              <Save size={14} />
+              <span>{activeWorkspaceName ? 'Save Progress' : 'Save'}</span>
             </button>
+            {activeWorkspaceName && (
+              <button
+                type="button"
+                onClick={handleSaveAs}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-2xs border border-line bg-surface hover:bg-surface2 text-muted hover:text-ink"
+                title="Save as a new workspace version"
+              >
+                <span>Save As...</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

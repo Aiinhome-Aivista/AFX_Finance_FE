@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, FolderKanban, Plus, ShieldCheck, Sparkles, Trash2, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, FolderKanban, Plus, ShieldCheck, Sparkles, Trash2, CheckCircle2, X } from 'lucide-react'
 import Layout from '../components/common/Layout'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import { Loading } from '../components/common/States'
@@ -260,16 +260,35 @@ export default function FinanceWorkspaceSelection() {
     return null
   }, [selectedPublishedModel, selectedMyModel])
 
-  const handleNewModel = () => {
+  const [newModalOpen, setNewModalOpen] = useState(false)
+  const [newWorkspaceInput, setNewWorkspaceInput] = useState('')
+
+  const handleOpenNewModal = () => {
+    const now = new Date()
+    const month = now.toLocaleString('default', { month: 'short' })
+    const day = now.getDate()
+    setNewWorkspaceInput(`Workspace_${day}_${month}`)
+    setNewModalOpen(true)
+  }
+
+  const handleCreateNewWorkspace = (e) => {
+    e?.preventDefault()
+    const cleanName = (newWorkspaceInput || '').trim()
+    if (!cleanName) return
+
     Object.keys(sessionStorage).forEach((k) => {
       if (k.startsWith('afx_active_wf_') || k.startsWith('afx_active_model_') || k.startsWith('afx_current_workspace')) {
         sessionStorage.removeItem(k)
       }
     })
     sessionStorage.removeItem('afx_active_model_name')
-    sessionStorage.setItem('afx_fresh_session', 'true')
-    sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
-    nav('/finance?fresh=1', { state: null, replace: true })
+    sessionStorage.removeItem('afx_fresh_session')
+    sessionStorage.setItem('afx_current_workspace', cleanName)
+    sessionStorage.setItem('afx_active_model_name', cleanName)
+    setNewModalOpen(false)
+
+    toast.success(`Workspace "${cleanName}" created!`)
+    nav(`/finance?model=${encodeURIComponent(cleanName)}`, { replace: true })
   }
 
   if (loading) {
@@ -322,12 +341,12 @@ export default function FinanceWorkspaceSelection() {
             {!isAnalyst && (
               <button
                 type="button"
-                onClick={handleNewModel}
+                onClick={handleOpenNewModal}
                 className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-[#0b1320] shadow-sm transition cursor-pointer"
-                title="Create a new Finance domain model"
+                title="Create a new Finance workspace"
               >
                 <Plus size={15} />
-                <span>New</span>
+                <span>New Workspace</span>
               </button>
             )}
           </div>
@@ -655,6 +674,66 @@ export default function FinanceWorkspaceSelection() {
           </span>?
         </p>
       </ConfirmDialog>
+
+      {/* New Workspace Creation Modal */}
+      {newModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="relative w-full max-w-md rounded-2xl border border-line bg-surface p-5 sm:p-6 shadow-2xl transition-all">
+            <button
+              type="button"
+              onClick={() => setNewModalOpen(false)}
+              className="absolute top-4 right-4 rounded-xl p-1.5 text-muted hover:text-ink hover:bg-surface2 transition cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+            <div className="flex items-center gap-2.5 mb-3">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <FolderKanban size={18} />
+              </span>
+              <div>
+                <h3 className="text-base font-bold text-ink">New Finance Workspace</h3>
+                <p className="text-xs text-muted">A dedicated workspace container for all your finance domains</p>
+              </div>
+            </div>
+            <form onSubmit={handleCreateNewWorkspace} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1.5">
+                  Workspace Name
+                </label>
+                <input
+                  type="text"
+                  value={newWorkspaceInput}
+                  onChange={(e) => setNewWorkspaceInput(e.target.value)}
+                  placeholder="e.g. 23 Nov WS 1"
+                  autoFocus
+                  className="w-full rounded-xl border border-line bg-surface2 px-3.5 py-2 text-sm text-ink font-medium focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setNewModalOpen(false)}
+                  className="btn-ghost px-4 py-2 text-xs font-semibold rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newWorkspaceInput.trim()}
+                  className="btn-primary px-4 py-2 text-xs font-semibold rounded-xl flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  <Plus size={14} />
+                  <span>Create Workspace</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </Layout>
   )
 }
