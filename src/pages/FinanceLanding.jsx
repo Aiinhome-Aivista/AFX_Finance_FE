@@ -156,6 +156,10 @@ export default function FinanceLanding() {
     }
   }, [selectedNodeId, activeEdges, nodesById])
 
+  const activeWorkspaceName = useMemo(() => {
+    return searchParams.get('model') || sessionStorage.getItem('afx_current_workspace') || null
+  }, [searchParams])
+
   // Domain selection handler - navigate directly to domain copilot & workflow page
   const handleDomainSelect = (dKey) => {
     if (dKey === 'all') {
@@ -166,8 +170,20 @@ export default function FinanceLanding() {
     }
     const targetSlug = DOMAIN_SLUGS[dKey]
     if (targetSlug) {
-      const isFresh = searchParams.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true'
-      nav(`/finance/${targetSlug}${isFresh ? '?fresh=1' : ''}`, { state: isFresh ? null : location.state })
+      const activeModel = searchParams.get('model') || sessionStorage.getItem('afx_current_workspace') || sessionStorage.getItem(`afx_active_model_${targetSlug}`)
+      const activeWf = searchParams.get('wf') || (activeModel ? sessionStorage.getItem(`afx_active_wf_${targetSlug}`) : null)
+      const isExplicitFresh = searchParams.get('fresh') === '1' && !activeModel
+
+      if (activeModel) {
+        const params = new URLSearchParams()
+        params.set('model', activeModel)
+        if (activeWf) params.set('wf', activeWf)
+        nav(`/finance/${targetSlug}?${params.toString()}`, { state: location.state })
+      } else if (isExplicitFresh) {
+        nav(`/finance/${targetSlug}?fresh=1`, { state: null })
+      } else {
+        nav(`/finance/${targetSlug}`, { state: location.state })
+      }
     }
   }
 
@@ -209,6 +225,14 @@ export default function FinanceLanding() {
             <ArrowLeft size={13} />
             <span>Finance Workspace</span>
           </Link>
+          {activeWorkspaceName && (
+            <span className="text-xs font-medium text-muted flex items-center gap-1.5">
+              <span>Active Model:</span>
+              <span className="font-semibold text-ink bg-surface2 px-2.5 py-0.5 rounded-lg border border-line text-brand">
+                {activeWorkspaceName.replace(/_/g, ' ')}
+              </span>
+            </span>
+          )}
         </div>
       </div>
 
@@ -607,21 +631,37 @@ export default function FinanceLanding() {
                   </div>
 
                   {/* Direct Workflow Launch Button */}
-                  {selectedNode.d !== 'spine' && DOMAIN_SLUGS[selectedNode.d] && (
-                    <div className="mt-3.5">
-                      <Link
-                        to={`/finance/${DOMAIN_SLUGS[selectedNode.d]}${(searchParams.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true') ? '?fresh=1' : ''}`}
-                        className="btn-primary btn-sm w-full flex items-center justify-center gap-2 text-xs font-semibold shadow-sm py-2"
-                      >
-                        <span>
-                          {getDomainProgress(selectedNode.d)
-                            ? `Continue ${DOMMETA[selectedNode.d]?.code} Workflow`
-                            : `Open ${DOMMETA[selectedNode.d]?.code} Knowledge Graph`}
-                        </span>
-                        <ArrowRight size={13} />
-                      </Link>
-                    </div>
-                  )}
+                  {selectedNode.d !== 'spine' && DOMAIN_SLUGS[selectedNode.d] && (() => {
+                    const targetSlug = DOMAIN_SLUGS[selectedNode.d]
+                    const activeModel = searchParams.get('model') || sessionStorage.getItem('afx_current_workspace') || sessionStorage.getItem(`afx_active_model_${targetSlug}`)
+                    const activeWf = searchParams.get('wf') || (activeModel ? sessionStorage.getItem(`afx_active_wf_${targetSlug}`) : null)
+                    const isExplicitFresh = searchParams.get('fresh') === '1' && !activeModel
+                    let targetUrl = `/finance/${targetSlug}`
+                    if (activeModel) {
+                      const params = new URLSearchParams()
+                      params.set('model', activeModel)
+                      if (activeWf) params.set('wf', activeWf)
+                      targetUrl += `?${params.toString()}`
+                    } else if (isExplicitFresh) {
+                      targetUrl += '?fresh=1'
+                    }
+
+                    return (
+                      <div className="mt-3.5">
+                        <Link
+                          to={targetUrl}
+                          className="btn-primary btn-sm w-full flex items-center justify-center gap-2 text-xs font-semibold shadow-sm py-2"
+                        >
+                          <span>
+                            {getDomainProgress(selectedNode.d)
+                              ? `Continue ${DOMMETA[selectedNode.d]?.code} Workflow`
+                              : `Open ${DOMMETA[selectedNode.d]?.code} Knowledge Graph`}
+                          </span>
+                          <ArrowRight size={13} />
+                        </Link>
+                      </div>
+                    )
+                  })()}
 
                   {/* Governed Attributes */}
                   {selectedNode.a && selectedNode.a.length > 0 && (

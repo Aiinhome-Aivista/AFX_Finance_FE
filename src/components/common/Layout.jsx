@@ -39,14 +39,14 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
       const slug = parts[1]
       const sp = new URLSearchParams(search)
       const curWf = sp.get('wf') || sessionStorage.getItem(`afx_active_wf_${slug}`)
-      const curModel = sp.get('model') || sessionStorage.getItem(`afx_active_model_${slug}`)
+      const curModel = sp.get('model') || sessionStorage.getItem(`afx_active_model_${slug}`) || sessionStorage.getItem('afx_current_workspace')
       const qs = new URLSearchParams()
       if (curWf) qs.set('wf', curWf)
       if (curModel) qs.set('model', curModel)
       const qStr = qs.toString() ? `?${qs.toString()}` : ''
 
       if (parts[2] === 'twin') {
-        nav('/finance')
+        nav(qStr ? `/finance${qStr}` : '/finance')
         return
       }
       if (parts[2] === 'finalize') {

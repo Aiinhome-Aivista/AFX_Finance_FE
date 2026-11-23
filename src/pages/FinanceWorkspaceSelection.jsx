@@ -181,6 +181,8 @@ export default function FinanceWorkspaceSelection() {
         const targetSlug = pub.slug || 'planning-budgeting-forecasting'
         sessionStorage.setItem(`afx_active_wf_${targetSlug}`, String(pub.workflow_id || ''))
         sessionStorage.setItem(`afx_active_model_${targetSlug}`, pub.name)
+        sessionStorage.setItem('afx_current_workspace', pub.name)
+        sessionStorage.setItem('afx_active_model_name', pub.name)
         sessionStorage.removeItem('afx_fresh_session')
         const queryParams = `?wf=${pub.workflow_id || ''}&model=${encodeURIComponent(pub.name)}`
         if (isAnalyst) {
@@ -206,6 +208,8 @@ export default function FinanceWorkspaceSelection() {
         const targetSlug = my.slug || 'planning-budgeting-forecasting'
         sessionStorage.setItem(`afx_active_wf_${targetSlug}`, String(my.workflow_id || ''))
         sessionStorage.setItem(`afx_active_model_${targetSlug}`, my.name)
+        sessionStorage.setItem('afx_current_workspace', my.name)
+        sessionStorage.setItem('afx_active_model_name', my.name)
         sessionStorage.removeItem('afx_fresh_session')
         const queryParams = `?wf=${my.workflow_id || ''}&model=${encodeURIComponent(my.name)}`
 
@@ -251,10 +255,11 @@ export default function FinanceWorkspaceSelection() {
 
   const handleNewModel = () => {
     Object.keys(sessionStorage).forEach((k) => {
-      if (k.startsWith('afx_active_wf_') || k.startsWith('afx_active_model_')) {
+      if (k.startsWith('afx_active_wf_') || k.startsWith('afx_active_model_') || k.startsWith('afx_current_workspace')) {
         sessionStorage.removeItem(k)
       }
     })
+    sessionStorage.removeItem('afx_active_model_name')
     sessionStorage.setItem('afx_fresh_session', 'true')
     sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
     nav('/finance?fresh=1', { state: null, replace: true })

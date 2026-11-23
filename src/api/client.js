@@ -36,15 +36,15 @@ http.interceptors.request.use((cfg) => {
   try {
     if (typeof window !== 'undefined') {
       const sp = new URLSearchParams(window.location?.search || '')
-      const isFresh = sp.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true'
       let wf = sp.get('wf')
       let model = sp.get('model')
 
-      // Fallback: check active workspace in sessionStorage for this domain if not in current URL and NOT a fresh session
-      if (isFresh) {
-        wf = null
-        model = null
-      } else if (!wf && window.location?.pathname) {
+      // Fallback: check active workspace in sessionStorage if not in current URL
+      if (!model) {
+        model = sessionStorage.getItem('afx_current_workspace') || sessionStorage.getItem('afx_active_model_name')
+      }
+
+      if (!wf && window.location?.pathname) {
         const parts = window.location.pathname.split('/').filter(Boolean)
         if (parts[0] === 'finance' && parts[1]) {
           const domSlug = parts[1]
@@ -53,6 +53,13 @@ http.interceptors.request.use((cfg) => {
             model = sessionStorage.getItem(`afx_active_model_${domSlug}`)
           }
         }
+      }
+
+      // Only treat as explicit fresh if requested in URL and no active model/wf is attached
+      const isExplicitFresh = sp.get('fresh') === '1' && !model && !wf
+      if (isExplicitFresh) {
+        wf = null
+        model = null
       }
 
       if (wf && !cfg.headers['X-Workflow-Id']) {
