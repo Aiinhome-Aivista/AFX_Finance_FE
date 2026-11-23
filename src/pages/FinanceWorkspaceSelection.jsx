@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, FolderKanban, Plus, ShieldCheck, Sparkles, Trash2, CheckCircle2 } from 'lucide-react'
 import Layout from '../components/common/Layout'
 import ConfirmDialog from '../components/common/ConfirmDialog'
+import { Loading } from '../components/common/States'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { domains } from '../api'
@@ -27,6 +28,7 @@ export default function FinanceWorkspaceSelection() {
 
   // 2. Published Models: Populated directly from backend database API
   const [publishedModels, setPublishedModels] = useState([])
+  const [loading, setLoading] = useState(true)
 
   const [selectedMyModel, setSelectedMyModel] = useState(null)
   const [selectedPublishedModel, setSelectedPublishedModel] = useState(null)
@@ -56,6 +58,11 @@ export default function FinanceWorkspaceSelection() {
       })
       .catch((err) => {
         console.warn('Backend custom models fetch error:', err)
+      })
+      .finally(() => {
+        if (alive) {
+          setLoading(false)
+        }
       })
 
     return () => {
@@ -263,6 +270,16 @@ export default function FinanceWorkspaceSelection() {
     sessionStorage.setItem('afx_fresh_session', 'true')
     sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
     nav('/finance?fresh=1', { state: null, replace: true })
+  }
+
+  if (loading) {
+    return (
+      <Layout hideWorkflowBar>
+        <div className="min-h-[70vh] flex flex-col items-center justify-center">
+          <Loading label="Loading finance models…" className="text-base" />
+        </div>
+      </Layout>
+    )
   }
 
   return (

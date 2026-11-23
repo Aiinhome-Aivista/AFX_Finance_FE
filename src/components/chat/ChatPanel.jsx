@@ -14,7 +14,7 @@ import {
   User,
   Zap,
 } from 'lucide-react'
-import { Spinner } from '../common/States'
+import { Spinner, Loading } from '../common/States'
 import ConfirmDialog from '../common/ConfirmDialog'
 import { chat, graphs } from '../../api'
 import { useToast } from '../../context/ToastContext'
@@ -291,58 +291,17 @@ export default function ChatPanel({
     llm_enabled: false,
   }
 
-  // Welcome state when conversation hasn't started yet
+  useEffect(() => {
+    if (!activeSnap.conversation_id && !busy && slug) {
+      start()
+    }
+  }, [activeSnap.conversation_id, busy, slug])
+
+  // If conversation is being started, show compact loading
   if (!activeSnap.conversation_id) {
     return (
-      <div className="relative flex h-full flex-col items-center justify-center overflow-hidden p-6 sm:p-8 text-center bg-gradient-to-b from-surface via-surface to-surface2">
-        {/* Ambient glow */}
-        <div className="pointer-events-none absolute -top-12 -right-12 h-44 w-44 rounded-full bg-brand/15 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-12 -left-12 h-44 w-44 rounded-full bg-indigo-500/10 blur-2xl" />
-
-        <div className="relative z-10 max-w-sm flex flex-col items-center">
-          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-tr from-brand via-indigo-600 to-purple-600 text-white shadow-lg shadow-brand/30">
-            <Bot size={28} />
-          </div>
-
-          <h3 className="mt-4 text-lg font-bold tracking-tight text-ink">
-            {domainName ? `${domainName} Assistant` : 'Domain Assistant'}
-          </h3>
-
-          <p className="mt-2 text-xs leading-relaxed text-muted">
-            Explore entity definitions, governance rules, and calculate formulas. Grounded strictly in the Finance reference ontology.
-          </p>
-
-          <div className="mt-6 flex flex-col gap-2 w-full text-left">
-            <button
-              onClick={start}
-              disabled={busy}
-              className="group flex items-center justify-between rounded-xl border border-brand/30 bg-brand/10 p-3 text-xs font-semibold text-brand transition hover:bg-brand hover:text-white shadow-2xs cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Sparkles size={16} />
-                <span>Start Conversation</span>
-              </div>
-              <ChevronRight size={14} className="transition-transform group-hover:translate-x-0.5" />
-            </button>
-
-            {askNode && (
-              <button
-                onClick={() => {
-                  start()
-                }}
-                className="group flex items-center justify-between rounded-xl border border-line bg-surface p-3 text-xs text-ink transition hover:border-brand/40 hover:bg-surface2 cursor-pointer"
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <HelpCircle size={15} className="text-muted shrink-0" />
-                  <span className="truncate">Ask about “{nodeName || askNode}”</span>
-                </div>
-                <ChevronRight size={14} className="text-muted shrink-0" />
-              </button>
-            )}
-          </div>
-
-          {disabledReason && <p className="mt-4 text-xs text-warn">{disabledReason}</p>}
-        </div>
+      <div className="flex h-full items-center justify-center p-6 text-center bg-surface">
+        <Loading label="Opening chat…" className="text-xs" />
       </div>
     )
   }
