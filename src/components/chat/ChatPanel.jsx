@@ -204,6 +204,9 @@ export default function ChatPanel({
     if (r?.graph_updated || r?.graph) {
       onGraphUpdate?.(r)
     }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('afx_journey_refresh'))
+    }
   }
 
   const run = async (fn, after) => {
@@ -292,10 +295,10 @@ export default function ChatPanel({
   }
 
   useEffect(() => {
-    if (!activeSnap.conversation_id && !busy && slug) {
+    if (snap !== null && !activeSnap.conversation_id && !busy && slug) {
       start()
     }
-  }, [activeSnap.conversation_id, busy, slug])
+  }, [snap, activeSnap.conversation_id, busy, slug])
 
   // If conversation is being started, show compact loading
   if (!activeSnap.conversation_id) {

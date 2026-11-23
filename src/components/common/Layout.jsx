@@ -3,6 +3,7 @@ import { BrainCircuit, ChevronRight, LogOut, Moon, Sun, User } from 'lucide-reac
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import ChevronTracker from './ChevronTracker'
+import DomainJourneyTracker from './DomainJourneyTracker'
 
 export default function Layout({ children, wide, headerAction, onNext, nextLabel, hideWorkflowBar, hideNext }) {
   const { user, isAnalyst, logout } = useAuth()
@@ -14,6 +15,15 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
   const isLandingOrOverview = loc.pathname === '/finance' || loc.pathname === '/finance/'
   const isFinalStep = hideNext || loc.pathname.endsWith('/twin') || isLandingOrOverview
   const shouldHideNext = isFinalStep
+
+  const isWorkspaceSelectionPage =
+    hideWorkflowBar ||
+    loc.pathname.includes('/models') ||
+    (typeof window !== 'undefined' && window.location.pathname.includes('/models'))
+  const isReviewPage = loc.pathname.includes('/finalize')
+  const isTwinPage = loc.pathname.includes('/twin')
+  const isAuthOrApps = loc.pathname === '/login' || loc.pathname === '/register' || loc.pathname === '/apps'
+  const shouldShowJourneyTracker = !hideWorkflowBar && !isWorkspaceSelectionPage && !isReviewPage && !isTwinPage && !isAuthOrApps && !isAnalyst
 
   const handleNext = () => {
     if (onNext) {
@@ -143,6 +153,7 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
       {/* Main Page Content */}
       <main className={`mx-auto w-full flex-1 px-3 py-5 sm:px-6 ${wide ? 'max-w-[1850px]' : 'max-w-6xl'}`}>
         {children}
+        {shouldShowJourneyTracker && <DomainJourneyTracker />}
       </main>
     </div>
   )

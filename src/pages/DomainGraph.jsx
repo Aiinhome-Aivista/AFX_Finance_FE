@@ -385,6 +385,11 @@ export default function DomainGraph() {
           setSnap(res)
           if (res?.workflow_id) {
             sessionStorage.setItem(`afx_active_wf_${slug}`, String(res.workflow_id))
+            const sp = new URLSearchParams(window.location.search)
+            if (sp.get('wf') !== String(res.workflow_id)) {
+              sp.set('wf', String(res.workflow_id))
+              setSearchParams(sp, { replace: true })
+            }
           }
         })
         .catch(() => {
@@ -855,6 +860,9 @@ export default function DomainGraph() {
           next.set('model', modelName)
           next.delete('fresh')
           setSearchParams(next, { replace: true })
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('afx_journey_refresh'))
         }
       }).catch((err) => console.warn('Backend custom model save warning:', err))
 
