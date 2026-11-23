@@ -828,7 +828,16 @@ export default function DomainGraph() {
         savedAt: payload.savedAt,
         createdAt: payload.savedAt,
       }).then((res) => {
+        sessionStorage.removeItem('afx_fresh_session')
+        sessionStorage.setItem('afx_current_workspace', modelName)
+        sessionStorage.setItem('afx_active_model_name', modelName)
+        if (slug) {
+          sessionStorage.setItem(`afx_active_model_${slug}`, modelName)
+        }
         if (res?.workflow_id) {
+          if (slug) {
+            sessionStorage.setItem(`afx_active_wf_${slug}`, String(res.workflow_id))
+          }
           const next = new URLSearchParams(window.location.search)
           next.set('wf', res.workflow_id)
           next.set('model', modelName)
@@ -893,6 +902,16 @@ export default function DomainGraph() {
     }
   }, [isGapMode, isUploadModeActive, slug, nav])
 
+  const allDomainsLink = useMemo(() => {
+    const curModel = searchParams.get('model') || (slug ? sessionStorage.getItem(`afx_active_model_${slug}`) : null) || sessionStorage.getItem('afx_current_workspace')
+    const curWf = searchParams.get('wf') || (slug ? sessionStorage.getItem(`afx_active_wf_${slug}`) : null)
+    const qs = new URLSearchParams()
+    if (curModel) qs.set('model', curModel)
+    if (curWf) qs.set('wf', curWf)
+    const qStr = qs.toString()
+    return qStr ? `/finance?${qStr}` : '/finance'
+  }, [searchParams, slug])
+
   return (
     <Layout
       wide
@@ -904,7 +923,7 @@ export default function DomainGraph() {
         <div className="flex flex-wrap items-center justify-between gap-2.5 select-none">
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             <Link
-              to="/finance"
+              to={allDomainsLink}
               className="group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] font-semibold transition-all duration-200 cursor-pointer flex items-center gap-1.5 shrink-0 border border-line bg-surface/90 text-muted hover:text-ink hover:border-brand/40 hover:bg-surface2 shadow-2xs hover:-translate-y-0.5"
             >
               <ArrowLeft size={14} className="text-brand" />
