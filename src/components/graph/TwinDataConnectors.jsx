@@ -224,555 +224,567 @@ export default function TwinDataConnectors({
       {/* Connector Header */}
       <div className="flex flex-wrap items-center justify-between border-b border-line bg-surface px-5 py-4 gap-3 select-none">
         <div className="flex items-center gap-3">
-            <div className={`h-8 w-8 rounded-xl flex items-center justify-center font-bold ${canUpload ? 'bg-[#10b981]/15 text-[#10b981]' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-400'
-              }`}>
-              <Zap size={18} />
+          <div className={`h-8 w-8 rounded-xl flex items-center justify-center font-bold ${canUpload ? 'bg-[#10b981]/15 text-[#10b981]' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-400'
+            }`}>
+            <Zap size={18} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-ink tracking-tight">
+                Data & Telemetry Connectors
+              </h3>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${canUpload
+                ? 'bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/30'
+                : 'bg-slate-200 dark:bg-slate-800 text-slate-500 border border-slate-300 dark:border-slate-700'
+                }`}>
+                {canUpload ? 'Live Ingestion' : 'Disabled'}
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-ink tracking-tight">
-                  Data & Telemetry Connectors
-                </h3>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${canUpload
-                      ? 'bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/30'
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-500 border border-slate-300 dark:border-slate-700'
-                    }`}>
-                    {canUpload ? 'Live Ingestion' : 'Disabled'}
-                  </span>
+            <p className="text-xs text-muted mt-0.5">
+              Connect external data pipelines to feed real-time telemetry into the digital twin simulation.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Container (disabled when not finalized) */}
+      <div className={!canUpload ? 'opacity-40 pointer-events-none select-none grayscale-[0.2] transition-all duration-300' : 'transition-all duration-300'}>
+        {/* 3 Connector Selector Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-5 bg-slate-50/60 dark:bg-slate-900/40 border-b border-line">
+          {/* Option 1: REST API (Enabled) */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('api')}
+            className={`flex items-start gap-3.5 p-4 rounded-xl text-left border transition-all cursor-pointer relative ${activeTab === 'api'
+              ? 'bg-white dark:bg-slate-900 border-[#10b981] shadow-sm ring-2 ring-[#10b981]/20'
+              : 'bg-white dark:bg-slate-900/60 border-line hover:border-slate-300 dark:hover:border-slate-700'
+              }`}
+          >
+            <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${activeTab === 'api' ? 'bg-[#10b981] text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+              <Globe size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <h4 className={`text-xs font-bold ${activeTab === 'api' ? 'text-ink' : 'text-slate-600 dark:text-slate-300'}`}>API Connection</h4>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${activeTab === 'api'
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+                  }`}>
+                  {activeTab === 'api' ? 'Active' : 'Available'}
+                </span>
               </div>
-              <p className="text-xs text-muted mt-0.5">
-                Connect external data pipelines to feed real-time telemetry into the digital twin simulation.
+              <p className="text-[11px] text-muted line-clamp-2 leading-relaxed">
+                Stream events, ledger updates, and orders via authenticated JSON webhook endpoints.
+              </p>
+            </div>
+          </button>
+
+          {/* Option 2: Upload CSV (Active / Available) */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('csv')}
+            className={`flex items-start gap-3.5 p-4 rounded-xl text-left border transition-all cursor-pointer relative ${activeTab === 'csv'
+              ? 'bg-white dark:bg-slate-900 border-[#10b981] shadow-sm ring-2 ring-[#10b981]/20'
+              : 'bg-white dark:bg-slate-900/60 border-line hover:border-slate-300 dark:hover:border-slate-700'
+              }`}
+          >
+            <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${activeTab === 'csv' ? 'bg-[#10b981] text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+              <UploadCloud size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <h4 className={`text-xs font-bold ${activeTab === 'csv' ? 'text-ink' : 'text-slate-600 dark:text-slate-300'}`}>Upload CSV</h4>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${activeTab === 'csv'
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+                  }`}>
+                  {activeTab === 'csv' ? 'Active' : 'Available'}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted line-clamp-2 leading-relaxed">
+                Import historical drivers, cost center allocations, and trial balances from CSV files.
+              </p>
+            </div>
+          </button>
+
+          {/* Option 3: Snowflake (Disabled) */}
+          <div
+            aria-disabled="true"
+            title="Snowflake connector is currently disabled"
+            className="flex items-start gap-3.5 p-4 rounded-xl text-left border border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900/30 opacity-60 cursor-not-allowed relative select-none"
+          >
+            <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-200/80 dark:bg-slate-800 text-slate-400">
+              <Database size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <h4 className="text-xs font-bold text-slate-500">Snowflake</h4>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 border border-slate-300/80 dark:border-slate-700">
+                  Disabled
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                Direct cloud data warehouse sync for scheduled tables, views, and automated recalibration.
               </p>
             </div>
           </div>
         </div>
 
-            {/* Content Container (disabled when not finalized) */}
-            <div className={!canUpload ? 'opacity-40 pointer-events-none select-none grayscale-[0.2] transition-all duration-300' : 'transition-all duration-300'}>
-              {/* 3 Connector Selector Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-5 bg-slate-50/60 dark:bg-slate-900/40 border-b border-line">
-                {/* Option 1: REST API (Disabled) */}
-                <div
-                  aria-disabled="true"
-                  title="REST API connector is currently disabled"
-                  className="flex items-start gap-3.5 p-4 rounded-xl text-left border border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900/30 opacity-60 cursor-not-allowed relative select-none"
-                >
-                  <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-200/80 dark:bg-slate-800 text-slate-400">
-                    <Globe size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <h4 className="text-xs font-bold text-slate-500">REST API</h4>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 border border-slate-300/80 dark:border-slate-700">
-                        Disabled
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
-                      Stream events, ledger updates, and orders via authenticated JSON webhook endpoints.
-                    </p>
-                  </div>
+        {/* Active Connector Detail Panel */}
+        <div className="p-5 bg-surface">
+          {/* ===================== 1. REST API WORKBENCH ===================== */}
+          {activeTab === 'api' && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-line">
+                <div>
+                  <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
+                    <Globe size={14} className="text-[#10b981]" />
+                    <span>REST API Telemetry Ingestion Endpoint</span>
+                  </h4>
+                  <p className="text-xs text-muted mt-0.5">
+                    Send live JSON payloads from your ERP, CRM, or ETL pipelines to continuously trigger digital twin simulation steps.
+                  </p>
                 </div>
 
-                {/* Option 2: Upload CSV (Active) */}
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('csv')}
-                  className="flex items-start gap-3.5 p-4 rounded-xl text-left border transition-all cursor-pointer relative bg-white dark:bg-slate-900 border-[#10b981] shadow-sm ring-2 ring-[#10b981]/20"
-                >
-                  <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 bg-[#10b981] text-white shadow-xs">
-                    <UploadCloud size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <h4 className="text-xs font-bold text-ink">Upload CSV</h4>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                        Active
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-muted line-clamp-2 leading-relaxed">
-                      Import historical drivers, cost center allocations, and trial balances from CSV files.
-                    </p>
-                  </div>
-                </button>
-
-                {/* Option 3: Snowflake (Disabled) */}
-                <div
-                  aria-disabled="true"
-                  title="Snowflake connector is currently disabled"
-                  className="flex items-start gap-3.5 p-4 rounded-xl text-left border border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900/30 opacity-60 cursor-not-allowed relative select-none"
-                >
-                  <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-200/80 dark:bg-slate-800 text-slate-400">
-                    <Database size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <h4 className="text-xs font-bold text-slate-500">Snowflake</h4>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 border border-slate-300/80 dark:border-slate-700">
-                        Disabled
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
-                      Direct cloud data warehouse sync for scheduled tables, views, and automated recalibration.
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleTestApi}
+                    disabled={apiTesting}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#10b981] hover:bg-emerald-600 text-white shadow-xs transition cursor-pointer disabled:opacity-50"
+                  >
+                    {apiTesting ? (
+                      <>
+                        <RefreshCw size={13} className="animate-spin" />
+                        <span>Sending Test Event...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={13} />
+                        <span>Send Test Event</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
 
-              {/* Active Connector Detail Panel */}
-              <div className="p-5 bg-surface">
-                {/* ===================== 1. REST API WORKBENCH ===================== */}
-                {activeTab === 'api' && (
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-line">
-                      <div>
-                        <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
-                          <Globe size={14} className="text-[#10b981]" />
-                          <span>REST API Telemetry Ingestion Endpoint</span>
-                        </h4>
-                        <p className="text-xs text-muted mt-0.5">
-                          Send live JSON payloads from your ERP, CRM, or ETL pipelines to continuously trigger digital twin simulation steps.
-                        </p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Endpoint Details */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 block">
+                      Endpoint URL (POST)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-800 dark:text-slate-200 overflow-x-auto select-all">
+                        {apiEndpoint}
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={handleTestApi}
-                          disabled={apiTesting}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#10b981] hover:bg-emerald-600 text-white shadow-xs transition cursor-pointer disabled:opacity-50"
-                        >
-                          {apiTesting ? (
-                            <>
-                              <RefreshCw size={13} className="animate-spin" />
-                              <span>Sending Test Event...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Send size={13} />
-                              <span>Send Test Event</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(apiEndpoint, 'url')}
+                        className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 hover:text-ink hover:bg-slate-50 transition cursor-pointer"
+                        title="Copy Endpoint URL"
+                      >
+                        <Copy size={14} />
+                      </button>
                     </div>
+                  </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      {/* Endpoint Details */}
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 block">
-                            Endpoint URL (POST)
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-800 dark:text-slate-200 overflow-x-auto select-all">
-                              {apiEndpoint}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleCopy(apiEndpoint, 'url')}
-                              className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 hover:text-ink hover:bg-slate-50 transition cursor-pointer"
-                              title="Copy Endpoint URL"
-                            >
-                              <Copy size={14} />
-                            </button>
-                          </div>
-                        </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <Key size={12} className="text-[#10b981]" />
+                        <span>Bearer API Key</span>
+                      </span>
+                      <span className="text-[10px] text-muted font-normal">Environment: Production</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-800 dark:text-slate-200 select-all">
+                        {apiKey}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(apiKey, 'key')}
+                        className="flex items-center gap-1 px-2.5 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-600 hover:text-ink hover:bg-slate-50 transition cursor-pointer"
+                      >
+                        {copiedKey ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                        <span>{copiedKey ? 'Copied' : 'Copy'}</span>
+                      </button>
+                    </div>
+                  </div>
 
-                        <div>
-                          <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
-                            <span className="flex items-center gap-1">
-                              <Key size={12} className="text-[#10b981]" />
-                              <span>Bearer API Key</span>
-                            </span>
-                            <span className="text-[10px] text-muted font-normal">Environment: Production</span>
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-800 dark:text-slate-200 select-all">
-                              {apiKey}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleCopy(apiKey, 'key')}
-                              className="flex items-center gap-1 px-2.5 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-600 hover:text-ink hover:bg-slate-50 transition cursor-pointer"
-                            >
-                              {copiedKey ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                              <span>{copiedKey ? 'Copied' : 'Copy'}</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-1.5">
-                          <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
-                            <span>Quick cURL Ingestion</span>
-                            <button
-                              type="button"
-                              onClick={() => handleCopy(curlCommand, 'curl')}
-                              className="text-[11px] text-[#10b981] hover:underline flex items-center gap-1 font-semibold cursor-pointer"
-                            >
-                              {copiedCurl ? <Check size={12} /> : <Copy size={12} />}
-                              <span>{copiedCurl ? 'Copied' : 'Copy cURL'}</span>
-                            </button>
-                          </div>
-                          <pre className="text-[10.5px] font-mono text-slate-600 dark:text-slate-400 overflow-x-auto p-2 bg-white dark:bg-slate-950 rounded border border-slate-200/80 dark:border-slate-800/80">
-                            {`curl -X POST "${apiEndpoint}" \\
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
+                      <span>Quick cURL Ingestion</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(curlCommand, 'curl')}
+                        className="text-[11px] text-[#10b981] hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                      >
+                        {copiedCurl ? <Check size={12} /> : <Copy size={12} />}
+                        <span>{copiedCurl ? 'Copied' : 'Copy cURL'}</span>
+                      </button>
+                    </div>
+                    <pre className="text-[10.5px] font-mono text-slate-600 dark:text-slate-400 overflow-x-auto p-2 bg-white dark:bg-slate-950 rounded border border-slate-200/80 dark:border-slate-800/80">
+                      {`curl -X POST "${apiEndpoint}" \\
   -H "Authorization: Bearer ${apiKey}" \\
   -H "Content-Type: application/json" \\
   -d '{"event_type":"TWIN_METRIC","value":42}'`}
-                          </pre>
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Sample Payload & Test Response */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                      JSON Payload Preview
+                    </label>
+                    <span className="text-[10px] text-muted font-medium">Schema verified with verified entities</span>
+                  </div>
+                  <div className="relative flex-1 min-h-[170px] bg-slate-950 text-slate-100 p-3.5 rounded-xl font-mono text-[11px] overflow-auto border border-slate-800 shadow-inner">
+                    <pre>{sampleJsonPayload}</pre>
+                  </div>
+
+                  {apiSuccessResponse && (
+                    <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex items-start gap-2.5 transition-all">
+                      <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                      <div className="text-xs space-y-0.5">
+                        <div className="font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-2">
+                          <span>Status: 200 OK</span>
+                          <span className="text-[10px] font-normal text-emerald-700 dark:text-emerald-300">
+                            (Latency: {apiSuccessResponse.latency})
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-emerald-800 dark:text-emerald-300">
+                          {apiSuccessResponse.message}
+                        </p>
+                        <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono mt-1">
+                          Trace ID: {apiSuccessResponse.trace_id} · Anchors: {apiSuccessResponse.verified_anchors.join(', ')}
                         </div>
                       </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
-                      {/* Sample Payload & Test Response */}
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                            JSON Payload Preview
-                          </label>
-                          <span className="text-[10px] text-muted font-medium">Schema verified with verified entities</span>
-                        </div>
-                        <div className="relative flex-1 min-h-[170px] bg-slate-950 text-slate-100 p-3.5 rounded-xl font-mono text-[11px] overflow-auto border border-slate-800 shadow-inner">
-                          <pre>{sampleJsonPayload}</pre>
-                        </div>
+          {/* ===================== 2. UPLOAD CSV WORKBENCH ===================== */}
+          {activeTab === 'csv' && (
+            <div className="space-y-4">
+              <div className="pb-3 border-b border-line">
+                <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
+                  <UploadCloud size={14} className="text-[#10b981]" />
+                  <span>CSV Batch Ingestion</span>
+                </h4>
+              </div>
 
-                        {apiSuccessResponse && (
-                          <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex items-start gap-2.5 transition-all">
-                            <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                            <div className="text-xs space-y-0.5">
-                              <div className="font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-2">
-                                <span>Status: 200 OK</span>
-                                <span className="text-[10px] font-normal text-emerald-700 dark:text-emerald-300">
-                                  (Latency: {apiSuccessResponse.latency})
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-emerald-800 dark:text-emerald-300">
-                                {apiSuccessResponse.message}
-                              </p>
-                              <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono mt-1">
-                                Trace ID: {apiSuccessResponse.trace_id} · Anchors: {apiSuccessResponse.verified_anchors.join(', ')}
-                              </div>
-                            </div>
-                          </div>
-                        )}
+              {/* Drag & Drop Upload Zone */}
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  if (canUpload) setDragOver(true)
+                }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  setDragOver(false)
+                  if (!canUpload) {
+                    toast.error('Please click "Finalize & Save" above to initialize the workspace database first.')
+                    onRequireFinalize?.()
+                    return
+                  }
+                  if (e.dataTransfer.files?.length) {
+                    processCsvFile(e.dataTransfer.files[0])
+                  }
+                }}
+                onClick={() => {
+                  if (!canUpload) {
+                    toast.error('Please click "Finalize & Save" above to initialize the workspace database first.')
+                    onRequireFinalize?.()
+                    return
+                  }
+                  fileInputRef.current?.click()
+                }}
+                className={`p-8 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center transition-all ${dragOver
+                  ? 'border-[#10b981] bg-emerald-50/50 dark:bg-emerald-950/20 cursor-pointer'
+                  : 'border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 hover:border-slate-400 hover:bg-slate-50 cursor-pointer'
+                  }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  disabled={!canUpload}
+                  onChange={handleFileChange}
+                />
+
+                <div className="h-12 w-12 rounded-2xl flex items-center justify-center mb-3 shadow-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400">
+                  {uploadingCsv ? (
+                    <RefreshCw size={24} className="animate-spin text-[#10b981]" />
+                  ) : (
+                    <UploadCloud size={24} />
+                  )}
+                </div>
+
+                {uploadingCsv ? (
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-ink">Uploading & Parsing Telemetry Data...</p>
+                    <p className="text-[11px] text-muted">Ingesting records directly into workspace database...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-ink">
+                      <span className="text-[#10b981] hover:underline">Click to browse</span> or drag and drop your CSV file here
+                    </p>
+                    <p className="text-[11px] text-muted">
+                      Supports .CSV only (up to 100MB) · Directly ingested into workspace database {dbInfo?.db_name ? `(${dbInfo.db_name})` : ''}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Uploaded File Result Card */}
+              {csvUploadSuccess && (
+                <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
+                      <FileSpreadsheet size={20} />
+                    </div>
+                    <div>
+                      <h5 className="text-xs font-bold text-ink flex items-center gap-2">
+                        <span>{csvUploadSuccess.name}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-semibold">
+                          Schema Verified
+                        </span>
+                      </h5>
+                      <div className="text-[11px] text-muted flex items-center gap-2 mt-0.5">
+                        <span>{csvUploadSuccess.size}</span>
+                        <span>•</span>
+                        <span>{csvUploadSuccess.rows} rows detected</span>
+                        <span>•</span>
+                        <span>{csvUploadSuccess.columns} columns mapped</span>
+                        <span>•</span>
+                        <span>Uploaded at {csvUploadSuccess.timestamp}</span>
                       </div>
                     </div>
                   </div>
-                )}
 
-                {/* ===================== 2. UPLOAD CSV WORKBENCH ===================== */}
-                {activeTab === 'csv' && (
-                  <div className="space-y-4">
-                    <div className="pb-3 border-b border-line">
-                      <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
-                        <UploadCloud size={14} className="text-[#10b981]" />
-                        <span>CSV Batch Ingestion</span>
-                      </h4>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle2 size={14} />
+                      <span>Ingested into Twin</span>
+                    </span>
+                  </div>
+                </div>
+              )}
 
-                    {/* Drag & Drop Upload Zone */}
-                    <div
-                      onDragOver={(e) => {
-                        e.preventDefault()
-                        if (canUpload) setDragOver(true)
-                      }}
-                      onDragLeave={() => setDragOver(false)}
-                      onDrop={(e) => {
-                        e.preventDefault()
-                        setDragOver(false)
-                        if (!canUpload) {
-                          toast.error('Please click "Finalize & Save" above to initialize the workspace database first.')
-                          onRequireFinalize?.()
-                          return
-                        }
-                        if (e.dataTransfer.files?.length) {
-                          processCsvFile(e.dataTransfer.files[0])
-                        }
-                      }}
-                      onClick={() => {
-                        if (!canUpload) {
-                          toast.error('Please click "Finalize & Save" above to initialize the workspace database first.')
-                          onRequireFinalize?.()
-                          return
-                        }
-                        fileInputRef.current?.click()
-                      }}
-                      className={`p-8 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center transition-all ${dragOver
-                        ? 'border-[#10b981] bg-emerald-50/50 dark:bg-emerald-950/20 cursor-pointer'
-                        : 'border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30 hover:border-slate-400 hover:bg-slate-50 cursor-pointer'
-                        }`}
-                    >
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".csv,text/csv"
-                        className="hidden"
-                        disabled={!canUpload}
-                        onChange={handleFileChange}
-                      />
+              {/* Dedicated Telemetry Ingestion Logs */}
+              <div className="mt-4 pt-4 border-t border-line/60">
+                <div className="flex items-center justify-between mb-2.5">
+                  <h5 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
+                    <Database size={13} className="text-[#10b981]" />
+                    <span>Ingested Telemetry Logs ({telemetryFiles.length})</span>
+                  </h5>
+                  <button
+                    type="button"
+                    onClick={loadTelemetryFiles}
+                    className="text-[11px] text-muted hover:text-ink flex items-center gap-1 font-medium transition cursor-pointer"
+                    title="Refresh telemetry files"
+                  >
+                    <RefreshCw size={11} className={loadingTelemetry ? 'animate-spin' : ''} />
+                    <span>Refresh</span>
+                  </button>
+                </div>
 
-                      <div className="h-12 w-12 rounded-2xl flex items-center justify-center mb-3 shadow-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400">
-                        {uploadingCsv ? (
-                          <RefreshCw size={24} className="animate-spin text-[#10b981]" />
-                        ) : (
-                          <UploadCloud size={24} />
-                        )}
-                      </div>
-
-                      {uploadingCsv ? (
-                        <div className="space-y-1">
-                          <p className="text-xs font-bold text-ink">Uploading & Parsing Telemetry Data...</p>
-                          <p className="text-[11px] text-muted">Ingesting records directly into workspace database...</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          <p className="text-xs font-bold text-ink">
-                            <span className="text-[#10b981] hover:underline">Click to browse</span> or drag and drop your CSV file here
-                          </p>
-                          <p className="text-[11px] text-muted">
-                            Supports .CSV only (up to 100MB) · Directly ingested into workspace database {dbInfo?.db_name ? `(${dbInfo.db_name})` : ''}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Uploaded File Result Card */}
-                    {csvUploadSuccess && (
-                      <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
-                            <FileSpreadsheet size={20} />
+                {telemetryFiles.length === 0 ? (
+                  <div className="rounded-xl border border-line/60 bg-surface2/30 p-4 text-center text-xs text-muted">
+                    No telemetry CSV ingested yet. Drop a CSV file above to ingest live twin telemetry into this workspace's database.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {telemetryFiles.map((tf) => (
+                      <div
+                        key={tf.id}
+                        className="p-3 rounded-xl bg-surface border border-line shadow-2xs flex flex-wrap items-center justify-between gap-3 hover:border-[#10b981]/40 transition"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                            <FileSpreadsheet size={16} />
                           </div>
-                          <div>
-                            <h5 className="text-xs font-bold text-ink flex items-center gap-2">
-                              <span>{csvUploadSuccess.name}</span>
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-semibold">
-                                Schema Verified
-                              </span>
-                            </h5>
-                            <div className="text-[11px] text-muted flex items-center gap-2 mt-0.5">
-                              <span>{csvUploadSuccess.size}</span>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-ink truncate">{tf.name}</p>
+                            <p className="text-[10px] text-muted flex items-center gap-1.5">
+                              <span>{(tf.size_bytes / 1024).toFixed(1)} KB</span>
                               <span>•</span>
-                              <span>{csvUploadSuccess.rows} rows detected</span>
-                              <span>•</span>
-                              <span>{csvUploadSuccess.columns} columns mapped</span>
-                              <span>•</span>
-                              <span>Uploaded at {csvUploadSuccess.timestamp}</span>
-                            </div>
+                              <span className="text-emerald-600 dark:text-emerald-400 font-medium">Ingested into Workspace DB</span>
+                              {tf.created_at && (
+                                <>
+                                  <span>•</span>
+                                  <span>{new Date(tf.created_at).toLocaleTimeString()}</span>
+                                </>
+                              )}
+                            </p>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 size={14} />
-                            <span>Ingested into Twin</span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40">
+                            Live Ingested in DB
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTelemetry(tf.id, tf.name)}
+                            className="p-1 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition cursor-pointer"
+                            title="Delete telemetry file"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
                       </div>
-                    )}
-
-                    {/* Dedicated Telemetry Ingestion Logs */}
-                    <div className="mt-4 pt-4 border-t border-line/60">
-                      <div className="flex items-center justify-between mb-2.5">
-                        <h5 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
-                          <Database size={13} className="text-[#10b981]" />
-                          <span>Ingested Telemetry Logs ({telemetryFiles.length})</span>
-                        </h5>
-                        <button
-                          type="button"
-                          onClick={loadTelemetryFiles}
-                          className="text-[11px] text-muted hover:text-ink flex items-center gap-1 font-medium transition cursor-pointer"
-                          title="Refresh telemetry files"
-                        >
-                          <RefreshCw size={11} className={loadingTelemetry ? 'animate-spin' : ''} />
-                          <span>Refresh</span>
-                        </button>
-                      </div>
-
-                      {telemetryFiles.length === 0 ? (
-                        <div className="rounded-xl border border-line/60 bg-surface2/30 p-4 text-center text-xs text-muted">
-                          No telemetry CSV ingested yet. Drop a CSV file above to ingest live twin telemetry into this workspace's database.
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {telemetryFiles.map((tf) => (
-                            <div
-                              key={tf.id}
-                              className="p-3 rounded-xl bg-surface border border-line shadow-2xs flex flex-wrap items-center justify-between gap-3 hover:border-[#10b981]/40 transition"
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                                  <FileSpreadsheet size={16} />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-semibold text-ink truncate">{tf.name}</p>
-                                  <p className="text-[10px] text-muted flex items-center gap-1.5">
-                                    <span>{(tf.size_bytes / 1024).toFixed(1)} KB</span>
-                                    <span>•</span>
-                                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">Ingested into Workspace DB</span>
-                                    {tf.created_at && (
-                                      <>
-                                        <span>•</span>
-                                        <span>{new Date(tf.created_at).toLocaleTimeString()}</span>
-                                      </>
-                                    )}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40">
-                                  Live Ingested in DB
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteTelemetry(tf.id, tf.name)}
-                                  className="p-1 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition cursor-pointer"
-                                  title="Delete telemetry file"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* ===================== 3. SNOWFLAKE WORKBENCH ===================== */}
-                {activeTab === 'snowflake' && (
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-line">
-                      <div>
-                        <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
-                          <Database size={14} className="text-[#10b981]" />
-                          <span>Snowflake Cloud Data Warehouse Connector</span>
-                        </h4>
-                        <p className="text-xs text-muted mt-0.5">
-                          Query live ERP and financial mart tables directly from your Snowflake warehouse cluster.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={handleSnowflakeConnect}
-                          disabled={snowflakeConnecting}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#10b981] hover:bg-emerald-600 text-white shadow-xs transition cursor-pointer disabled:opacity-50"
-                        >
-                          {snowflakeConnecting ? (
-                            <>
-                              <RefreshCw size={13} className="animate-spin" />
-                              <span>Verifying Warehouse...</span>
-                            </>
-                          ) : snowflakeConnected ? (
-                            <>
-                              <CheckCircle2 size={13} />
-                              <span>Re-test Connection</span>
-                            </>
-                          ) : (
-                            <>
-                              <Database size={13} />
-                              <span>Connect to Snowflake</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 block">
-                          Account Identifier
-                        </label>
-                        <input
-                          type="text"
-                          value={snowflakeConfig.account}
-                          onChange={(e) => setSnowflakeConfig({ ...snowflakeConfig, account: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-ink focus:border-[#10b981] outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 block">
-                          Warehouse
-                        </label>
-                        <input
-                          type="text"
-                          value={snowflakeConfig.warehouse}
-                          onChange={(e) => setSnowflakeConfig({ ...snowflakeConfig, warehouse: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-ink focus:border-[#10b981] outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 block">
-                          Database & Schema
-                        </label>
-                        <input
-                          type="text"
-                          value={`${snowflakeConfig.database}.${snowflakeConfig.schema}`}
-                          onChange={(e) => {
-                            const parts = e.target.value.split('.')
-                            setSnowflakeConfig({
-                              ...snowflakeConfig,
-                              database: parts[0] || '',
-                              schema: parts[1] || 'PUBLIC',
-                            })
-                          }}
-                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-ink focus:border-[#10b981] outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 block">
-                          Role
-                        </label>
-                        <input
-                          type="text"
-                          value={snowflakeConfig.role}
-                          onChange={(e) => setSnowflakeConfig({ ...snowflakeConfig, role: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-ink focus:border-[#10b981] outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    {snowflakeConnected && (
-                      <div className="p-4 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-xs font-bold text-emerald-900 dark:text-emerald-200">
-                            <CheckCircle2 size={16} className="text-emerald-600" />
-                            <span>Connected to Snowflake (Cluster: ACTIVE · Ping: 92ms)</span>
-                          </div>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
-                            Live Sync Enabled
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
-                          <div className="p-2 rounded bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900">
-                            <div className="font-bold text-slate-800 dark:text-slate-200">GL_LEDGER_ENTRIES</div>
-                            <div className="text-[10px] text-muted">18,420 rows · synced</div>
-                          </div>
-                          <div className="p-2 rounded bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900">
-                            <div className="font-bold text-slate-800 dark:text-slate-200">FPNA_DRIVER_INPUTS</div>
-                            <div className="text-[10px] text-muted">2,150 rows · synced</div>
-                          </div>
-                          <div className="p-2 rounded bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900">
-                            <div className="font-bold text-slate-800 dark:text-slate-200">BUDGET_VERSIONS</div>
-                            <div className="text-[10px] text-muted">4 versions · synced</div>
-                          </div>
-                          <div className="p-2 rounded bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900">
-                            <div className="font-bold text-slate-800 dark:text-slate-200">HITL_EXCEPTION_LOG</div>
-                            <div className="text-[10px] text-muted">28 items · synced</div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    ))}
                   </div>
                 )}
               </div>
             </div>
+          )}
+
+          {/* ===================== 3. SNOWFLAKE WORKBENCH ===================== */}
+          {activeTab === 'snowflake' && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-line">
+                <div>
+                  <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
+                    <Database size={14} className="text-[#10b981]" />
+                    <span>Snowflake Cloud Data Warehouse Connector</span>
+                  </h4>
+                  <p className="text-xs text-muted mt-0.5">
+                    Query live ERP and financial mart tables directly from your Snowflake warehouse cluster.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSnowflakeConnect}
+                    disabled={snowflakeConnecting}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#10b981] hover:bg-emerald-600 text-white shadow-xs transition cursor-pointer disabled:opacity-50"
+                  >
+                    {snowflakeConnecting ? (
+                      <>
+                        <RefreshCw size={13} className="animate-spin" />
+                        <span>Verifying Warehouse...</span>
+                      </>
+                    ) : snowflakeConnected ? (
+                      <>
+                        <CheckCircle2 size={13} />
+                        <span>Re-test Connection</span>
+                      </>
+                    ) : (
+                      <>
+                        <Database size={13} />
+                        <span>Connect to Snowflake</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 block">
+                    Account Identifier
+                  </label>
+                  <input
+                    type="text"
+                    value={snowflakeConfig.account}
+                    onChange={(e) => setSnowflakeConfig({ ...snowflakeConfig, account: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-ink focus:border-[#10b981] outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 block">
+                    Warehouse
+                  </label>
+                  <input
+                    type="text"
+                    value={snowflakeConfig.warehouse}
+                    onChange={(e) => setSnowflakeConfig({ ...snowflakeConfig, warehouse: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-ink focus:border-[#10b981] outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 block">
+                    Database & Schema
+                  </label>
+                  <input
+                    type="text"
+                    value={`${snowflakeConfig.database}.${snowflakeConfig.schema}`}
+                    onChange={(e) => {
+                      const parts = e.target.value.split('.')
+                      setSnowflakeConfig({
+                        ...snowflakeConfig,
+                        database: parts[0] || '',
+                        schema: parts[1] || 'PUBLIC',
+                      })
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-ink focus:border-[#10b981] outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 block">
+                    Role
+                  </label>
+                  <input
+                    type="text"
+                    value={snowflakeConfig.role}
+                    onChange={(e) => setSnowflakeConfig({ ...snowflakeConfig, role: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-ink focus:border-[#10b981] outline-none"
+                  />
+                </div>
+              </div>
+
+              {snowflakeConnected && (
+                <div className="p-4 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                      <CheckCircle2 size={16} className="text-emerald-600" />
+                      <span>Connected to Snowflake (Cluster: ACTIVE · Ping: 92ms)</span>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                      Live Sync Enabled
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
+                    <div className="p-2 rounded bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900">
+                      <div className="font-bold text-slate-800 dark:text-slate-200">GL_LEDGER_ENTRIES</div>
+                      <div className="text-[10px] text-muted">18,420 rows · synced</div>
+                    </div>
+                    <div className="p-2 rounded bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900">
+                      <div className="font-bold text-slate-800 dark:text-slate-200">FPNA_DRIVER_INPUTS</div>
+                      <div className="text-[10px] text-muted">2,150 rows · synced</div>
+                    </div>
+                    <div className="p-2 rounded bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900">
+                      <div className="font-bold text-slate-800 dark:text-slate-200">BUDGET_VERSIONS</div>
+                      <div className="text-[10px] text-muted">4 versions · synced</div>
+                    </div>
+                    <div className="p-2 rounded bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900">
+                      <div className="font-bold text-slate-800 dark:text-slate-200">HITL_EXCEPTION_LOG</div>
+                      <div className="text-[10px] text-muted">28 items · synced</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </section>
   )
 }
