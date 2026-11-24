@@ -1,9 +1,13 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Database, RefreshCw, Sparkles } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, Database, Menu, RefreshCw, SlidersHorizontal, Sparkles } from 'lucide-react'
 import Layout from '../components/common/Layout'
 import Chart from '../components/analyst/MiniCharts'
 import AnalystChatDock from '../components/analyst/AnalystChatDock'
+import AnalystSidebar from '../components/analyst/AnalystSidebar'
+import CommandCenterView from '../components/analyst/CommandCenterView'
+import ReceivablesView from '../components/analyst/ReceivablesView'
+import AssumptionsView from '../components/analyst/AssumptionsView'
 import { analyst } from '../api'
 import { useAuth } from '../context/AuthContext'
 import useAsync from '../components/common/useAsync'
@@ -105,6 +109,8 @@ export default function AnalystDashboard() {
   const { isAnalyst } = useAuth()
   const q = useAsync(() => (wf ? analyst.dashboard(wf) : Promise.resolve(null)), [wf])
   const [refreshing, setRefreshing] = useState(false)
+  const [activeTab, setActiveTab] = useState('command_center')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
 
   const apiData = q.data
 
@@ -133,100 +139,88 @@ export default function AnalystDashboard() {
   const dataSources = workingCapitalData.data_sources || []
 
   return (
-    <Layout wide hideWorkflowBar hideNext>
-      {/* Fixed static viewport container - pb-20 leaves plenty of clearance for bottom dock */}
-      <div className="h-[calc(100vh-84px)] pb-20 flex flex-col overflow-hidden">
-        {/* Top Header Bar */}
-        <div className="shrink-0 mb-3 flex flex-wrap items-center gap-3">
-          <Link to="/finance/models" className="btn-ghost btn-sm inline-flex items-center gap-1.5">
-            <ArrowLeft size={14} /> Models
-          </Link>
-          <div className="min-w-0">
-            <h1 className="truncate text-lg font-bold text-ink">{modelInfo.name}</h1>
-            <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted">
-              {modelInfo.published_at && (
-                <span>{new Date(modelInfo.published_at).toLocaleDateString()}</span>
-              )}
-              {dateRange && (
-                <span>
-                  {modelInfo.published_at ? '· ' : ''}Data {dateRange.from} → {dateRange.to}
-                </span>
-              )}
-            </p>
+    <Layout fullBleed hideWorkflowBar hideNext>
+      {/* Horizontal Flex Container: Collapsible Sidebar + Dynamic Main Content */}
+      <div className="flex w-full h-[calc(100vh-64px)] overflow-hidden bg-bg">
+        {/* Sleek Collapsible Left Sidebar */}
+        <AnalystSidebar
+          activeTab={activeTab}
+          onSelectTab={(tab) => {
+            if (tab === 'digital_twin' && !isAnalyst) {
+              // Can also navigate directly if preferred
+            }
+            setActiveTab(tab)
+          }}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
+          modelName={modelInfo.name}
+        />
+
+        {/* Dynamic Main Workspace Column */}
+        <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden px-6 pt-4 pb-0 relative">
+          {/* Top Header Bar matching Working Capital Command Center (Image 2) */}
+          <div className="shrink-0 mb-3 flex items-center justify-between border-b border-line/60 pb-2.5 pt-0.5">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted">
+                WORKING CAPITAL
+              </span>
+              <span className="text-muted/60 font-mono">/</span>
+              <span className="font-semibold text-ink">
+                {activeTab === 'command_center'
+                  ? 'Command center'
+                  : activeTab === 'receivables'
+                  ? 'Receivables'
+                  : 'Assumptions'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Scenario saved
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveTab('assumptions')}
+                className="btn-ghost btn-sm inline-flex items-center gap-1.5 border border-line bg-surface hover:bg-surface2 text-xs font-semibold cursor-pointer py-1 px-2.5 rounded-lg shadow-2xs text-ink"
+              >
+                <SlidersHorizontal size={13} /> Assumptions <ArrowUpRight size={13} />
+              </button>
+            </div>
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            {!isAnalyst && (
+
+          {/* Tab 1: Command Center Main View (Matching Working Capital Command Center Design) */}
+          {activeTab === 'command_center' && (
+            <CommandCenterView onNavigateTab={(tab) => setActiveTab(tab)} />
+          )}
+
+          {/* Tab 2: Receivables View */}
+          {activeTab === 'receivables' && <ReceivablesView />}
+
+          {/* Tab 3: Planning Assumptions View */}
+          {activeTab === 'assumptions' && <AssumptionsView />}
+
+          {/* Tab 4: Digital Twin View */}
+          {activeTab === 'digital_twin' && (
+            <div className="h-full flex-1 flex flex-col items-center justify-center border border-line/60 rounded-2xl bg-surface p-8 text-center shadow-xs">
+              <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3 border border-emerald-500/20">
+                <Sparkles size={28} />
+              </div>
+              <h3 className="text-lg font-bold text-ink">Domain Digital Twin Topology</h3>
+              <p className="text-xs text-muted max-w-md mt-1 mb-4">
+                Explore the live ontology nodes, formulas, and working capital cash drivers configured for this model.
+              </p>
               <Link
                 to={`/finance/${slug || 'planning-budgeting-forecasting'}/twin?wf=${wf || ''}`}
-                className="btn-ghost btn-sm"
+                className="btn-primary text-xs px-4 py-2"
               >
-                Digital Twin
+                Open Full Digital Twin Canvas
               </Link>
-            )}
-            {!isAnalyst && (
-              <button
-                className="btn-ghost btn-sm inline-flex items-center gap-1.5"
-                onClick={refresh}
-                disabled={refreshing}
-              >
-                <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} /> Recompute
-              </button>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Floating Analyst Chat Dock */}
+          <AnalystChatDock wf={wf} modelName={modelInfo.name} version={modelInfo.version} />
         </div>
-
-        {/* Dual Independent Scrollable Columns */}
-        <div className="flex-1 min-h-0 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          {/* 1. Left/Main Dashboard Column (Analysis Card + Responsive Sized Charts) with its own Scrollbar */}
-          <div className="h-full overflow-y-auto pr-2 space-y-4 [scrollbar-gutter:stable] pb-24">
-            {/* Analysis Performance Insight Card */}
-            {summary && <SummaryCard summary={summary} />}
-
-            {/* Responsive Charts Grid (Large Full-Width + Compact Side-by-Side) */}
-            <div className="grid gap-4 md:grid-cols-2 pb-6">
-              {charts.map((c) => (
-                <ChartCard key={c.id} chart={c} />
-              ))}
-            </div>
-          </div>
-
-          {/* 2. Right Sidebar Column (Key Metrics) with its own Scrollbar and bottom clearance */}
-          <aside className="h-full overflow-y-auto pr-1 flex flex-col [scrollbar-gutter:stable] pb-24" aria-label="Key metrics">
-            {/* Clean Sticky Header without date filter or synced time */}
-            <div className="sticky top-0 bg-surface/95 backdrop-blur-sm z-10 pb-2.5 border-b border-line/40 mb-3 pt-0.5 flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-ink">KEY METRICS</span>
-            </div>
-
-            {/* 11 KPI Cards */}
-            <div className="space-y-2.5 pb-3">
-              {kpis.map((k) => (
-                <KpiCard key={k.id} kpi={k} />
-              ))}
-            </div>
-
-            {/* Data Sources Card */}
-            <div className="card p-3 text-xs text-muted mb-6 border border-line/60 bg-surface">
-              <p className="mb-1.5 font-semibold text-ink">Data sources</p>
-              <ul className="space-y-1">
-                {dataSources.map((s) => (
-                  <li key={s.id} className="flex justify-between gap-2">
-                    <span className="truncate">{s.name}</span>
-                    <span className="shrink-0">
-                      {s.document
-                        ? `${s.ext.toUpperCase()} · reference`
-                        : s.rows != null
-                        ? `${s.rows.toLocaleString()} rows`
-                        : s.ext.toUpperCase()}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </aside>
-        </div>
-
-        {/* Floating Analyst Chat Dock */}
-        <AnalystChatDock wf={wf} modelName={modelInfo.name} version={modelInfo.version} />
       </div>
     </Layout>
   )

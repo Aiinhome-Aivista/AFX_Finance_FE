@@ -107,8 +107,8 @@ export default function AnalystChatDock({ wf, modelName, version }) {
   }
 
   return (
-    <section aria-label="Speak to your data" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface shadow-[0_-6px_24px_rgb(0_0_0/0.08)]">
-      <div className="mx-auto max-w-[1850px] px-3 sm:px-6">
+    <section aria-label="Speak to your data" className="absolute inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur shadow-[0_-6px_24px_rgb(0_0_0/0.08)]">
+      <div className="w-full px-4 sm:px-6">
         <div className="flex items-center gap-3 py-2">
           <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={open ? 'Collapse chat' : 'Expand chat'}
             className="grid h-7 w-7 place-items-center rounded-full border border-line text-muted hover:bg-surface2">

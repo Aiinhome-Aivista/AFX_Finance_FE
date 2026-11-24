@@ -6,7 +6,7 @@ import { useTheme } from '../../context/ThemeContext'
 import ChevronTracker from './ChevronTracker'
 import DomainJourneyTracker from './DomainJourneyTracker'
 
-export default function Layout({ children, wide, headerAction, onNext, nextLabel, hideWorkflowBar, hideNext }) {
+export default function Layout({ children, wide, headerAction, onNext, nextLabel, hideWorkflowBar, hideNext, fullBleed }) {
   const { user, isAnalyst, logout } = useAuth()
   const { theme, toggle } = useTheme()
   const nav = useNavigate()
@@ -97,7 +97,7 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
     <div className="flex min-h-full flex-col bg-bg text-ink selection:bg-[#10b981] selection:text-black">
       {/* Persistent Clean White Header with Chevron Progress Tracker (MOM Step 2) */}
       <header className="sticky top-0 z-50 border-b border-line bg-surface/95 backdrop-blur shadow-xs">
-        <div className="mx-auto flex h-16 max-w-[1850px] items-center justify-between gap-3 px-3 sm:px-6">
+        <div className={`flex h-16 items-center justify-between gap-3 px-3 sm:px-6 ${fullBleed ? 'w-full max-w-full' : wide ? 'mx-auto max-w-[1850px]' : 'mx-auto max-w-6xl'}`}>
           {/* Brand Logo & Name */}
           <Link
             to={isAnalyst ? '/finance' : '/apps'}
@@ -278,7 +278,7 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
       </header>
 
       {/* Main Page Content */}
-      <main className={`mx-auto w-full flex-1 px-3 py-5 sm:px-6 ${wide ? 'max-w-[1850px]' : 'max-w-6xl'}`}>
+      <main className={`w-full flex-1 ${fullBleed ? 'flex flex-col p-0 m-0 overflow-hidden max-w-full' : `mx-auto px-3 py-5 sm:px-6 ${wide ? 'max-w-[1850px]' : 'max-w-6xl'}`}`}>
         {children}
         {shouldShowJourneyTracker && <DomainJourneyTracker />}
       </main>
