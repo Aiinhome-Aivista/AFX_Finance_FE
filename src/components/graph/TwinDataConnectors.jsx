@@ -413,7 +413,7 @@ export default function TwinDataConnectors({
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                  {/* <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-1.5">
                     <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
                       <span>Quick cURL Ingestion</span>
                       <button
@@ -431,7 +431,7 @@ export default function TwinDataConnectors({
   -H "Content-Type: application/json" \\
   -d '{"event_type":"TWIN_METRIC","value":42}'`}
                     </pre>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Sample Payload & Test Response */}
