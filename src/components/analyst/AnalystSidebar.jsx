@@ -21,6 +21,48 @@ export default function AnalystSidebar({
   onToggleCollapse,
   modelName = 'Planning, Budgeting and Forecasting'
 }) {
+  const [sidebarWidth, setSidebarWidth] = React.useState(260)
+  const isResizing = React.useRef(false)
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem('afx_sidebar_width')
+    if (saved) {
+      const parsed = parseInt(saved, 10)
+      if (parsed >= 180 && parsed <= 550) {
+        setSidebarWidth(parsed)
+      }
+    }
+  }, [])
+
+  React.useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizing.current) return
+      let newWidth = e.clientX
+      if (newWidth < 180) newWidth = 180
+      if (newWidth > 550) newWidth = 550
+      setSidebarWidth(newWidth)
+    }
+
+    const handleMouseUp = (e) => {
+      if (isResizing.current) {
+        isResizing.current = false
+        document.body.style.cursor = 'default'
+        document.body.style.userSelect = 'auto'
+        let newWidth = e.clientX
+        if (newWidth < 180) newWidth = 180
+        if (newWidth > 550) newWidth = 550
+        localStorage.setItem('afx_sidebar_width', newWidth.toString())
+      }
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [])
+
   const navItems = [
     {
       id: 'command_center',
@@ -44,11 +86,27 @@ export default function AnalystSidebar({
 
   return (
     <aside
-      className={`relative flex flex-col shrink-0 transition-all duration-200 ease-in-out border-r border-line bg-surface text-ink select-none h-[calc(100vh-64px)] z-30 ${
-        collapsed ? 'w-[64px]' : 'w-[240px]'
+      style={{ width: collapsed ? 64 : sidebarWidth }}
+      className={`relative flex flex-col shrink-0 border-r border-line bg-surface text-ink select-none h-[calc(100vh-64px)] z-30 ${
+        isResizing.current ? '' : 'transition-[width] duration-150 ease-out'
       }`}
       aria-label="Working Capital Sidebar"
     >
+      {/* Resizable drag handle (matching DAgent layout/Sidebar.tsx) */}
+      {!collapsed && (
+        <div
+          className="absolute right-0 top-0 w-1.5 h-full cursor-col-resize hover:bg-brand/50 active:bg-brand transition-colors z-[60] group"
+          title="Drag to resize sidebar (180px - 550px)"
+          onMouseDown={(e) => {
+            e.preventDefault()
+            isResizing.current = true
+            document.body.style.cursor = 'col-resize'
+            document.body.style.userSelect = 'none'
+          }}
+        >
+          <div className="w-[2px] h-full mx-auto opacity-0 group-hover:opacity-100 group-active:opacity-100 bg-brand transition-opacity" />
+        </div>
+      )}
       {/* 1. Top Header: Workspace & Collapse Toggle */}
       <div className="flex items-center justify-between h-14 px-3 border-b border-line shrink-0">
         {collapsed ? (

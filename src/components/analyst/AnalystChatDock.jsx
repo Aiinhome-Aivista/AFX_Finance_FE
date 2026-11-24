@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, ChevronUp, Loader2, Send, Sparkles, TriangleAlert } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, Minus, Plus, Send, TriangleAlert } from 'lucide-react'
 import Chart from './MiniCharts'
 import { analyst } from '../../api'
 
@@ -109,13 +109,20 @@ export default function AnalystChatDock({ wf, modelName, version }) {
   return (
     <section aria-label="Speak to your data" className="absolute inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur shadow-[0_-6px_24px_rgb(0_0_0/0.08)]">
       <div className="w-full px-4 sm:px-6">
-        <div className="flex items-center gap-3 py-2">
-          <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={open ? 'Collapse chat' : 'Expand chat'}
-            className="grid h-7 w-7 place-items-center rounded-full border border-line text-muted hover:bg-surface2">
-            {open ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
+        <div className="flex items-center gap-2.5 py-2">
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            aria-label={open ? 'Collapse chat' : 'Expand chat'}
+            className="w-6 h-6 rounded-md bg-surface2 hover:bg-surface border border-line text-ink transition-colors flex items-center justify-center shadow-2xs cursor-pointer"
+          >
+            {open ? <Minus size={13} /> : <Plus size={13} />}
           </button>
-          <h2 className="flex items-center gap-1.5 text-sm font-extrabold text-ink"><Sparkles size={14} className="text-brand" />Speak to your data</h2>
-          <span className="truncate text-xs text-muted">{modelName}</span>
+          <h2 className="text-sm font-extrabold text-ink tracking-tight leading-none">
+            Speak to your data
+          </h2>
+          <span className="truncate text-xs text-muted font-medium">{modelName}</span>
         </div>
 
         {open && (
