@@ -209,7 +209,7 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-semibold text-ink leading-tight flex items-center justify-between">
-                          <span>CI/CD Plan</span>
+                          <span>Deployment</span>
                           <ExternalLink size={11} className="text-muted ml-1" />
                         </div>
                         <div className="text-[10px] text-muted truncate">Pipeline, Jenkins & Docker</div>
@@ -233,7 +233,7 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-semibold text-ink leading-tight flex items-center justify-between">
-                          <span>Security Plan</span>
+                          <span>Application Security</span>
                           <ExternalLink size={11} className="text-muted ml-1" />
                         </div>
                         <div className="text-[10px] text-muted truncate">Zero-Trust, RBAC & Isolation</div>

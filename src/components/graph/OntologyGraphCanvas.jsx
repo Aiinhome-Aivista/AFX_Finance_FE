@@ -30,6 +30,10 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
     edges: propEdges,
     flows: propFlows,
     domainMeta: propDomainMeta,
+    hideDomainLabels = false,
+    domainLabelPosition = 'default', // 'default' | 'outside'
+    onDomainClick = null,
+    onBackgroundClick = null,
   },
   ref
 ) {
@@ -197,10 +201,11 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
       }
     } else {
       // All domains view: use canvas layout bounds
-      minX = Math.min(minX, 80)
-      maxX = Math.max(maxX, W - 80)
-      minY = Math.min(minY, 80)
-      maxY = Math.max(maxY, H - 80)
+      const isOutside = domainLabelPosition === 'outside'
+      minX = Math.min(minX, isOutside ? -30 : 80)
+      maxX = Math.max(maxX, isOutside ? W + 30 : W - 80)
+      minY = Math.min(minY, isOutside ? -45 : 80)
+      maxY = Math.max(maxY, isOutside ? H + 45 : H - 80)
     }
 
     // Safety fallback if bounds are invalid
@@ -226,7 +231,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
     const ty = h / 2 - midY * scale
 
     setTransform({ scale, tx, ty })
-  }, [W, H, nodes, visibleSet, activeDomain, domMetas, spineMeta])
+  }, [W, H, nodes, visibleSet, activeDomain, domMetas, spineMeta, domainLabelPosition])
 
   // Zoom function centered at arbitrary point
   const zoomAt = useCallback((factor, cx, cy) => {
@@ -426,6 +431,23 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
       return
     }
     if (selId) onSelectNode?.(null)
+    onBackgroundClick?.()
+  }
+
+  const handleDomainClick = (dKey, dMeta, e) => {
+    e.stopPropagation()
+    if (panStartRef.current.moved) {
+      panStartRef.current.moved = false
+      return
+    }
+    const container = containerRef.current
+    const rect = container?.getBoundingClientRect() || { left: 0, top: 0 }
+    onDomainClick?.(dKey, dMeta, {
+      clientX: e.clientX,
+      clientY: e.clientY,
+      containerX: e.clientX - rect.left,
+      containerY: e.clientY - rect.top,
+    })
   }
 
   // Colors tuned to Matte Titanium Grey (Dark) and Clean Paper (Light)
@@ -711,21 +733,23 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
                 opacity={isDark ? '0.12' : '0.06'}
                 className="transition-opacity pointer-events-none"
               />
-              <text
-                x={CX}
-                y={CY + 8}
-                textAnchor="middle"
-                fill={spineMeta.c}
-                opacity={isDark ? '0.85' : '0.6'}
-                className="select-none pointer-events-none font-bold"
-                style={{
-                  fontFamily: "'Barlow', 'Inter', sans-serif",
-                  fontSize: '15px',
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                Finance master-data spine
-              </text>
+              {!hideDomainLabels && (
+                <text
+                  x={CX}
+                  y={CY + 8}
+                  textAnchor="middle"
+                  fill={spineMeta.c}
+                  opacity={isDark ? '0.85' : '0.6'}
+                  className="select-none pointer-events-none font-bold"
+                  style={{
+                    fontFamily: "'Barlow', 'Inter', sans-serif",
+                    fontSize: '15px',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  Finance master-data spine
+                </text>
+              )}
             </>
           )}
 
@@ -737,30 +761,75 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
                 ? activeDomains.map((k) => String(k).toLowerCase()).includes(d.toLowerCase())
                 : activeDomain === d
             if (!showNeighbours && !isTargetDomain && activeDomain !== 'all' && (!activeDomains || activeDomains.length === 0)) return null
+
+            const isOutside = domainLabelPosition === 'outside'
+            let labelX = m.cx
+            let labelY = m.cy + m.r + 100
+            let textAnchor = 'middle'
+            let dominantBaseline = 'middle'
+
+            if (isOutside) {
+              const dx = m.cx - CX
+              const dy = m.cy - CY
+              const angle = Math.atan2(dy, dx)
+              const haloR = m.r + 72
+              const labelDist = haloR + 24
+              labelX = m.cx + Math.cos(angle) * labelDist
+              labelY = m.cy + Math.sin(angle) * labelDist
+
+              if (Math.cos(angle) > 0.3) {
+                textAnchor = 'start'
+              } else if (Math.cos(angle) < -0.3) {
+                textAnchor = 'end'
+              } else {
+                textAnchor = 'middle'
+              }
+
+              if (Math.sin(angle) < -0.55) {
+                dominantBaseline = 'auto'
+              } else if (Math.sin(angle) > 0.55) {
+                dominantBaseline = 'hanging'
+              } else {
+                dominantBaseline = 'middle'
+              }
+            }
+
             return (
-              <g key={`halo-${d}`} className="pointer-events-none transition-opacity">
+              <g
+                key={`halo-${d}`}
+                className={`transition-opacity ${onDomainClick ? 'cursor-pointer' : 'pointer-events-none'}`}
+                onClick={(e) => handleDomainClick(d, m, e)}
+              >
                 <circle
                   cx={m.cx}
                   cy={m.cy}
                   r={m.r + 72}
                   fill={m.c}
                   opacity={isTargetDomain ? (isDark ? '0.18' : '0.11') : (isDark ? '0.08' : '0.055')}
+                  className={onDomainClick ? 'pointer-events-auto hover:opacity-25 transition-opacity' : ''}
                 />
-                <text
-                  x={m.cx}
-                  y={m.cy + m.r + 100}
-                  textAnchor="middle"
-                  fill={m.c}
-                  opacity={isTargetDomain ? '1' : '0.85'}
-                  className="select-none font-bold"
-                  style={{
-                    fontFamily: "'Barlow', 'Inter', sans-serif",
-                    fontSize: '15px',
-                    letterSpacing: '-0.02em',
-                  }}
-                >
-                  {m.n}
-                </text>
+                {!hideDomainLabels && (
+                  <text
+                    x={labelX}
+                    y={labelY}
+                    textAnchor={textAnchor}
+                    dominantBaseline={isOutside ? dominantBaseline : undefined}
+                    fill={m.c}
+                    opacity={isTargetDomain ? '1' : '0.85'}
+                    className={`select-none font-bold ${onDomainClick ? 'pointer-events-auto hover:scale-105 hover:opacity-100 transition-all' : ''}`}
+                    style={{
+                      fontFamily: "'Barlow', 'Inter', sans-serif",
+                      fontSize: isOutside ? '14px' : '15px',
+                      fontWeight: isTargetDomain ? 700 : 600,
+                      letterSpacing: '-0.02em',
+                      filter: isDark
+                        ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.9))'
+                        : 'drop-shadow(0 1px 2px rgba(255,255,255,0.9))',
+                    }}
+                  >
+                    {m.n}
+                  </text>
+                )}
               </g>
             )
           })}

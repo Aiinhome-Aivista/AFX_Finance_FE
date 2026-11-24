@@ -148,7 +148,7 @@ pipeline {
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface2 hover:bg-surface border border-line text-ink transition shadow-2xs"
           >
             <ShieldCheck size={13} className="text-indigo-400" />
-            <span>Security Plan</span>
+            <span>Application Security</span>
           </Link>
         </div>
 

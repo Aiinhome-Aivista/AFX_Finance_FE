@@ -64,14 +64,14 @@ export default function SecurityPlanPage() {
           <div className="flex items-center gap-2 text-xs text-muted">
             <span className="font-medium text-ink">Architecture Plans</span>
             <span>/</span>
-            <span className="text-[#10b981] font-semibold">Security Plan</span>
+            <span className="text-[#10b981] font-semibold">Application Security</span>
           </div>
           <Link
             to="/cicd-plan"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface2 hover:bg-surface border border-line text-ink transition shadow-2xs"
           >
             <GitBranch size={13} className="text-[#10b981]" />
-            <span>Switch to CI/CD Plan</span>
+            <span>Switch to Deployment</span>
           </Link>
         </div>
 
@@ -82,7 +82,7 @@ export default function SecurityPlanPage() {
             <span>Application Security & Data Privacy</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-ink">
-            Application Security Plan
+            Application Security
           </h1>
           <p className="text-xs sm:text-sm text-muted mt-1">
             Core security standards ensuring financial data confidentiality, workspace isolation, and safe operation.
