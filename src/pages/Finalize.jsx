@@ -23,6 +23,7 @@ import OntologyGraphCanvas from '../components/graph/OntologyGraphCanvas'
 import NodeDetailsPanel from '../components/graph/NodeDetailsPanel'
 import ChatPanel from '../components/chat/ChatPanel'
 import SaveAsModal from '../components/common/SaveAsModal'
+import DomainJourneyTracker from '../components/common/DomainJourneyTracker'
 import useAsync from '../components/common/useAsync'
 import { chat, domains, files as filesApi, graphs } from '../api'
 import { DOMAIN_SLUGS, DOMMETA, NODES, ORDER, SLUG_TO_DOM } from '../lib/ontologyData'
@@ -1646,6 +1647,9 @@ export default function Finalize() {
             ))}
           </ul>
         </section>
+
+        {/* Domain Journey Tracker Section */}
+        <DomainJourneyTracker className="mt-4" />
       </div>
 
       {/* Confirmation Dialogs */}
