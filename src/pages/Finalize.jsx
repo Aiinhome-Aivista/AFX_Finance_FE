@@ -10,6 +10,7 @@ import {
   FileText,
   History,
   Lock,
+  MessageSquarePlus,
   Save,
   ShieldAlert,
   X,
@@ -22,6 +23,7 @@ import OntologyGraphCanvas from '../components/graph/OntologyGraphCanvas'
 import NodeDetailsPanel from '../components/graph/NodeDetailsPanel'
 import ChatPanel from '../components/chat/ChatPanel'
 import SaveAsModal from '../components/common/SaveAsModal'
+import DomainJourneyTracker from '../components/common/DomainJourneyTracker'
 import useAsync from '../components/common/useAsync'
 import { chat, domains, files as filesApi, graphs } from '../api'
 import { DOMAIN_SLUGS, DOMMETA, NODES, ORDER, SLUG_TO_DOM } from '../lib/ontologyData'
@@ -981,12 +983,59 @@ export default function Finalize() {
     )
   }, [selectedNode, effectiveDisplayGraph.nodes, graphDataWithGaps.nodes, effectiveBaseGraph.nodes])
 
+  const [domainTooltip, setDomainTooltip] = useState(null)
+
   const handleSelectNode = (nodeId) => {
     setSelectedNode(nodeId)
+    setDomainTooltip(null)
     if (nodeId) {
       setActiveRightTab('details')
     }
   }
+
+  const handleDomainClick = useCallback((dKey, dMeta, coords) => {
+    const slugToUse = DOMAIN_SLUGS[dKey] || dKey
+    const cleanName = (dMeta?.n || DOMMETA[dKey]?.n || dKey).replace(/^F\d+\s+/, '')
+    const workedInfo = workedDomainsList.find(
+      (w) => w.domain_slug === slugToUse || w.domain_key === dKey
+    )
+
+    setDomainTooltip({
+      domainKey: dKey,
+      domainSlug: slugToUse,
+      domainName: cleanName,
+      fullName: dMeta?.n || DOMMETA[dKey]?.n || dKey,
+      color: dMeta?.c || DOMMETA[dKey]?.c || '#10b981',
+      coords,
+      workflowId: workedInfo?.workflow_id || null,
+      isWorked: Boolean(workedInfo),
+    })
+  }, [workedDomainsList])
+
+  const handleRedirectToBusinessInput = useCallback((targetSlug, targetWf) => {
+    if (!targetSlug) return
+
+    const qs = new URLSearchParams()
+    if (activeModelName) qs.set('model', activeModelName)
+    if (targetWf) {
+      qs.set('wf', String(targetWf))
+    } else {
+      const storedWf = sessionStorage.getItem(`afx_active_wf_${targetSlug}`)
+      if (storedWf) qs.set('wf', storedWf)
+    }
+
+    if (activeModelName) {
+      sessionStorage.setItem('afx_current_workspace', activeModelName)
+      sessionStorage.setItem('afx_active_model_name', activeModelName)
+      sessionStorage.setItem(`afx_active_model_${targetSlug}`, activeModelName)
+    }
+    if (targetWf) {
+      sessionStorage.setItem(`afx_active_wf_${targetSlug}`, String(targetWf))
+    }
+
+    const qStr = qs.toString() ? `?${qs.toString()}` : ''
+    navigate(`/finance/${targetSlug}${qStr}`)
+  }, [activeModelName, navigate])
 
   const doFinalize = async () => {
     setBusy(true)
@@ -1273,8 +1322,62 @@ export default function Finalize() {
             showNeighbours={true}
             selectedNodeId={selectedNode}
             onSelectNode={handleSelectNode}
+            domainLabelPosition="outside"
+            onDomainClick={handleDomainClick}
+            onBackgroundClick={() => setDomainTooltip(null)}
             className="w-full h-full"
           />
+
+          {/* Interactive Domain Tooltip Popover */}
+          {domainTooltip && (
+            <div
+              className="absolute z-40 transform -translate-x-1/2 -translate-y-full pointer-events-auto transition-all duration-150 animate-in fade-in zoom-in-95"
+              style={{
+                left: Math.max(160, Math.min(domainTooltip.coords.containerX, 1200)),
+                top: Math.max(48, domainTooltip.coords.containerY - 14),
+              }}
+            >
+              <div
+                className="flex items-center gap-2 rounded-2xl bg-surface/95 border px-4 py-2.5 shadow-2xl backdrop-blur-md text-ink"
+                style={{ borderColor: `${domainTooltip.color}70` }}
+              >
+                <button
+                  type="button"
+                  onClick={() => handleRedirectToBusinessInput(domainTooltip.domainSlug, domainTooltip.workflowId)}
+                  className="flex items-center gap-2.5 text-xs font-bold text-ink hover:text-brand transition cursor-pointer group select-none"
+                  title={`Navigate to Business Input for ${domainTooltip.domainName}`}
+                >
+                  <span
+                    className="flex h-6 w-6 items-center justify-center rounded-lg group-hover:scale-110 transition-transform shadow-2xs"
+                    style={{
+                      backgroundColor: `${domainTooltip.color}20`,
+                      color: domainTooltip.color,
+                    }}
+                  >
+                    <MessageSquarePlus size={14} />
+                  </span>
+                  <span>
+                    Share your inputs on{' '}
+                    <span
+                      className="underline underline-offset-2 font-black"
+                      style={{ color: domainTooltip.color }}
+                    >
+                      {domainTooltip.domainName}
+                    </span>
+                  </span>
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" style={{ color: domainTooltip.color }} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDomainTooltip(null)}
+                  className="ml-1 p-1 rounded-lg text-muted hover:text-ink hover:bg-surface2 transition cursor-pointer"
+                  title="Close"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Chat Column (Commented out on Review page as requested) */}
@@ -1544,6 +1647,9 @@ export default function Finalize() {
             ))}
           </ul>
         </section>
+
+        {/* Domain Journey Tracker Section */}
+        <DomainJourneyTracker className="mt-4" />
       </div>
 
       {/* Confirmation Dialogs */}

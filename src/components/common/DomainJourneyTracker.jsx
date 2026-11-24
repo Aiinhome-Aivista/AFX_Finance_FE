@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
-import { CheckCircle2, Compass, MessageSquare, Upload, FileCheck, Layers } from 'lucide-react'
+import { CheckCircle2, Compass, MessageSquare, Upload, FileCheck, Layers, X, Sparkles, Database, FileText } from 'lucide-react'
 import { domains } from '../../api'
 import { useAuth } from '../../context/AuthContext'
 
@@ -14,13 +14,12 @@ export default function DomainJourneyTracker({ className = '' }) {
     fullPath.includes('/models') ||
     fullPath.includes('/apps') ||
     fullPath.includes('/login') ||
-    fullPath.includes('/register') ||
-    fullPath.includes('/finalize') ||
-    fullPath.includes('/twin')
+    fullPath.includes('/register')
 
   const [journeyData, setJourneyData] = useState([])
   const [journeyLoading, setJourneyLoading] = useState(false)
   const [workspaceName, setWorkspaceName] = useState(null)
+  const [activeModalItem, setActiveModalItem] = useState(null)
 
   const activeWorkspaceName = useMemo(() => {
     const raw =
@@ -84,7 +83,7 @@ export default function DomainJourneyTracker({ className = '' }) {
           <span className="grid h-6 w-6 place-items-center rounded-md bg-brand/10 text-brand text-xs font-bold">
             <Compass size={15} />
           </span>
-          <span className="text-base font-bold text-ink">My Domain wise Journey</span>
+          <span className="text-base font-bold text-ink">My domainwise journey</span>
           {displayWsName && (
             <span className="text-xs px-2.5 py-0.5 rounded-full border border-line font-medium bg-surface text-brand">
               Workspace: {displayWsName.replace(/_/g, ' ')}
@@ -129,7 +128,9 @@ export default function DomainJourneyTracker({ className = '' }) {
               return (
                 <div
                   key={item.domain_slug}
-                  className="w-full flex items-center justify-between p-4 rounded-xl border border-line bg-surface hover:border-brand/40 hover:shadow-xs transition flex-wrap sm:flex-nowrap gap-3"
+                  onClick={() => setActiveModalItem(item)}
+                  className="w-full flex items-center justify-between p-4 rounded-xl border border-line bg-surface hover:border-brand/40 hover:bg-surface2/40 hover:shadow-sm transition flex-wrap sm:flex-nowrap gap-3 cursor-pointer group"
+                  title="Click to view full domain activity details"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     <span
@@ -148,13 +149,12 @@ export default function DomainJourneyTracker({ className = '' }) {
                           {item.domain_name}
                         </h4>
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border ${
-                            item.checkpoint_key === 'finalized'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                              : item.checkpoint_key === 'data_input'
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border ${item.checkpoint_key === 'finalized'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                            : item.checkpoint_key === 'data_input'
                               ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800'
                               : 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800'
-                          }`}
+                            }`}
                         >
                           {item.checkpoint_key === 'finalized' && <CheckCircle2 size={12} />}
                           {item.checkpoint_key === 'data_input' && <Upload size={12} />}
@@ -173,6 +173,145 @@ export default function DomainJourneyTracker({ className = '' }) {
           </div>
         )}
       </div>
+      {/* Detail Popup Modal */}
+      {activeModalItem && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
+          onClick={() => setActiveModalItem(null)}
+        >
+          <div
+            className="relative w-full max-w-lg rounded-2xl border border-line bg-surface p-6 shadow-2xl space-y-5 animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 pb-4 border-b border-line">
+              <div className="flex items-center gap-3">
+                <span
+                  className="px-3 py-1.5 rounded-xl text-sm font-black tracking-wide border shadow-2xs"
+                  style={{
+                    backgroundColor: `${activeModalItem.domain_color || '#4f46e5'}18`,
+                    color: activeModalItem.domain_color || '#4f46e5',
+                    borderColor: `${activeModalItem.domain_color || '#4f46e5'}33`,
+                  }}
+                >
+                  {activeModalItem.domain_code}
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-ink">
+                    {activeModalItem.domain_name}
+                  </h3>
+                  <p className="text-xs text-muted mt-0.5">
+                    Domain Activity & Checkpoint Details
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveModalItem(null)}
+                className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-surface2 transition cursor-pointer"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Checkpoint Status Banner */}
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-surface2/60 border border-line">
+              <span className="text-xs font-semibold text-muted">Current Checkpoint:</span>
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold border ${activeModalItem.checkpoint_key === 'finalized'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                  : activeModalItem.checkpoint_key === 'data_input'
+                    ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800'
+                    : 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800'
+                  }`}
+              >
+                {activeModalItem.checkpoint_key === 'finalized' && <CheckCircle2 size={14} />}
+                {activeModalItem.checkpoint_key === 'data_input' && <Upload size={14} />}
+                {activeModalItem.checkpoint_key === 'business_input' && <MessageSquare size={14} />}
+                <span>{activeModalItem.checkpoint}</span>
+              </span>
+            </div>
+
+            {/* Details List */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted">
+                Completed Actions in this Domain
+              </h4>
+              <div className="space-y-2 text-xs text-ink">
+                <div className="flex items-start gap-3 p-3 rounded-xl border border-line bg-surface2/30">
+                  <span className="mt-0.5 text-brand">
+                    <Sparkles size={16} />
+                  </span>
+                  <div>
+                    <strong className="block font-semibold">Model Status</strong>
+                    <span className="text-muted">
+                      {activeModalItem.checkpoint_key === 'finalized'
+                        ? 'Model finalized and published as a governed digital twin.'
+                        : 'Domain ontology customized and currently in active development.'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 rounded-xl border border-line bg-surface2/30">
+                  <span className="mt-0.5 text-sky-500">
+                    <Database size={16} />
+                  </span>
+                  <div>
+                    <strong className="block font-semibold">Data & Telemetry Ingestion</strong>
+                    <span className="text-muted">
+                      {activeModalItem.files_count > 0
+                        ? `${activeModalItem.files_count} dataset/spreadsheet file(s) uploaded and parsed.`
+                        : 'No external dataset files uploaded yet.'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 rounded-xl border border-line bg-surface2/30">
+                  <span className="mt-0.5 text-indigo-500">
+                    <MessageSquare size={16} />
+                  </span>
+                  <div>
+                    <strong className="block font-semibold">Business Q&A & Interview</strong>
+                    <span className="text-muted">
+                      {activeModalItem.user_messages_count > 0
+                        ? `${activeModalItem.user_messages_count} business question answer(s) recorded in discovery.`
+                        : 'No interactive answers submitted yet.'}
+                    </span>
+                  </div>
+                </div>
+
+                {activeModalItem.proposals_count > 0 && (
+                  <div className="flex items-start gap-3 p-3 rounded-xl border border-line bg-surface2/30">
+                    <span className="mt-0.5 text-amber-500">
+                      <FileCheck size={16} />
+                    </span>
+                    <div>
+                      <strong className="block font-semibold">Change Proposals</strong>
+                      <span className="text-muted">
+                        {activeModalItem.proposals_count} structural change proposal(s) processed.
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-line flex justify-end">
+              <button
+                type="button"
+                onClick={() => setActiveModalItem(null)}
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-surface2 hover:bg-surface2/80 text-ink border border-line transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

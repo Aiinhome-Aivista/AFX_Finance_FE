@@ -21,6 +21,7 @@ import DigitalTwinSwimlane from '../components/graph/DigitalTwinSwimlane'
 import TwinDataConnectors from '../components/graph/TwinDataConnectors'
 import { Loading, ErrorState } from '../components/common/States'
 import SaveAsModal from '../components/common/SaveAsModal'
+import DomainJourneyTracker from '../components/common/DomainJourneyTracker'
 import useAsync from '../components/common/useAsync'
 import { domains, files as filesApi, graphs } from '../api'
 import { annotateMissingGapNodes } from '../lib/businessImpact'
@@ -526,6 +527,9 @@ export default function DigitalTwinExplorer() {
           dbInfo={dbStatus}
           onRequireFinalize={handleSaveAs}
         />
+
+        {/* Domain Journey Tracker Section */}
+        <DomainJourneyTracker className="mt-6" />
       </div>
 
       {/* Save As In-Window Modal */}
