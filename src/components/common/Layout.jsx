@@ -150,11 +150,10 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
               <button
                 type="button"
                 onClick={() => setProfileMenuOpen((prev) => !prev)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-semibold transition cursor-pointer select-none ${
-                  profileMenuOpen
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-semibold transition cursor-pointer select-none ${profileMenuOpen
                     ? 'bg-surface border-[#10b981] text-ink shadow-sm'
                     : 'bg-surface2 hover:bg-surface border-line text-ink shadow-2xs'
-                }`}
+                  }`}
                 title="Profile & Architecture Plans"
                 data-testid="profile-dropdown-btn"
               >
@@ -164,9 +163,8 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
                 </span>
                 <ChevronDown
                   size={12}
-                  className={`text-muted transition-transform duration-200 ${
-                    profileMenuOpen ? 'rotate-180 text-[#10b981]' : ''
-                  }`}
+                  className={`text-muted transition-transform duration-200 ${profileMenuOpen ? 'rotate-180 text-[#10b981]' : ''
+                    }`}
                 />
               </button>
 
@@ -198,11 +196,10 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setProfileMenuOpen(false)}
-                      className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium transition ${
-                        loc.pathname === '/cicd-plan' || loc.pathname === '/cicd'
+                      className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium transition ${loc.pathname === '/cicd-plan' || loc.pathname === '/cicd'
                           ? 'bg-[#10b981]/15 text-[#10b981] font-semibold border border-[#10b981]/30'
                           : 'text-ink hover:bg-surface2'
-                      }`}
+                        }`}
                     >
                       <div className="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center shrink-0">
                         <GitBranch size={13} className="text-[#10b981]" />
@@ -222,11 +219,10 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setProfileMenuOpen(false)}
-                      className={`flex items-center gap-2.5 px-2.5 py-2 mt-1 rounded-xl text-xs font-medium transition ${
-                        loc.pathname === '/security-plan' || loc.pathname === '/security'
+                      className={`flex items-center gap-2.5 px-2.5 py-2 mt-1 rounded-xl text-xs font-medium transition ${loc.pathname === '/security-plan' || loc.pathname === '/security'
                           ? 'bg-indigo-500/15 text-indigo-400 font-semibold border border-indigo-500/30'
                           : 'text-ink hover:bg-surface2'
-                      }`}
+                        }`}
                     >
                       <div className="w-6 h-6 rounded-lg bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center shrink-0">
                         <ShieldCheck size={13} className="text-indigo-400" />
@@ -244,7 +240,7 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
                   <div className="my-1.5 border-t border-line" />
 
                   {/* Logout option */}
-                  <button
+                  {/* <button
                     type="button"
                     onClick={async () => {
                       setProfileMenuOpen(false)
@@ -257,7 +253,7 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
                       <LogOut size={13} className="text-bad" />
                     </div>
                     <span className="font-semibold">Sign Out</span>
-                  </button>
+                  </button> */}
                 </div>
               )}
             </div>
