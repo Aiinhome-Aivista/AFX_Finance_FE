@@ -21,6 +21,8 @@ import {
   Zap,
   Trash2,
   Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { useToast } from '../../context/ToastContext'
 import { files as filesApi } from '../../api'
@@ -37,9 +39,29 @@ export default function TwinDataConnectors({
   const [copiedKey, setCopiedKey] = useState(false)
   const [copiedCurl, setCopiedCurl] = useState(false)
 
-  // API State
+  // API & Postman State
   const [apiTesting, setApiTesting] = useState(false)
   const [apiSuccessResponse, setApiSuccessResponse] = useState(null)
+  const [httpMethod, setHttpMethod] = useState('POST')
+  const [requestUrl, setRequestUrl] = useState('')
+  const [requestTab, setRequestTab] = useState('body') // 'params' | 'auth' | 'headers' | 'body'
+  const [authType, setAuthType] = useState('bearer') // 'bearer' | 'apikey' | 'none'
+  const [authToken, setAuthToken] = useState('')
+  const [showToken, setShowToken] = useState(false)
+  const [apiKeyHeader, setApiKeyHeader] = useState('X-API-KEY')
+  const [apiKeyValue, setApiKeyValue] = useState('')
+  const [headersList, setHeadersList] = useState([
+    { key: 'Content-Type', value: 'application/json', enabled: true },
+    { key: 'Accept', value: 'application/json', enabled: true },
+    { key: 'X-Twin-Domain', value: domainName, enabled: true },
+  ])
+  const [queryParams, setQueryParams] = useState([
+    { key: 'stage', value: 'telemetry', enabled: true },
+    { key: 'sync', value: 'realtime', enabled: true },
+  ])
+  const [requestBodyText, setRequestBodyText] = useState('')
+  const [responseState, setResponseState] = useState(null)
+  const [responseTab, setResponseTab] = useState('pretty') // 'pretty' | 'raw'
 
   // CSV State
   const fileInputRef = useRef(null)
@@ -147,23 +169,43 @@ export default function TwinDataConnectors({
     }
   }
 
-  const handleTestApi = () => {
+  const handleSendRequest = () => {
     setApiTesting(true)
-    setApiSuccessResponse(null)
     setTimeout(() => {
       setApiTesting(false)
+      const isGet = httpMethod === 'GET'
       const mockRes = {
         status: 200,
-        message: 'Telemetry payload successfully queued into live twin engine',
-        latency: '38ms',
-        records_ingested: 1,
-        verified_anchors: ['DriverBasedInput', 'PlanningCalendarPattern'],
-        trace_id: 'TRC-' + Math.random().toString(36).substring(2, 9).toUpperCase(),
+        statusText: 'OK',
+        time: `${Math.floor(25 + Math.random() * 30)}ms`,
+        size: '1.24 KB',
+        data: isGet
+          ? {
+              status: 'HEALTHY',
+              domain: domainName,
+              slug: cleanSlug,
+              active_anchors: ['DriverBasedInput', 'PlanningCalendarPattern', 'RollForwardAnalysis'],
+              telemetry_stream: 'CONNECTED',
+              last_sync_timestamp: new Date().toISOString(),
+              total_records_ingested: 1420,
+            }
+          : {
+              status: 'SUCCESS',
+              code: 200,
+              message: 'Telemetry payload successfully queued into live twin engine',
+              trace_id: `TRC-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+              records_ingested: 1,
+              verified_anchors: ['DriverBasedInput', 'PlanningCalendarPattern'],
+              ingested_at: new Date().toISOString(),
+            },
       }
-      setApiSuccessResponse(mockRes)
-      toast.success('API Telemetry event sent successfully! (Status: 200 OK)')
-    }, 900)
+      setResponseState(mockRes)
+      setApiSuccessResponse(mockRes.data)
+      toast.success(`${httpMethod} 200 OK — Response received`)
+    }, 700)
   }
+
+  const handleTestApi = handleSendRequest
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0]
@@ -265,7 +307,7 @@ export default function TwinDataConnectors({
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-1 mb-1">
-                <h4 className={`text-xs font-bold ${activeTab === 'api' ? 'text-ink' : 'text-slate-600 dark:text-slate-300'}`}>API Connection</h4>
+                <h4 className={`text-xs font-bold ${activeTab === 'api' ? 'text-ink' : 'text-slate-600 dark:text-slate-300'}`}>API Connections</h4>
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${activeTab === 'api'
                   ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
@@ -332,137 +374,500 @@ export default function TwinDataConnectors({
 
         {/* Active Connector Detail Panel */}
         <div className="p-5 bg-surface">
-          {/* ===================== 1. REST API WORKBENCH ===================== */}
+          {/* ===================== 1. API CONNECTIONS (POSTMAN-STYLE WORKBENCH) ===================== */}
           {activeTab === 'api' && (
             <div className="space-y-4">
+              {/* Header Bar */}
               <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-line">
                 <div>
                   <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
                     <Globe size={14} className="text-[#10b981]" />
-                    <span>REST API Telemetry Ingestion Endpoint</span>
+                    <span>API Connections · Postman Ingestion Console</span>
                   </h4>
                   <p className="text-xs text-muted mt-0.5">
-                    Send live JSON payloads from your ERP, CRM, or ETL pipelines to continuously trigger digital twin simulation steps.
+                    Configure live endpoints, authenticate requests, and test JSON telemetry ingestion for this Digital Twin.
                   </p>
                 </div>
-
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleTestApi}
-                    disabled={apiTesting}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#10b981] hover:bg-emerald-600 text-white shadow-xs transition cursor-pointer disabled:opacity-50"
-                  >
-                    {apiTesting ? (
-                      <>
-                        <RefreshCw size={13} className="animate-spin" />
-                        <span>Sending Test Event...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send size={13} />
-                        <span>Send Test Event</span>
-                      </>
-                    )}
-                  </button>
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+                    Sandbox Ready
+                  </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Endpoint Details */}
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 block">
-                      Endpoint URL (POST)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-800 dark:text-slate-200 overflow-x-auto select-all">
-                        {apiEndpoint}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(apiEndpoint, 'url')}
-                        className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 hover:text-ink hover:bg-slate-50 transition cursor-pointer"
-                        title="Copy Endpoint URL"
-                      >
-                        <Copy size={14} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
-                      <span className="flex items-center gap-1">
-                        <Key size={12} className="text-[#10b981]" />
-                        <span>Bearer API Key</span>
-                      </span>
-                      <span className="text-[10px] text-muted font-normal">Environment: Production</span>
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-800 dark:text-slate-200 select-all">
-                        {apiKey}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(apiKey, 'key')}
-                        className="flex items-center gap-1 px-2.5 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-600 hover:text-ink hover:bg-slate-50 transition cursor-pointer"
-                      >
-                        {copiedKey ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                        <span>{copiedKey ? 'Copied' : 'Copy'}</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 space-y-1.5">
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
-                      <span>Quick cURL Ingestion</span>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(curlCommand, 'curl')}
-                        className="text-[11px] text-[#10b981] hover:underline flex items-center gap-1 font-semibold cursor-pointer"
-                      >
-                        {copiedCurl ? <Check size={12} /> : <Copy size={12} />}
-                        <span>{copiedCurl ? 'Copied' : 'Copy cURL'}</span>
-                      </button>
-                    </div>
-                    <pre className="text-[10.5px] font-mono text-slate-600 dark:text-slate-400 overflow-x-auto p-2 bg-white dark:bg-slate-950 rounded border border-slate-200/80 dark:border-slate-800/80">
-                      {`curl -X POST "${apiEndpoint}" \\
-  -H "Authorization: Bearer ${apiKey}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"event_type":"TWIN_METRIC","value":42}'`}
-                    </pre>
-                  </div> */}
+              {/* POSTMAN TOP BAR: Method Selector + URL Bar + Send Button */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 bg-slate-100 dark:bg-slate-900/90 rounded-xl border border-line shadow-xs">
+                {/* HTTP Method Dropdown */}
+                <div className="relative shrink-0">
+                  <select
+                    value={httpMethod}
+                    onChange={(e) => setHttpMethod(e.target.value)}
+                    className={`font-bold font-mono text-xs px-3 py-2 rounded-lg border cursor-pointer outline-none transition-all ${
+                      httpMethod === 'POST'
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-extrabold'
+                        : httpMethod === 'GET'
+                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 font-extrabold'
+                        : httpMethod === 'PUT'
+                        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-extrabold'
+                        : 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30 font-extrabold'
+                    }`}
+                  >
+                    <option value="POST" className="text-ink bg-surface font-bold">POST</option>
+                    <option value="GET" className="text-ink bg-surface font-bold">GET</option>
+                    <option value="PUT" className="text-ink bg-surface font-bold">PUT</option>
+                    <option value="DELETE" className="text-ink bg-surface font-bold">DELETE</option>
+                  </select>
                 </div>
 
-                {/* Sample Payload & Test Response */}
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                      JSON Payload Preview
-                    </label>
-                    <span className="text-[10px] text-muted font-medium">Schema verified with verified entities</span>
+                {/* URL Input Bar */}
+                <div className="flex-1 flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-950 rounded-lg border border-line focus-within:border-[#10b981] transition-all">
+                  <span className="text-xs text-muted font-mono select-none">URL:</span>
+                  <input
+                    type="text"
+                    value={requestUrl || apiEndpoint}
+                    onChange={(e) => setRequestUrl(e.target.value)}
+                    className="flex-1 bg-transparent text-xs font-mono text-ink outline-none"
+                    placeholder="https://api.agentforgex.ai/v1/..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(requestUrl || apiEndpoint, 'url')}
+                    className="text-muted hover:text-ink p-1 cursor-pointer transition"
+                    title="Copy Endpoint URL"
+                  >
+                    <Copy size={13} />
+                  </button>
+                </div>
+
+                {/* Send Button */}
+                <button
+                  type="button"
+                  onClick={handleSendRequest}
+                  disabled={apiTesting}
+                  className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-lg text-xs font-bold bg-[#10b981] hover:bg-emerald-600 text-white shadow-sm transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  {apiTesting ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={14} />
+                      <span>Send</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* REQUEST SUB-TABS (Postman tabs: Params, Auth, Headers, Body) */}
+              <div className="border border-line rounded-xl overflow-hidden bg-white dark:bg-slate-950/60 shadow-xs">
+                <div className="flex items-center gap-1 px-3 pt-2 bg-slate-50/80 dark:bg-slate-900/60 border-b border-line">
+                  <button
+                    type="button"
+                    onClick={() => setRequestTab('params')}
+                    className={`px-3 py-2 text-xs font-bold rounded-t-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                      requestTab === 'params'
+                        ? 'bg-white dark:bg-slate-950 text-ink border-t-2 border-t-[#10b981] shadow-2xs'
+                        : 'text-muted hover:text-ink'
+                    }`}
+                  >
+                    <span>Params</span>
+                    <span className="text-[10px] px-1 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-500 font-mono">
+                      {queryParams.filter(p => p.enabled).length}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRequestTab('auth')}
+                    className={`px-3 py-2 text-xs font-bold rounded-t-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                      requestTab === 'auth'
+                        ? 'bg-white dark:bg-slate-950 text-ink border-t-2 border-t-[#10b981] shadow-2xs'
+                        : 'text-muted hover:text-ink'
+                    }`}
+                  >
+                    <span>Authorization</span>
+                    {authType !== 'none' && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRequestTab('headers')}
+                    className={`px-3 py-2 text-xs font-bold rounded-t-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                      requestTab === 'headers'
+                        ? 'bg-white dark:bg-slate-950 text-ink border-t-2 border-t-[#10b981] shadow-2xs'
+                        : 'text-muted hover:text-ink'
+                    }`}
+                  >
+                    <span>Headers</span>
+                    <span className="text-[10px] px-1 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-500 font-mono">
+                      {headersList.filter(h => h.enabled).length}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRequestTab('body')}
+                    className={`px-3 py-2 text-xs font-bold rounded-t-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                      requestTab === 'body'
+                        ? 'bg-white dark:bg-slate-950 text-ink border-t-2 border-t-[#10b981] shadow-2xs'
+                        : 'text-muted hover:text-ink'
+                    }`}
+                  >
+                    <span>Body</span>
+                    {httpMethod !== 'GET' && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    )}
+                  </button>
+                </div>
+
+                {/* TAB 1: PARAMS */}
+                {requestTab === 'params' && (
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-center justify-between text-xs text-muted mb-1">
+                      <span className="font-semibold">Query Parameters</span>
+                      <button
+                        type="button"
+                        onClick={() => setQueryParams([...queryParams, { key: '', value: '', enabled: true }])}
+                        className="text-[#10b981] hover:underline font-bold text-xs cursor-pointer flex items-center gap-1"
+                      >
+                        + Add Param
+                      </button>
+                    </div>
+                    <div className="border border-line rounded-lg overflow-hidden font-mono text-xs">
+                      <table className="w-full text-left">
+                        <thead className="bg-slate-50 dark:bg-slate-900 border-b border-line text-[11px] text-muted">
+                          <tr>
+                            <th className="p-2 w-10 text-center">✓</th>
+                            <th className="p-2">Key</th>
+                            <th className="p-2">Value</th>
+                            <th className="p-2 w-10"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-line">
+                          {queryParams.map((param, idx) => (
+                            <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
+                              <td className="p-2 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={param.enabled}
+                                  onChange={(e) => {
+                                    const next = [...queryParams]
+                                    next[idx].enabled = e.target.checked
+                                    setQueryParams(next)
+                                  }}
+                                  className="accent-[#10b981]"
+                                />
+                              </td>
+                              <td className="p-2">
+                                <input
+                                  type="text"
+                                  value={param.key}
+                                  onChange={(e) => {
+                                    const next = [...queryParams]
+                                    next[idx].key = e.target.value
+                                    setQueryParams(next)
+                                  }}
+                                  placeholder="Key"
+                                  className="w-full bg-transparent outline-none text-ink"
+                                />
+                              </td>
+                              <td className="p-2">
+                                <input
+                                  type="text"
+                                  value={param.value}
+                                  onChange={(e) => {
+                                    const next = [...queryParams]
+                                    next[idx].value = e.target.value
+                                    setQueryParams(next)
+                                  }}
+                                  placeholder="Value"
+                                  className="w-full bg-transparent outline-none text-muted"
+                                />
+                              </td>
+                              <td className="p-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => setQueryParams(queryParams.filter((_, i) => i !== idx))}
+                                  className="text-muted hover:text-red-500 cursor-pointer text-sm font-bold"
+                                >
+                                  ×
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                  <div className="relative flex-1 min-h-[170px] bg-slate-950 text-slate-100 p-3.5 rounded-xl font-mono text-[11px] overflow-auto border border-slate-800 shadow-inner">
-                    <pre>{sampleJsonPayload}</pre>
+                )}
+
+                {/* TAB 2: AUTHORIZATION */}
+                {requestTab === 'auth' && (
+                  <div className="p-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Left: Auth Type Selector */}
+                      <div>
+                        <label className="text-xs font-bold text-ink block mb-1">
+                          Auth Type
+                        </label>
+                        <select
+                          value={authType}
+                          onChange={(e) => setAuthType(e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-line bg-surface text-xs font-semibold text-ink outline-none cursor-pointer"
+                        >
+                          <option value="bearer">Bearer Token</option>
+                          <option value="apikey">API Key</option>
+                          <option value="none">No Auth</option>
+                        </select>
+                        <p className="text-[11px] text-muted mt-2 leading-relaxed">
+                          The authorization header will be automatically generated and attached when sending the request.
+                        </p>
+                      </div>
+
+                      {/* Right: Auth Details */}
+                      <div className="md:col-span-2 space-y-3">
+                        {authType === 'bearer' && (
+                          <div>
+                            <label className="text-xs font-bold text-ink block mb-1 flex items-center justify-between">
+                              <span>Token</span>
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">Environment: Live Twin</span>
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <div className="relative flex-1">
+                                <input
+                                  type={showToken ? 'text' : 'password'}
+                                  value={authToken || apiKey}
+                                  onChange={(e) => setAuthToken(e.target.value)}
+                                  className="w-full font-mono text-xs px-3 py-2.5 rounded-lg border border-line bg-slate-50 dark:bg-slate-900 text-ink outline-none focus:border-[#10b981]"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowToken(!showToken)}
+                                  className="absolute right-2.5 top-2.5 text-muted hover:text-ink cursor-pointer"
+                                  title={showToken ? 'Hide Token' : 'Show Token'}
+                                >
+                                  {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
+                                </button>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(authToken || apiKey, 'key')}
+                                className="px-3 py-2.5 rounded-lg border border-line bg-surface hover:bg-slate-50 dark:hover:bg-slate-900 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shrink-0 transition"
+                              >
+                                {copiedKey ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                                <span>{copiedKey ? 'Copied' : 'Copy'}</span>
+                              </button>
+                            </div>
+                            <p className="text-[11px] text-muted mt-1.5 font-mono">
+                              Header preview: Authorization: Bearer {(authToken || apiKey).slice(0, 16)}...
+                            </p>
+                          </div>
+                        )}
+
+                        {authType === 'apikey' && (
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-xs font-bold text-ink block mb-1">Key Name</label>
+                              <input
+                                type="text"
+                                value={apiKeyHeader}
+                                onChange={(e) => setApiKeyHeader(e.target.value)}
+                                className="w-full font-mono text-xs px-3 py-2 rounded-lg border border-line bg-surface text-ink outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-bold text-ink block mb-1">Key Value</label>
+                              <input
+                                type="text"
+                                value={apiKeyValue || apiKey}
+                                onChange={(e) => setApiKeyValue(e.target.value)}
+                                className="w-full font-mono text-xs px-3 py-2 rounded-lg border border-line bg-surface text-ink outline-none"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {authType === 'none' && (
+                          <div className="p-4 rounded-xl border border-line bg-slate-50 dark:bg-slate-900/50 text-xs text-muted">
+                            This request does not use any authorization header.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 3: HEADERS */}
+                {requestTab === 'headers' && (
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-center justify-between text-xs text-muted mb-1">
+                      <span className="font-semibold">HTTP Headers ({headersList.length})</span>
+                      <button
+                        type="button"
+                        onClick={() => setHeadersList([...headersList, { key: '', value: '', enabled: true }])}
+                        className="text-[#10b981] hover:underline font-bold text-xs cursor-pointer flex items-center gap-1"
+                      >
+                        + Add Header
+                      </button>
+                    </div>
+                    <div className="border border-line rounded-lg overflow-hidden font-mono text-xs">
+                      <table className="w-full text-left">
+                        <thead className="bg-slate-50 dark:bg-slate-900 border-b border-line text-[11px] text-muted">
+                          <tr>
+                            <th className="p-2 w-10 text-center">✓</th>
+                            <th className="p-2">Header Key</th>
+                            <th className="p-2">Header Value</th>
+                            <th className="p-2 w-10"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-line">
+                          {headersList.map((header, idx) => (
+                            <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
+                              <td className="p-2 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={header.enabled}
+                                  onChange={(e) => {
+                                    const next = [...headersList]
+                                    next[idx].enabled = e.target.checked
+                                    setHeadersList(next)
+                                  }}
+                                  className="accent-[#10b981]"
+                                />
+                              </td>
+                              <td className="p-2">
+                                <input
+                                  type="text"
+                                  value={header.key}
+                                  onChange={(e) => {
+                                    const next = [...headersList]
+                                    next[idx].key = e.target.value
+                                    setHeadersList(next)
+                                  }}
+                                  placeholder="Header"
+                                  className="w-full bg-transparent outline-none text-ink"
+                                />
+                              </td>
+                              <td className="p-2">
+                                <input
+                                  type="text"
+                                  value={header.value}
+                                  onChange={(e) => {
+                                    const next = [...headersList]
+                                    next[idx].value = e.target.value
+                                    setHeadersList(next)
+                                  }}
+                                  placeholder="Value"
+                                  className="w-full bg-transparent outline-none text-muted"
+                                />
+                              </td>
+                              <td className="p-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => setHeadersList(headersList.filter((_, i) => i !== idx))}
+                                  className="text-muted hover:text-red-500 cursor-pointer text-sm font-bold"
+                                >
+                                  ×
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 4: BODY */}
+                {requestTab === 'body' && (
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-center justify-between text-xs pb-1">
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-1.5 cursor-pointer font-bold text-ink text-xs">
+                          <input type="radio" checked readOnly className="accent-[#10b981]" />
+                          <span>raw (JSON)</span>
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setRequestBodyText(sampleJsonPayload)}
+                          className="text-[11px] text-muted hover:text-ink cursor-pointer hover:underline"
+                        >
+                          Reset Template
+                        </button>
+                      </div>
+                    </div>
+                    <div className="relative rounded-xl border border-line overflow-hidden bg-slate-950">
+                      <textarea
+                        rows={8}
+                        value={requestBodyText || sampleJsonPayload}
+                        onChange={(e) => setRequestBodyText(e.target.value)}
+                        className="w-full font-mono text-xs p-3.5 bg-transparent text-emerald-400 outline-none resize-y leading-relaxed"
+                        spellCheck="false"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* POSTMAN RESPONSE CONSOLE */}
+              <div className="border border-line rounded-xl overflow-hidden bg-white dark:bg-slate-950 shadow-sm">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-slate-900/80 border-b border-line">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-ink uppercase tracking-wide">Response</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setResponseTab('pretty')}
+                        className={`text-xs px-2.5 py-1 rounded font-semibold transition cursor-pointer ${
+                          responseTab === 'pretty'
+                            ? 'bg-white dark:bg-slate-800 text-ink shadow-2xs'
+                            : 'text-muted hover:text-ink'
+                        }`}
+                      >
+                        Pretty
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setResponseTab('raw')}
+                        className={`text-xs px-2.5 py-1 rounded font-semibold transition cursor-pointer ${
+                          responseTab === 'raw'
+                            ? 'bg-white dark:bg-slate-800 text-ink shadow-2xs'
+                            : 'text-muted hover:text-ink'
+                        }`}
+                      >
+                        Raw
+                      </button>
+                    </div>
                   </div>
 
-                  {apiSuccessResponse && (
-                    <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex items-start gap-2.5 transition-all">
-                      <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                      <div className="text-xs space-y-0.5">
-                        <div className="font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-2">
-                          <span>Status: 200 OK</span>
-                          <span className="text-[10px] font-normal text-emerald-700 dark:text-emerald-300">
-                            (Latency: {apiSuccessResponse.latency})
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-emerald-800 dark:text-emerald-300">
-                          {apiSuccessResponse.message}
-                        </p>
-                        <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono mt-1">
-                          Trace ID: {apiSuccessResponse.trace_id} · Anchors: {apiSuccessResponse.verified_anchors.join(', ')}
-                        </div>
-                      </div>
+                  {responseState && (
+                    <div className="flex items-center gap-3 text-xs font-mono font-bold">
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                        Status: {responseState.status} {responseState.statusText}
+                      </span>
+                      <span className="text-muted hidden sm:inline">Time: {responseState.time}</span>
+                      <span className="text-muted hidden sm:inline">Size: {responseState.size}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 bg-slate-950 text-slate-100 font-mono text-xs min-h-[140px] max-h-[300px] overflow-auto leading-relaxed">
+                  {responseState ? (
+                    <pre className="text-emerald-300">
+                      {responseTab === 'pretty'
+                        ? JSON.stringify(responseState.data, null, 2)
+                        : JSON.stringify(responseState.data)}
+                    </pre>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-slate-500 gap-1.5 select-none">
+                      <Send size={18} className="opacity-40" />
+                      <p className="text-xs">Click <strong className="text-slate-400">Send</strong> to execute the API request and view the live response.</p>
                     </div>
                   )}
                 </div>
