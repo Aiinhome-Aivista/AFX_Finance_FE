@@ -160,6 +160,17 @@ export default function FinanceLanding() {
     return searchParams.get('model') || sessionStorage.getItem('afx_current_workspace') || null
   }, [searchParams])
 
+  const handleExitWorkspace = () => {
+    Object.keys(sessionStorage).forEach((k) => {
+      if (k.startsWith('afx_active_wf_') || k.startsWith('afx_active_model_') || k.startsWith('afx_current_workspace')) {
+        sessionStorage.removeItem(k)
+      }
+    })
+    sessionStorage.removeItem('afx_active_model_name')
+    sessionStorage.removeItem('afx_fresh_session')
+    nav('/finance', { replace: true })
+  }
+
   // Domain selection handler - navigate directly to domain copilot & workflow page
   const handleDomainSelect = (dKey) => {
     if (dKey === 'all') {
@@ -171,7 +182,7 @@ export default function FinanceLanding() {
     const targetSlug = DOMAIN_SLUGS[dKey]
     if (targetSlug) {
       const activeModel = searchParams.get('model') || sessionStorage.getItem('afx_current_workspace') || sessionStorage.getItem(`afx_active_model_${targetSlug}`)
-      const activeWf = searchParams.get('wf') || (activeModel ? sessionStorage.getItem(`afx_active_wf_${targetSlug}`) : null)
+      const activeWf = sessionStorage.getItem(`afx_active_wf_${targetSlug}`) || null
       const isExplicitFresh = searchParams.get('fresh') === '1' && !activeModel
 
       if (activeModel) {
@@ -226,12 +237,14 @@ export default function FinanceLanding() {
             <span>Finance Workspace</span>
           </Link>
           {activeWorkspaceName && (
-            <span className="text-xs font-medium text-muted flex items-center gap-1.5">
-              <span>Active Model:</span>
-              <span className="font-semibold text-ink bg-surface2 px-2.5 py-0.5 rounded-lg border border-line text-brand">
-                {activeWorkspaceName.replace(/_/g, ' ')}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted flex items-center gap-1.5">
+                <span>Active Workspace:</span>
+                <span className="font-semibold text-ink bg-surface2 px-2.5 py-0.5 rounded-lg border border-line text-brand">
+                  {activeWorkspaceName.replace(/_/g, ' ')}
+                </span>
               </span>
-            </span>
+            </div>
           )}
         </div>
       </div>

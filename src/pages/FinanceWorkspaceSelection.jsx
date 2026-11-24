@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, FolderKanban, Plus, ShieldCheck, Sparkles, Trash2, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, FolderKanban, Plus, ShieldCheck, Sparkles, Trash2, CheckCircle2, X, AlertTriangle } from 'lucide-react'
 import Layout from '../components/common/Layout'
 import ConfirmDialog from '../components/common/ConfirmDialog'
-import { Loading } from '../components/common/States'
+import { Loading, Spinner } from '../components/common/States'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { domains } from '../api'
@@ -117,6 +117,29 @@ export default function FinanceWorkspaceSelection() {
         if (selectedPublishedModel === modelName) {
           setSelectedPublishedModel(updated[0]?.name || null)
         }
+      }
+      // Clean up local session storage references if active workspace was deleted
+      const cleanTarget = modelName.trim().toLowerCase()
+      Object.keys(sessionStorage).forEach((k) => {
+        const val = (sessionStorage.getItem(k) || '').trim().toLowerCase()
+        if (
+          k.startsWith('afx_active_wf_') ||
+          k.startsWith('afx_active_model_') ||
+          k.startsWith('afx_current_workspace')
+        ) {
+          if (val === cleanTarget || val.replace(/_/g, ' ') === cleanTarget.replace(/_/g, ' ')) {
+            sessionStorage.removeItem(k)
+          }
+        }
+      })
+      if (sessionStorage.getItem('afx_current_workspace') === modelName) {
+        sessionStorage.removeItem('afx_current_workspace')
+      }
+      if (sessionStorage.getItem('afx_active_model_name') === modelName) {
+        sessionStorage.removeItem('afx_active_model_name')
+      }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('afx_journey_refresh'))
       }
       toast.success(`"${displayName}" workspace and database deleted successfully!`)
       setDeleteTarget(null)
@@ -260,16 +283,96 @@ export default function FinanceWorkspaceSelection() {
     return null
   }, [selectedPublishedModel, selectedMyModel])
 
-  const handleNewModel = () => {
-    Object.keys(sessionStorage).forEach((k) => {
-      if (k.startsWith('afx_active_wf_') || k.startsWith('afx_active_model_') || k.startsWith('afx_current_workspace')) {
-        sessionStorage.removeItem(k)
+  const [newModalOpen, setNewModalOpen] = useState(false)
+  const [newWorkspaceInput, setNewWorkspaceInput] = useState('')
+
+  const allExistingNames = useMemo(() => {
+    const names = new Set()
+    savedModels.forEach((m) => m?.name && names.add(m.name.trim().toLowerCase()))
+    publishedModels.forEach((m) => m?.name && names.add(m.name.trim().toLowerCase()))
+    return names
+  }, [savedModels, publishedModels])
+
+  const trimmedNewName = (newWorkspaceInput || '').trim()
+  const isDuplicateName = useMemo(() => {
+    if (!trimmedNewName) return false
+    const norm = trimmedNewName.toLowerCase()
+    const normSpaces = norm.replace(/_+/g, ' ')
+    for (const n of allExistingNames) {
+      if (n === norm || n.replace(/_+/g, ' ') === normSpaces) {
+        return true
       }
-    })
-    sessionStorage.removeItem('afx_active_model_name')
-    sessionStorage.setItem('afx_fresh_session', 'true')
-    sessionStorage.setItem('afx_fresh_timestamp', String(Date.now()))
-    nav('/finance?fresh=1', { state: null, replace: true })
+    }
+    return false
+  }, [trimmedNewName, allExistingNames])
+
+  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false)
+
+  const handleOpenNewModal = () => {
+    const now = new Date()
+    const month = now.toLocaleString('default', { month: 'short' })
+    const day = now.getDate()
+    setNewWorkspaceInput(`Workspace_${day}_${month}`)
+    setNewModalOpen(true)
+  }
+
+  const handleCreateNewWorkspace = async (e) => {
+    e?.preventDefault()
+    const cleanName = (newWorkspaceInput || '').trim()
+    if (!cleanName || isCreatingWorkspace) return
+
+    if (isDuplicateName) {
+      toast.error(`A workspace named "${cleanName}" already exists. Please choose a different name.`)
+      return
+    }
+
+    setIsCreatingWorkspace(true)
+    try {
+      // 1. Immediately register the new workspace in backend database with check_duplicate: true
+      const res = await domains.saveCustomModel({
+        name: cleanName,
+        check_duplicate: true,
+        slug: 'planning-budgeting-forecasting',
+        domainName: 'Planning, Budgeting & Forecasting',
+        savedAt: new Date().toISOString(),
+      })
+
+      // 2. Clean old session keys
+      Object.keys(sessionStorage).forEach((k) => {
+        if (k.startsWith('afx_active_wf_') || k.startsWith('afx_active_model_') || k.startsWith('afx_current_workspace')) {
+          sessionStorage.removeItem(k)
+        }
+      })
+      sessionStorage.removeItem('afx_active_model_name')
+      sessionStorage.removeItem('afx_fresh_session')
+      sessionStorage.setItem('afx_current_workspace', cleanName)
+      sessionStorage.setItem('afx_active_model_name', cleanName)
+      if (res?.workflow_id) {
+        sessionStorage.setItem('afx_active_wf_planning_budgeting_forecasting', String(res.workflow_id))
+      }
+
+      // 3. Immediately reflect in local state so it appears in "My Finance Models"
+      const newModelEntry = {
+        name: cleanName,
+        slug: 'planning-budgeting-forecasting',
+        domain_name: 'Planning, Budgeting & Forecasting',
+        workflow_id: res?.workflow_id,
+        status: 'SAVED',
+        savedAt: new Date().toISOString(),
+      }
+      setSavedModels((prev) => [newModelEntry, ...prev.filter((m) => m.name !== cleanName)])
+      setSelectedMyModel(cleanName)
+
+      setNewModalOpen(false)
+      toast.success(`Workspace "${cleanName}" created and registered in database!`)
+
+      const targetUrl = `/finance?model=${encodeURIComponent(cleanName)}${res?.workflow_id ? `&wf=${res.workflow_id}` : ''}`
+      nav(targetUrl, { replace: true })
+    } catch (err) {
+      toast.error('Failed creating workspace in database: ' + (err.message || String(err)))
+    } finally {
+      setIsCreatingWorkspace(false)
+    }
   }
 
   if (loading) {
@@ -322,12 +425,12 @@ export default function FinanceWorkspaceSelection() {
             {!isAnalyst && (
               <button
                 type="button"
-                onClick={handleNewModel}
+                onClick={handleOpenNewModal}
                 className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-[#0b1320] shadow-sm transition cursor-pointer"
-                title="Create a new Finance domain model"
+                title="Create a new Finance workspace"
               >
                 <Plus size={15} />
-                <span>New</span>
+                <span>New Workspace</span>
               </button>
             )}
           </div>
@@ -655,6 +758,85 @@ export default function FinanceWorkspaceSelection() {
           </span>?
         </p>
       </ConfirmDialog>
+
+      {/* New Workspace Creation Modal */}
+      {newModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="relative w-full max-w-md rounded-2xl border border-line bg-surface p-5 sm:p-6 shadow-2xl transition-all">
+            <button
+              type="button"
+              onClick={() => setNewModalOpen(false)}
+              className="absolute top-4 right-4 rounded-xl p-1.5 text-muted hover:text-ink hover:bg-surface2 transition cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+            <div className="flex items-center gap-2.5 mb-3">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <FolderKanban size={18} />
+              </span>
+              <div>
+                <h3 className="text-base font-bold text-ink">New Finance Workspace</h3>
+                <p className="text-xs text-muted">A dedicated workspace container for all your finance domains</p>
+              </div>
+            </div>
+            <form onSubmit={handleCreateNewWorkspace} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-ink mb-1.5">
+                  Workspace Name
+                </label>
+                <input
+                  type="text"
+                  value={newWorkspaceInput}
+                  onChange={(e) => setNewWorkspaceInput(e.target.value)}
+                  placeholder="e.g. 23 Nov WS 1"
+                  autoFocus
+                  className={`w-full rounded-xl border bg-surface2 px-3.5 py-2 text-sm text-ink font-medium focus:outline-none focus:ring-1 ${
+                    isDuplicateName
+                      ? 'border-rose-500 text-rose-600 dark:text-rose-400 focus:border-rose-500 focus:ring-rose-500'
+                      : 'border-line focus:border-brand focus:ring-brand'
+                  }`}
+                />
+                {isDuplicateName && (
+                  <p className="mt-1.5 text-xs font-semibold text-rose-500 flex items-center gap-1.5">
+                    <AlertTriangle size={13} />
+                    <span>A workspace with this name already exists. Please choose a different name.</span>
+                  </p>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setNewModalOpen(false)}
+                  className="btn-ghost px-4 py-2 text-xs font-semibold rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!trimmedNewName || isCreatingWorkspace || isDuplicateName}
+                  className="btn-primary px-4 py-2 text-xs font-semibold rounded-xl flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  {isCreatingWorkspace ? (
+                    <>
+                      <Spinner size={14} />
+                      <span>Creating in DB...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={14} />
+                      <span>Create Workspace</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </Layout>
   )
 }

@@ -21,6 +21,7 @@ export const domains = {
   saveCustomModel: (body) => http.post('/workspace/custom-models/save', body).then(d),
   publishCustomModel: (body) => http.post('/workspace/custom-models/publish', body).then(d),
   deleteCustomModel: (name) => http.delete(`/workspace/custom-models/${encodeURIComponent(name)}`).then(d),
+  workspaceJourney: (model) => http.get('/workspace/journey', { params: model ? { model } : {} }).then(d),
   syncCustomModels: () => Promise.resolve({ saved_models: [], published_models: [] }),
   workspaceDbStatus: (slug, opts = {}) => {
     const clean = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
