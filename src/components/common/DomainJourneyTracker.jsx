@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { ArrowRight, CheckCircle2, Compass, MessageSquare, Upload } from 'lucide-react'
+import { useLocation, useSearchParams } from 'react-router-dom'
+import { CheckCircle2, Compass, MessageSquare, Upload, FileCheck, Layers } from 'lucide-react'
 import { domains } from '../../api'
 import { useAuth } from '../../context/AuthContext'
 
@@ -109,66 +109,67 @@ export default function DomainJourneyTracker({ className = '' }) {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {journeyData.map((item) => (
-              <div
-                key={item.domain_slug}
-                className="group flex items-center justify-between p-4 rounded-xl border border-line bg-surface hover:border-brand/40 hover:shadow-sm transition"
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <span
-                    className="px-2.5 py-1 rounded-lg text-xs font-black tracking-wide shrink-0 border"
-                    style={{
-                      backgroundColor: `${item.domain_color || '#4f46e5'}18`,
-                      color: item.domain_color || '#4f46e5',
-                      borderColor: `${item.domain_color || '#4f46e5'}33`,
-                    }}
-                  >
-                    {item.domain_code}
-                  </span>
-                  <div className="min-w-0">
-                    <h4 className="text-sm font-semibold text-ink truncate group-hover:text-brand transition">
-                      {item.domain_name}
-                    </h4>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <span className="text-xs text-muted font-normal">Checkpoint:</span>
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border ${
-                          item.checkpoint_key === 'finalized'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                            : item.checkpoint_key === 'data_input'
-                            ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800'
-                            : 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800'
-                        }`}
-                      >
-                        {item.checkpoint_key === 'finalized' && <CheckCircle2 size={12} />}
-                        {item.checkpoint_key === 'data_input' && <Upload size={12} />}
-                        {item.checkpoint_key === 'business_input' && <MessageSquare size={12} />}
-                        <span>{item.checkpoint}</span>
-                      </span>
-                      {item.files_count > 0 && (
-                        <span className="text-[11px] text-muted">
-                          ({item.files_count} file{item.files_count > 1 ? 's' : ''})
+          <div className="flex flex-col gap-3">
+            {journeyData.map((item) => {
+              const summaryDetails = []
+              if (item.checkpoint_key === 'finalized') {
+                summaryDetails.push('Model finalized & published into governed twin')
+              }
+              if (item.files_count > 0) {
+                summaryDetails.push(`${item.files_count} dataset file${item.files_count > 1 ? 's' : ''} uploaded`)
+              }
+              if (item.user_messages_count > 0) {
+                summaryDetails.push(`${item.user_messages_count} business answer${item.user_messages_count > 1 ? 's' : ''} captured`)
+              }
+              if (item.proposals_count > 0) {
+                summaryDetails.push(`${item.proposals_count} change proposal${item.proposals_count > 1 ? 's' : ''}`)
+              }
+              const shortSummary = summaryDetails.join(' • ') || 'Domain ontology explored & configured'
+
+              return (
+                <div
+                  key={item.domain_slug}
+                  className="w-full flex items-center justify-between p-4 rounded-xl border border-line bg-surface hover:border-brand/40 hover:shadow-xs transition flex-wrap sm:flex-nowrap gap-3"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <span
+                      className="px-2.5 py-1 rounded-lg text-xs font-black tracking-wide shrink-0 border"
+                      style={{
+                        backgroundColor: `${item.domain_color || '#4f46e5'}18`,
+                        color: item.domain_color || '#4f46e5',
+                        borderColor: `${item.domain_color || '#4f46e5'}33`,
+                      }}
+                    >
+                      {item.domain_code}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <h4 className="text-sm font-bold text-ink">
+                          {item.domain_name}
+                        </h4>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                            item.checkpoint_key === 'finalized'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                              : item.checkpoint_key === 'data_input'
+                              ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800'
+                              : 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800'
+                          }`}
+                        >
+                          {item.checkpoint_key === 'finalized' && <CheckCircle2 size={12} />}
+                          {item.checkpoint_key === 'data_input' && <Upload size={12} />}
+                          {item.checkpoint_key === 'business_input' && <MessageSquare size={12} />}
+                          <span>{item.checkpoint}</span>
                         </span>
-                      )}
-                      {item.user_messages_count > 0 && item.checkpoint_key === 'business_input' && (
-                        <span className="text-[11px] text-muted">
-                          ({item.user_messages_count} answer{item.user_messages_count > 1 ? 's' : ''})
-                        </span>
-                      )}
+                      </div>
+                      <p className="text-xs text-muted mt-1 font-medium">
+                        {shortSummary}
+                      </p>
                     </div>
                   </div>
                 </div>
-
-                <Link
-                  to={item.resume_url}
-                  className="ml-3 shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-surface2/60 text-xs font-semibold text-ink hover:bg-brand hover:text-white hover:border-brand transition shadow-sm"
-                >
-                  <span>Resume</span>
-                  <ArrowRight size={13} />
-                </Link>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
