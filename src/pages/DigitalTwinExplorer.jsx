@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
-import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   CheckCircle2,
+  Compass,
   Download,
   Edit3,
   ExternalLink,
   Layers,
+  Loader2,
   Lock,
   Save,
   Share2,
@@ -30,20 +32,72 @@ import { useWorkflow } from '../context/WorkflowContext'
 export default function DigitalTwinExplorer() {
   const { slug } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const wfParam = searchParams.get('wf')
   const { isAnalyst } = useAuth()
   const toast = useToast()
   const { updateDomainWorkflow } = useWorkflow()
+
+  const cleanSlug = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
+  const activeModelName = useMemo(() => {
+    return (
+      searchParams.get('model') ||
+      sessionStorage.getItem('afx_current_workspace') ||
+      (cleanSlug ? sessionStorage.getItem(`afx_active_model_${cleanSlug}`) : null) ||
+      sessionStorage.getItem('afx_active_model_name') ||
+      null
+    )
+  }, [searchParams, cleanSlug])
+
+  const [workedDomains, setWorkedDomains] = useState([])
+
+  useEffect(() => {
+    if (!activeModelName) return
+    domains
+      .workspaceJourney(activeModelName)
+      .then((res) => {
+        if (Array.isArray(res?.journey)) {
+          setWorkedDomains(res.journey)
+        }
+      })
+      .catch(() => {})
+  }, [activeModelName])
   const wf = useAsync(() => domains.workflow(slug, wfParam), [slug, wfParam])
   const fin = useAsync(() => graphs.finalization(slug, wfParam), [slug, wfParam])
+
+  const [switchingToSlug, setSwitchingToSlug] = useState(null)
+
+  const handleTabSwitch = useCallback((targetDomain) => {
+    if (targetDomain.domain_slug === cleanSlug) return
+    setSwitchingToSlug(targetDomain.domain_slug)
+    const qs = new URLSearchParams()
+    if (activeModelName) qs.set('model', activeModelName)
+    if (targetDomain.workflow_id) qs.set('wf', targetDomain.workflow_id)
+    const qStr = qs.toString() ? `?${qs.toString()}` : ''
+    navigate(`/finance/${targetDomain.domain_slug}/twin${qStr}`)
+  }, [cleanSlug, activeModelName, navigate])
+
+  useEffect(() => {
+    if (switchingToSlug && switchingToSlug === cleanSlug && !wf.loading && !fin.loading) {
+      const timer = setTimeout(() => {
+        setSwitchingToSlug(null)
+      }, 150)
+      return () => clearTimeout(timer)
+    }
+  }, [cleanSlug, switchingToSlug, wf.loading, fin.loading])
+
+  const isTabLoading = Boolean(
+    (switchingToSlug && switchingToSlug !== cleanSlug) ||
+    (switchingToSlug === cleanSlug && (wf.loading || fin.loading)) ||
+    (wf.loading || fin.loading)
+  )
 
   const [selectedNodeId, setSelectedNodeId] = useState(null)
   const [cmp, setCmp] = useState(null)
   const [gapGraph, setGapGraph] = useState(null)
   const [fitMode, setFitMode] = useState('fit')
 
-  const cleanSlug = (slug || '').replace(/_/g, '-').replace(/\s+/g, '-').toLowerCase()
   const domainKey = SLUG_TO_DOM[cleanSlug]
   const domainMeta = domainKey ? DOMMETA[domainKey] : null
   const domainName =
@@ -305,10 +359,10 @@ export default function DigitalTwinExplorer() {
             <div className="flex flex-wrap items-center gap-2.5">
               <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-ink flex items-center gap-2">
                 <span>Digital Twin Console</span>
-                <span className="text-[#10b981]">·</span>
+                {/* <span className="text-[#10b981]">·</span>
                 <span className="text-slate-600 dark:text-slate-300 font-semibold text-lg">
                   {domainName}
-                </span>
+                </span> */}
               </h1>
             </div>
             {/* <p className="text-xs text-muted">
@@ -350,6 +404,48 @@ export default function DigitalTwinExplorer() {
           </div>
         </div>
 
+        {/* Worked Domains Tabs Bar */}
+        {workedDomains && workedDomains.length > 0 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scroll-thin">
+            <span className="text-xs font-bold text-muted uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1.5">
+              <Compass size={14} className="text-brand" />
+              <span>Worked Domains:</span>
+            </span>
+            {workedDomains.map((d) => {
+              const isActive = d.domain_slug === cleanSlug
+              const isThisTabLoading = switchingToSlug === d.domain_slug || (isActive && isTabLoading)
+              return (
+                <button
+                  key={d.domain_slug}
+                  type="button"
+                  disabled={isThisTabLoading}
+                  onClick={() => handleTabSwitch(d)}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border shadow-2xs ${
+                    isActive
+                      ? 'bg-brand text-white border-brand shadow-brand/20'
+                      : 'bg-surface hover:bg-surface2 text-ink border-line hover:border-brand/40'
+                  } ${isThisTabLoading ? 'opacity-90' : ''}`}
+                >
+                  {isThisTabLoading ? (
+                    <Loader2 size={12} className="animate-spin text-current" />
+                  ) : (
+                    <span
+                      className="px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wide"
+                      style={{
+                        backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : `${d.domain_color || '#4f46e5'}20`,
+                        color: isActive ? '#FFFFFF' : d.domain_color || '#4f46e5',
+                      }}
+                    >
+                      {d.domain_code}
+                    </span>
+                  )}
+                  <span>{d.domain_name}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         {/* Full-Width Interactive Digital Twin Swimlane Canvas */}
         <section className="card overflow-hidden p-0 border border-line isolate flex flex-col shadow-card w-full">
           <div className="flex items-center justify-between border-b border-line bg-surface px-5 py-3.5 select-none shrink-0 gap-3">
@@ -357,8 +453,14 @@ export default function DigitalTwinExplorer() {
               <div className="h-7 w-7 rounded-lg bg-[#10b981]/15 text-[#10b981] flex items-center justify-center">
                 <Workflow size={16} />
               </div>
-              <h2 className="text-sm font-bold text-ink">
-                Digital Twin — {domainName} Process Model
+              <h2 className="text-sm font-bold text-ink flex items-center gap-2">
+                <span>Digital Twin — {domainName} Process Model</span>
+                {isTabLoading && (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-brand font-medium">
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Updating...</span>
+                  </span>
+                )}
               </h2>
             </div>
 
@@ -387,7 +489,24 @@ export default function DigitalTwinExplorer() {
             </div>
           </div>
 
-          <div className="w-full relative overflow-hidden bg-surface">
+          <div className="w-full relative overflow-hidden bg-surface min-h-[500px]">
+            {isTabLoading && (
+              <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-surface/80 backdrop-blur-[2px] transition-all duration-200">
+                <div className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-surface2/95 border border-line shadow-card animate-in fade-in zoom-in-95">
+                  <div className="h-10 w-10 rounded-xl bg-brand/15 text-brand flex items-center justify-center border border-brand/30">
+                    <Loader2 size={22} className="animate-spin text-brand" />
+                  </div>
+                  <div className="text-center space-y-0.5">
+                    <div className="text-xs font-bold text-ink">
+                      Loading {workedDomains.find((w) => w.domain_slug === (switchingToSlug || cleanSlug))?.domain_name || domainName} Digital Twin...
+                    </div>
+                    <div className="text-[11px] text-muted">
+                      Updating process steps and swimlane topology
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             <DigitalTwinSwimlane
               domainName={domainName}
               slug={cleanSlug}

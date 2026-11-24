@@ -20,6 +20,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
     selectedNode, // backward-compat alias
     onSelectNode,
     activeDomain = 'all',
+    activeDomains = null,
     showNeighbours = true,
     activeFlowIdx = -1,
     activeFlow = -1, // backward-compat alias
@@ -79,8 +80,27 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
   }, [propNodes, propEdges, activeDomain, propDomainMeta])
   const { W, H, CX, CY, nodes, byId, edges, domMetas, spineMeta, adj } = layout
 
-  // Visible set of nodes based on active domain
+  // Visible set of nodes based on active domain(s)
   const visibleSet = useMemo(() => {
+    if (Array.isArray(activeDomains) && activeDomains.length > 0) {
+      const s = new Set()
+      const dSet = new Set(activeDomains.map((k) => String(k).toLowerCase()))
+      nodes.forEach((n) => {
+        const gKey = String(n.group_key || n.d || '').toLowerCase()
+        const isClientNode =
+          n.role === 'client' ||
+          n.origin === 'user' ||
+          gKey.startsWith('client') ||
+          n.origin === 'custom' ||
+          n.is_discrepancy ||
+          n.gap_status === 'missing' ||
+          n.gap_status === 'new'
+        if (dSet.has(gKey) || dSet.has(String(n.d || '').toLowerCase()) || isClientNode) {
+          s.add(n.id)
+        }
+      })
+      if (s.size > 0) return s
+    }
     if (activeDomain === 'all' || !activeDomain) return null
     const s = new Set()
     nodes.forEach((n) => {
@@ -93,7 +113,7 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
     // If filter didn't match any node in this graph, don't dim everything — keep all nodes visible!
     if (s.size === 0) return null
     return s
-  }, [activeDomain, nodes])
+  }, [activeDomain, activeDomains, nodes])
 
   // Cross-domain neighbours set
   const neighbourSet = useMemo(() => {
@@ -712,8 +732,11 @@ const OntologyGraphCanvas = forwardRef(function OntologyGraphCanvas(
           {/* Satellite Sub-Domain Halos & Labels (Pure Circular Halos) */}
           {Object.entries(domMetas).map(([d, m]) => {
             if (!m) return null
-            const isTargetDomain = activeDomain === d
-            if (!showNeighbours && !isTargetDomain) return null
+            const isTargetDomain =
+              Array.isArray(activeDomains) && activeDomains.length > 0
+                ? activeDomains.map((k) => String(k).toLowerCase()).includes(d.toLowerCase())
+                : activeDomain === d
+            if (!showNeighbours && !isTargetDomain && activeDomain !== 'all' && (!activeDomains || activeDomains.length === 0)) return null
             return (
               <g key={`halo-${d}`} className="pointer-events-none transition-opacity">
                 <circle
