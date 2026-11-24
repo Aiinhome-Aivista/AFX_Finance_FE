@@ -1,0 +1,205 @@
+﻿{
+  "summary": {
+    "title": "Performance Insights: Q1 Financial Analysis",
+    "text": "The Q1 financial performance analysis reveals a total gross revenue of $25,641,503.32, with an average order value of $138.59. This suggests a steady customer spending pattern and a well-performing sales strategy.\n\nThe cost structure indicates a total cost of goods sold at $7,159,128.86, equating to an average cost per unit of $38.70. The high cost per unit could be a potential area for optimization in the production process. Additionally, the top drivers contributing to the revenue are 'Silver' (33,546,761,911.0), 'Gold' (31,973,711,570.0), and 'SILVER' (843,754,821.0). These findings suggest a significant contribution from precious metals to the overall revenue."
+  },
+  "kpis": [
+    {
+      "id": "receivables_outstanding",
+      "label": "RECEIVABLES OUTSTANDING",
+      "value": 2630000,
+      "display": "$2.63M",
+      "subtitle": "Modelled from annual credit sales",
+      "definition": "The total gross balance of open, unpaid customer invoices currently owed to the company."
+    },
+    {
+      "id": "days_sales_outstanding",
+      "label": "DAYS SALES OUTSTANDING (DSO)",
+      "value": 48,
+      "display": "48 days",
+      "subtitle": "Current baseline collection cycle",
+      "definition": "The average number of days required to collect cash payment from customers after a credit sale has been completed."
+    },
+    {
+      "id": "best_possible_dso",
+      "label": "BEST POSSIBLE DSO (BPDSO)",
+      "value": 34,
+      "display": "34 days",
+      "subtitle": "Zero overdue optimal benchmark",
+      "definition": "The lowest achievable DSO assuming all customers strictly adhere to credit terms and zero invoices become overdue."
+    },
+    {
+      "id": "target_dso",
+      "label": "TARGET DSO",
+      "value": 40,
+      "display": "40 days",
+      "subtitle": "8 days of DSO reduction target",
+      "definition": "The strategic collection benchmark targeted through improved dispute resolution and dunning workflows."
+    },
+    {
+      "id": "one_off_cash_release",
+      "label": "ONE-OFF CASH RELEASE",
+      "value": 438360,
+      "display": "$438.36K",
+      "subtitle": "Liquidity unlocked at target DSO",
+      "definition": "The one-time liquidity released and injected back into operating cash flow by reducing DSO to the target level."
+    },
+    {
+      "id": "annual_savings_run_rate",
+      "label": "ANNUAL SAVINGS RUN RATE",
+      "value": 173840,
+      "display": "$173.84K",
+      "subtitle": "Bad debt, financing & recovery savings",
+      "definition": "The recurring annual financial savings generated from financing interest avoided, bad-debt reduction, and lower collection overhead."
+    },
+    {
+      "id": "cei",
+      "label": "COLLECTION EFFECTIVENESS (CEI)",
+      "value": 84.2,
+      "display": "84.2%",
+      "subtitle": "Overall cash collection performance",
+      "definition": "Measures collection performance and quality within a given time frame (values closer to 100% indicate peak collection efficacy)."
+    },
+    {
+      "id": "expected_credit_loss",
+      "label": "EXPECTED CREDIT LOSS (ECL)",
+      "value": 35000,
+      "display": "$35.00K",
+      "subtitle": "Flagged high-risk account exposure",
+      "definition": "The statistically estimated impairment loss across outstanding accounts based on default probabilities and risk profiles."
+    },
+    {
+      "id": "over_limit_orders_blocked",
+      "label": "OVER-LIMIT ORDERS BLOCKED",
+      "value": 328000,
+      "display": "$328.00K",
+      "subtitle": "Credit-breach orders held in queue",
+      "definition": "Total monetary value of customer purchase orders currently held by the system due to credit limit breaches."
+    },
+    {
+      "id": "invoices_reconciled",
+      "label": "INVOICES RECONCILED COUNT",
+      "value": 1501,
+      "display": "1,501",
+      "subtitle": "Straight-through touchless matching",
+      "definition": "Total count and volume of invoices matched and reconciled straight-through without manual human escalation."
+    },
+    {
+      "id": "year_one_return",
+      "label": "YEAR-ONE RETURN (ROI)",
+      "value": 2.1,
+      "display": "2.1x",
+      "subtitle": "Net return multiple on investment",
+      "definition": "The multiple of net financial return delivered in year one relative to the total software platform and setup investment."
+    }
+  ],
+  "charts": [
+    {
+      "id": "chart_operating_cash",
+      "title": "Where Operating Cash Sits & Working Capital Target",
+      "subtitle": "Portfolio overview of cash tied up in working capital assets vs optimal ceiling limits",
+      "type": "combo",
+      "size": "full",
+      "filters": ["All Entities", "USD Modelled", "Primary Book"],
+      "data": [
+        { "label": "Receivables", "barValue": 2630000, "lineValue": 2200000, "color": "#0ea5e9", "lineLabel": "Target Cap: $2.20M", "barLabel": "Actual: $2.63M", "variance": "+$430K (High)" },
+        { "label": "Inventory", "barValue": 1640000, "lineValue": 1500000, "color": "#8b5cf6", "lineLabel": "Target Cap: $1.50M", "barLabel": "Actual: $1.64M", "variance": "+$140K (Moderate)" },
+        { "label": "Payables", "barValue": 1440000, "lineValue": 1600000, "color": "#f59e0b", "lineLabel": "Target Floor: $1.60M", "barLabel": "Actual: $1.44M", "variance": "-$160K (Early)" },
+        { "label": "Net WC", "barValue": 2840000, "lineValue": 2100000, "color": "#10b981", "lineLabel": "Optimal Target: $2.10M", "barLabel": "Actual: $2.84M", "variance": "+$740K (Tied Up)" }
+      ]
+    },
+    {
+      "id": "chart_customer_risk_bands",
+      "title": "Customer Risk Bands",
+      "subtitle": "Customer portfolio segmentation with payment behavior pointer callouts",
+      "type": "pie",
+      "size": "half",
+      "filters": ["55 Customer Sample", "Nov 2026"],
+      "data": [
+        { "label": "Low Risk", "value": 16, "color": "#10b981", "exposure": "$680K", "desc": "Clean payment history <30d" },
+        { "label": "Medium Risk", "value": 24, "color": "#f59e0b", "exposure": "$1.08M", "desc": "Occasional 30-45d delays" },
+        { "label": "High Risk", "value": 15, "color": "#ef4444", "exposure": "$870K", "desc": "Severe 45d+ past-due & disputes" }
+      ]
+    },
+    {
+      "id": "chart_o2c_bottlenecks",
+      "title": "Top O2C Process Bottlenecks",
+      "subtitle": "Average queuing lead time across order-to-cash decision gates",
+      "type": "horizontal_bar",
+      "size": "half",
+      "filters": ["Queue Analysis", "24 Steps"],
+      "data": [
+        { "label": "Customer Docs", "value": 18.5, "color": "#ef4444", "display": "18.5 hrs", "status": "Critical Bottleneck", "orders": "81 orders held" },
+        { "label": "Credit Sign-off", "value": 11.6, "color": "#f97316", "display": "11.6 hrs", "status": "Secondary Delay", "orders": "34 orders waiting" },
+        { "label": "KYC Onboarding", "value": 6.8, "color": "#f59e0b", "display": "6.8 hrs", "status": "Moderate", "orders": "19 orders waiting" },
+        { "label": "Sales Ops Desk", "value": 4.2, "color": "#0ea5e9", "display": "4.2 hrs", "status": "Normal Pace", "orders": "12 orders in review" },
+        { "label": "Doc Intelligence", "value": 3.1, "color": "#8b5cf6", "display": "3.1 hrs", "status": "Automated", "orders": "6 queued" },
+        { "label": "Credit Scoring", "value": 2.4, "color": "#10b981", "display": "2.4 hrs", "status": "Fast Track", "orders": "2 queued" }
+      ]
+    },
+    {
+      "id": "chart_recurring_value_bridge",
+      "title": "Recurring Value Bridge Multi-Year Comparison",
+      "subtitle": "Annual savings progression across operational levers (Baseline 2024 vs 2025 vs 2026 Target)",
+      "type": "grouped_bar",
+      "size": "full",
+      "filters": ["USD Annual", "Run Rate", "3-Year View"],
+      "series": [
+        { "name": "Baseline (2024)", "color": "#ef4444" },
+        { "name": "Current (2025)", "color": "#f59e0b" },
+        { "name": "Target (2026)", "color": "#8b5cf6" }
+      ],
+      "data": [
+        { "label": "Bad Debt Reduction", "v1": 35000, "v2": 65000, "v3": 100000, "metric": "Bad-debt reduction savings" },
+        { "label": "Financing Avoided", "v1": 15000, "v2": 28000, "v3": 43840, "metric": "Cost of capital interest avoided" },
+        { "label": "Collection Effort", "v1": 8000, "v2": 19000, "v3": 30000, "metric": "Team efficiency & dunning effort" },
+        { "label": "Net Run Rate Savings", "v1": 58000, "v2": 112000, "v3": 173840, "metric": "Total compounded annual value" }
+      ]
+    },
+    {
+      "id": "chart_aging_distribution",
+      "title": "Receivables Aging Bucket Distribution",
+      "subtitle": "Overdue balance concentration across standard payment aging brackets",
+      "type": "horizontal_bar",
+      "size": "half",
+      "filters": ["Aging Slices", "All Accounts"],
+      "data": [
+        { "label": "Current (0-30d)", "value": 1380000, "color": "#10b981", "display": "$1.38M (52.5%)", "status": "Healthy / In-Terms", "orders": "48 Accounts" },
+        { "label": "31-60d Past Due", "value": 680000, "color": "#f59e0b", "display": "$680K (25.8%)", "status": "Dunning Level 1", "orders": "22 Accounts" },
+        { "label": "61-90d Overdue", "value": 380000, "color": "#f97316", "display": "$380K (14.4%)", "status": "Escalation D+45", "orders": "11 Accounts" },
+        { "label": "90d+ Critical", "value": 190000, "color": "#ef4444", "display": "$190K (7.3%)", "status": "Default Risk Flag", "orders": "4 Accounts" }
+      ]
+    },
+    {
+      "id": "chart_dso_trend",
+      "title": "DSO Deceleration & Cash Released Trajectory",
+      "subtitle": "Monthly trajectory tracking Days Sales Outstanding reduction vs Target",
+      "type": "line",
+      "size": "half",
+      "filters": ["6 Months Horizon", "Target: 40d"],
+      "data": [
+        { "label": "Month 1", "value": 56, "cash": "$0K", "pace": "Baseline" },
+        { "label": "Month 2", "value": 53, "cash": "$164K", "pace": "-3 days" },
+        { "label": "Month 3", "value": 50, "cash": "$328K", "pace": "-3 days" },
+        { "label": "Month 4", "value": 48, "cash": "$438K", "pace": "-2 days (Current)" },
+        { "label": "Month 5", "value": 44, "cash": "$657K", "pace": "-4 days" },
+        { "label": "Target (M6)", "value": 40, "cash": "$876K", "pace": "Goal Achieved" }
+      ]
+    }
+  ],
+  "data_sources": [
+    {
+      "id": "ds_1",
+      "name": "F7_Risk_Governance_Controls.pdf",
+      "ext": "pdf",
+      "document": true
+    },
+    {
+      "id": "ds_2",
+      "name": "orders_2.csv",
+      "ext": "csv",
+      "document": false,
+      "rows": 185013
+    }
+  ]
+}
