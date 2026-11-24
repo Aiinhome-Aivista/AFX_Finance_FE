@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -230,8 +230,12 @@ function SuggestionCard({ guidance, decision, onDecision, slug, variant = 'modif
   )
 }
 
-function DiffLists({ d, domainName = 'Finance', slug = '', graph = null, history = [] }) {
-  const none = !Object.entries(d.counts).some(([k, v]) => /added|removed|modified/.test(k) && v)
+function DiffLists({ d = {}, domainName = 'Finance', slug = '', graph = null, history = [] }) {
+  const counts = d?.counts || {}
+  const nodesAdded = d?.nodes_added || []
+  const nodesRemoved = d?.nodes_removed || []
+  const nodesModified = d?.nodes_modified || []
+  const none = !Object.entries(counts).some(([k, v]) => /added|removed|modified/.test(k) && v)
   if (none) return <p className="mt-2 text-sm text-ink">No differences.</p>
 
   // Interactive guidance state stored locally for user validation
@@ -246,36 +250,36 @@ function DiffLists({ d, domainName = 'Finance', slug = '', graph = null, history
       domainName,
       graph,
       history,
-      edgesAdded: d.edges_added || [],
-      edgesRemoved: d.edges_removed || [],
-      edgesModified: d.edges_modified || [],
+      edgesAdded: d?.edges_added || [],
+      edgesRemoved: d?.edges_removed || [],
+      edgesModified: d?.edges_modified || [],
     }),
-    [domainName, graph, history, d.edges_added, d.edges_removed, d.edges_modified],
+    [domainName, graph, history, d?.edges_added, d?.edges_removed, d?.edges_modified],
   )
 
   const insightsByBucket = useMemo(() => {
     const added = new Map()
     const removed = new Map()
     const modified = new Map()
-      ; (d.nodes_added || []).forEach((n) => {
+      ; (nodesAdded).forEach((n) => {
         added.set(n.key || n.name, buildDynamicBusinessInsight(n, 'added', impactCtx))
       })
-      ; (d.nodes_removed || []).forEach((n) => {
+      ; (nodesRemoved).forEach((n) => {
         removed.set(n.key || n.name, buildDynamicBusinessInsight(n, 'removed', impactCtx))
       })
-      ; (d.nodes_modified || []).forEach((n) => {
+      ; (nodesModified).forEach((n) => {
         modified.set(n.key || n.name, buildDynamicBusinessInsight(n, 'modified', impactCtx))
       })
     return { added, removed, modified }
-  }, [d.nodes_added, d.nodes_removed, d.nodes_modified, impactCtx])
+  }, [nodesAdded, nodesRemoved, nodesModified, impactCtx])
 
   // Derive guidance triggers dynamically across Removed, Added, and Modified entities
   const guidanceItems = useMemo(() => {
     const list = []
 
     // Scenario A: Entity exists in Model, missing in Current
-    if (d.nodes_removed && d.nodes_removed.length > 0) {
-      d.nodes_removed.forEach((n) => {
+    if (nodesRemoved.length > 0) {
+      nodesRemoved.forEach((n) => {
         const insight = insightsByBucket.removed.get(n.key || n.name)
         const sug = insight?.suggestions
         const msg =
@@ -300,8 +304,8 @@ function DiffLists({ d, domainName = 'Finance', slug = '', graph = null, history
     }
 
     // Scenario B: Entity is new in Current, not in Model
-    if (d.nodes_added && d.nodes_added.length > 0) {
-      d.nodes_added.forEach((n) => {
+    if (nodesAdded.length > 0) {
+      nodesAdded.forEach((n) => {
         const insight = insightsByBucket.added.get(n.key || n.name)
         const sug = insight?.suggestions
         const fin = insight?.financial_control || insight?.pillars?.find((p) => p.label.includes('Financial'))?.text
@@ -331,8 +335,8 @@ function DiffLists({ d, domainName = 'Finance', slug = '', graph = null, history
     }
 
     // Calibrated Modified Entities
-    if (d.nodes_modified && d.nodes_modified.length > 0) {
-      d.nodes_modified.forEach((n) => {
+    if (nodesModified.length > 0) {
+      nodesModified.forEach((n) => {
         const insight = insightsByBucket.modified.get(n.key || n.name)
         const sug = insight?.suggestions
         const fin = insight?.financial_control || insight?.pillars?.find((p) => p.label.includes('Financial'))?.text
@@ -358,19 +362,19 @@ function DiffLists({ d, domainName = 'Finance', slug = '', graph = null, history
     }
 
     return list
-  }, [d, domainName, insightsByBucket])
+  }, [nodesRemoved, nodesAdded, nodesModified, domainName, insightsByBucket])
 
   return (
     <div className="mt-4 space-y-6">
       {/* Top Notification if empty */}
-      {d.nodes_added.length === 0 && d.nodes_removed.length === 0 && d.nodes_modified.length === 0 && (
+      {nodesAdded.length === 0 && nodesRemoved.length === 0 && nodesModified.length === 0 && (
         <p className="text-sm text-ink">No differences detected between baseline and current models.</p>
       )}
 
       {/* Main Pair-Matched Layout: Each Entity Card directly connected to its Guidance Card */}
       <div className="space-y-4">
         {/* 1. Added Entities with Arrow Linking */}
-        {d.nodes_added.map((n) => {
+        {nodesAdded.map((n) => {
           const insight = insightsByBucket.added.get(n.key || n.name)
           const guidance = guidanceItems.find((g) => g.bucket === 'added' && (g.key === `added:${n.key || n.name}`))
           const decision = guidance ? userDecisions[guidance.key] : null
@@ -445,7 +449,7 @@ function DiffLists({ d, domainName = 'Finance', slug = '', graph = null, history
         })}
 
         {/* 2. Removed Entities with Arrow Linking */}
-        {d.nodes_removed.map((n) => {
+        {nodesRemoved.map((n) => {
           const insight = insightsByBucket.removed.get(n.key || n.name)
           const guidance = guidanceItems.find((g) => g.bucket === 'removed' && (g.key === `removed:${n.key || n.name}`))
           const decision = guidance ? userDecisions[guidance.key] : null
@@ -510,7 +514,7 @@ function DiffLists({ d, domainName = 'Finance', slug = '', graph = null, history
         })}
 
         {/* 3. Modified Entities with Arrow Linking */}
-        {d.nodes_modified.map((n) => {
+        {nodesModified.map((n) => {
           const insight = insightsByBucket.modified.get(n.key || n.name)
           const guidance = guidanceItems.find((g) => g.bucket === 'modified' && (g.key === `modified:${n.key || n.name}`))
           const decision = guidance ? userDecisions[guidance.key] : null
@@ -742,8 +746,43 @@ export default function Finalize() {
   }, [slug, wfParam, modelParam, searchParams, setSearchParams])
 
   const wf = useAsync(() => domains.workflow(slug, wfParam), [slug, wfParam])
-  const fin = useAsync(() => graphs.finalization(slug, wfParam), [slug, wfParam], { immediate: true })
+  const fin = useAsync(() => graphs.finalization(slug, wfParam), [slug, wfParam], { immediate: false })
   const g = useAsync(() => domains.graph(slug, false), [slug])
+
+  const [wsReview, setWsReview] = useState(null)
+  const [wsReviewLoading, setWsReviewLoading] = useState(true)
+
+  const activeModelName = useMemo(() => {
+    return (
+      searchParams.get('model') ||
+      sessionStorage.getItem('afx_current_workspace') ||
+      (slug ? sessionStorage.getItem(`afx_active_model_${slug}`) : null) ||
+      sessionStorage.getItem('afx_active_model_name') ||
+      null
+    )
+  }, [searchParams, slug])
+
+  const loadWorkspaceReview = useCallback(() => {
+    setWsReviewLoading(true)
+    domains
+      .workspaceReview(activeModelName)
+      .then((data) => {
+        setWsReview(data)
+        if (data?.comparison) {
+          setCmp(data.comparison)
+        }
+      })
+      .catch((err) => {
+        console.warn('Workspace review fetch notice:', err)
+      })
+      .finally(() => {
+        setWsReviewLoading(false)
+      })
+  }, [activeModelName])
+
+  useEffect(() => {
+    loadWorkspaceReview()
+  }, [loadWorkspaceReview])
 
   const domainName =
     wf.data?.domain?.name ||
@@ -826,10 +865,28 @@ export default function Finalize() {
     }
   }, [range, slug]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const finalized = Boolean(wf.data?.finalized_version_number || snap?.finalized)
+  const workedDomainKeys = useMemo(() => {
+    if (wsReview?.worked_domain_keys && wsReview.worked_domain_keys.length > 0) {
+      return wsReview.worked_domain_keys
+    }
+    return domainKey ? [domainKey] : ['f1']
+  }, [wsReview, domainKey])
+
+  const workedDomainsList = useMemo(() => {
+    return wsReview?.worked_domains || []
+  }, [wsReview])
+
+  const finalized = Boolean(
+    wf.data?.finalized_version_number ||
+    snap?.finalized ||
+    workedDomainsList.some((w) => w.is_finalized)
+  )
 
   // Robust fallback to ensure Knowledge Graph is ALWAYS populated across all domains
   const effectiveBaseGraph = useMemo(() => {
+    if (wsReview?.graph?.nodes?.length > 0) {
+      return wsReview.graph
+    }
     let sourceGraph = fin.data?.graph?.nodes?.length > 0 ? fin.data.graph : g.data?.nodes?.length > 0 ? g.data : null
     const dKey = domainKey || 'f1'
     const dm = DOMMETA[dKey] || DOMMETA.f1
@@ -864,6 +921,15 @@ export default function Finalize() {
       edges: [],
     }
   }, [fin.data?.graph, g.data, domainKey])
+
+  const effectiveDisplayGraph = useMemo(() => {
+    const raw = wsReview?.graph?.nodes?.length > 0 ? wsReview.graph : effectiveBaseGraph
+    return {
+      nodes: raw?.nodes || [],
+      edges: raw?.edges || [],
+      flows: raw?.flows || [],
+    }
+  }, [wsReview, effectiveBaseGraph])
 
   const d = useMemo(() => {
     if (fin.data) return fin.data
@@ -902,6 +968,9 @@ export default function Finalize() {
   const selectedGraphNode = useMemo(() => {
     if (!selectedNode) return null
     return (
+      effectiveDisplayGraph.nodes.find(
+        (n) => n.id === selectedNode || n.key === selectedNode || n.name === selectedNode
+      ) ||
       graphDataWithGaps.nodes.find(
         (n) => n.id === selectedNode || n.key === selectedNode || n.name === selectedNode
       ) ||
@@ -910,7 +979,7 @@ export default function Finalize() {
       ) ||
       null
     )
-  }, [selectedNode, graphDataWithGaps.nodes, effectiveBaseGraph.nodes])
+  }, [selectedNode, effectiveDisplayGraph.nodes, graphDataWithGaps.nodes, effectiveBaseGraph.nodes])
 
   const handleSelectNode = (nodeId) => {
     setSelectedNode(nodeId)
@@ -922,10 +991,15 @@ export default function Finalize() {
   const doFinalize = async () => {
     setBusy(true)
     try {
+      if (activeModelName) {
+        await domains.workspaceFinalize({ model: activeModelName }).catch((err) => {
+          console.warn('Workspace finalize notice:', err)
+        })
+      }
       await graphs.finalize(slug, { confirm: true, acknowledge_warnings: ack }).catch((err) => {
         console.warn('Backend finalize notice:', err)
       })
-      toast.success('Digital Twin finalized & governed! Enterprise workflow complete.')
+      toast.success('Workspace Digital Twin finalized & governed! Enterprise workflow complete.')
       setDlg(null)
       updateDomainWorkflow(slug, { isFinalized: true })
       navigate(`/finance/${slug}/twin${wsQuery}`)
@@ -1091,7 +1165,7 @@ export default function Finalize() {
               <span className="tracking-tight">Back to Business Input</span>
             </Link>
 
-            {/* Active Domain Pill */}
+            {/* Active Workspace / Domain Pill */}
             <div className="inline-flex items-center gap-2.5 rounded-xl px-4 py-2 text-sm font-semibold border border-brand bg-brand text-white shadow-md shadow-brand/25">
               <span
                 className="h-2.5 w-2.5 rounded-full shrink-0"
@@ -1101,35 +1175,55 @@ export default function Finalize() {
                 }}
               />
               <span className="tracking-tight whitespace-nowrap">
-                {DOMMETA[domainKey]?.n || domainName || 'Finance Domain'}
+                {activeWorkspaceName ? `Workspace: ${activeWorkspaceName.replace(/_/g, ' ')}` : (DOMMETA[domainKey]?.n || domainName || 'Finance Domain')}
               </span>
             </div>
 
-            {/* Finance master-data spine button */}
-            <button
-              type="button"
-              onClick={() => setActiveDomainFilter(activeDomainFilter === 'spine' ? domainKey : 'spine')}
-              className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${activeDomainFilter === 'spine'
-                ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
-                : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
-                }`}
-              title="Finance master-data spine"
-            >
-              <span
-                className="h-2 w-2 rounded-full shrink-0 transition-transform group-hover:scale-125"
-                style={{
-                  backgroundColor: activeDomainFilter === 'spine' ? '#FFFFFF' : '#38BDF8',
-                  boxShadow: activeDomainFilter === 'spine' ? '0 0 8px rgba(255,255,255,0.8)' : undefined,
-                }}
-              />
-              <span className="font-semibold text-xs sm:text-[13px] tracking-tight whitespace-nowrap">
-                Finance master-data spine
-              </span>
-            </button>
+            {/* Worked Domains Badges */}
+            {workedDomainsList && workedDomainsList.length > 0 ? (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs text-muted font-bold mr-0.5 hidden md:inline">Worked Domains:</span>
+                {workedDomainsList.map((wd) => (
+                  <span
+                    key={wd.domain_slug}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border shadow-2xs"
+                    style={{
+                      backgroundColor: `${wd.domain_color || '#4f46e5'}18`,
+                      color: wd.domain_color || '#4f46e5',
+                      borderColor: `${wd.domain_color || '#4f46e5'}40`,
+                    }}
+                  >
+                    <span>{wd.domain_code}</span>
+                    <span className="font-medium text-[11px] opacity-90 hidden sm:inline">{wd.domain_name}</span>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setActiveDomainFilter(activeDomainFilter === 'spine' ? domainKey : 'spine')}
+                className={`group relative rounded-xl px-3 py-1.5 text-xs sm:text-[13px] transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border ${activeDomainFilter === 'spine'
+                  ? 'bg-brand text-white border-brand shadow-md shadow-brand/25 scale-[1.01] font-semibold'
+                  : 'border-line bg-surface/90 text-ink/90 hover:border-brand/40 hover:bg-surface2 hover:text-ink shadow-2xs hover:-translate-y-0.5'
+                  }`}
+                title="Finance master-data spine"
+              >
+                <span
+                  className="h-2 w-2 rounded-full shrink-0 transition-transform group-hover:scale-125"
+                  style={{
+                    backgroundColor: activeDomainFilter === 'spine' ? '#FFFFFF' : '#38BDF8',
+                    boxShadow: activeDomainFilter === 'spine' ? '0 0 8px rgba(255,255,255,0.8)' : undefined,
+                  }}
+                />
+                <span className="font-semibold text-xs sm:text-[13px] tracking-tight whitespace-nowrap">
+                  Finance master-data spine
+                </span>
+              </button>
+            )}
 
             {/* AgentForgeX Generated Badge */}
             <span className="rounded-full bg-brand/15 px-3 py-1 text-xs font-semibold text-brand border border-brand/30 shrink-0">
-              AgentForgeX Generated ({graphDataWithGaps.nodes.length} nodes)
+              AgentForgeX Generated ({effectiveDisplayGraph.nodes.length} nodes)
             </span>
           </div>
 
@@ -1169,23 +1263,22 @@ export default function Finalize() {
       </div>
 
       <div className="mt-2 space-y-4">
-        {/* Main 2-Column Grid: Left Knowledge Graph Canvas | Right AI Chatbot & Review */}
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_440px]">
-          {/* Left Column: Pixel-Perfect Ontology Graph Canvas */}
-          <div className="card relative h-[calc(100vh-120px)] min-h-[500px] overflow-hidden p-0 border border-line isolate flex flex-col">
-            <OntologyGraphCanvas
-              nodes={graphDataWithGaps.nodes}
-              edges={graphDataWithGaps.edges}
-              domainMeta={wf.data?.domain || { n: domainName, name: domainName, c: domainMeta?.c || '#10b981' }}
-              activeDomain={activeDomainFilter}
-              showNeighbours={false}
-              selectedNodeId={selectedNode}
-              onSelectNode={handleSelectNode}
-              className="w-full h-full"
-            />
-          </div>
+        {/* Full-Width Workspace Ontology Graph Canvas */}
+        <div className="card relative h-[calc(100vh-140px)] min-h-[580px] overflow-hidden p-0 border border-line isolate flex flex-col shadow-card w-full">
+          <OntologyGraphCanvas
+            nodes={effectiveDisplayGraph.nodes}
+            edges={effectiveDisplayGraph.edges}
+            flows={effectiveDisplayGraph.flows}
+            activeDomains={workedDomainKeys}
+            showNeighbours={true}
+            selectedNodeId={selectedNode}
+            onSelectNode={handleSelectNode}
+            className="w-full h-full"
+          />
+        </div>
 
-          {/* Right Column: AI Chatbot | Review & Validation | Entity Specs */}
+        {/* Right Chat Column (Commented out on Review page as requested) */}
+        {false && (
           <div className="card flex h-[calc(100vh-120px)] min-h-[500px] flex-col overflow-hidden shadow-card">
             {/* Header Bar with Tabs */}
             <div className="flex items-center justify-between border-b border-line bg-surface2/60 px-3.5 py-2.5 select-none shrink-0">
@@ -1395,31 +1488,31 @@ export default function Finalize() {
               )}
             </div>
           </div>
-        </div>
+        )}
 
         {/* Version Comparison Section */}
         <section className="card p-4 border border-line mt-6 mb-8">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-semibold text-sm text-ink">Compare Versions</h2>
             <span className="inline-flex items-center rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-2xs">
-              Model "{domainName}" Template
+              Baseline Enterprise Ontology
             </span>
             <span className="text-xs font-semibold text-ink px-0.5">vs</span>
             <span className="inline-flex items-center rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink shadow-2xs">
-              Current "{domainName}" Template
+              Current Workspace {activeModelName ? `(${activeModelName.replace(/_/g, ' ')})` : ''}
             </span>
           </div>
           {cmp ? (
             <>
               <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
-                <Stat label="entities added" v={cmp.counts.nodes_added} tone="text-ok" />
-                <Stat label="entities modified" v={cmp.counts.nodes_modified} tone="text-warn" />
-                <Stat label="entities removed" v={cmp.counts.nodes_removed} tone="text-bad" />
-                <Stat label="links added" v={cmp.counts.edges_added} tone="text-ok" />
-                <Stat label="links relabelled" v={cmp.counts.edges_modified} />
-                <Stat label="links removed" v={cmp.counts.edges_removed} tone="text-bad" />
+                <Stat label="entities added" v={cmp.counts?.nodes_added ?? 0} tone="text-ok" />
+                <Stat label="entities modified" v={cmp.counts?.nodes_modified ?? 0} tone="text-warn" />
+                <Stat label="entities removed" v={cmp.counts?.nodes_removed ?? 0} tone="text-bad" />
+                <Stat label="links added" v={cmp.counts?.edges_added ?? 0} tone="text-ok" />
+                <Stat label="links relabelled" v={cmp.counts?.edges_modified ?? 0} />
+                <Stat label="links removed" v={cmp.counts?.edges_removed ?? 0} tone="text-bad" />
               </div>
-              <DiffLists d={cmp} domainName={domainName} slug={slug} graph={d?.graph || effectiveBaseGraph} history={d?.history || []} />
+              <DiffLists d={cmp} domainName={domainName} slug={slug} graph={effectiveDisplayGraph} history={wsReview?.history || d?.history || []} />
             </>
           ) : <Loading className="!p-4" />}
         </section>
