@@ -141,7 +141,7 @@ export default function AnalystDashboard() {
   return (
     <Layout fullBleed hideWorkflowBar hideNext>
       {/* Horizontal Flex Container: Collapsible Sidebar + Dynamic Main Content */}
-      <div className="flex w-full h-[calc(100vh-64px)] overflow-hidden bg-bg">
+      <div className="flex w-full h-full min-h-0 flex-1 overflow-hidden bg-bg">
         {/* Sleek Collapsible Left Sidebar */}
         <AnalystSidebar
           activeTab={activeTab}

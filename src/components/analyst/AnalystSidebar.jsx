@@ -1,7 +1,9 @@
 import React from 'react'
 import {
   LayoutDashboard,
+  Layout,
   Receipt,
+  Mail,
   Share2,
   SlidersHorizontal,
   ChevronLeft,
@@ -73,7 +75,7 @@ export default function AnalystSidebar({
     {
       id: 'receivables',
       label: 'Receivables',
-      icon: Receipt,
+      icon: Mail,
       badge: null
     },
     {
@@ -87,7 +89,7 @@ export default function AnalystSidebar({
   return (
     <aside
       style={{ width: collapsed ? 64 : sidebarWidth }}
-      className={`relative flex flex-col shrink-0 border-r border-line bg-surface text-ink select-none h-[calc(100vh-64px)] z-30 ${
+      className={`relative flex flex-col shrink-0 border-r border-line bg-surface text-ink select-none h-full z-30 ${
         isResizing.current ? '' : 'transition-[width] duration-150 ease-out'
       }`}
       aria-label="Working Capital Sidebar"
@@ -121,15 +123,12 @@ export default function AnalystSidebar({
         ) : (
           <>
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand border border-brand/20">
-                <CircleDollarSign size={17} />
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-surface2 border border-line text-muted">
+                <Layout size={15} />
               </span>
-              <div className="min-w-0 flex-1 leading-tight">
-                <div className="flex items-center gap-1 text-xs font-bold text-ink truncate">
-                  <span>AgentForgeX</span>
-                </div>
-                <p className="text-[10px] text-muted truncate">Workspace · Finance</p>
-              </div>
+              <span className="truncate text-xs font-semibold text-ink">
+                Workspace - Finance
+              </span>
             </div>
 
             <button

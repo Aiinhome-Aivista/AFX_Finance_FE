@@ -94,7 +94,7 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-bg text-ink selection:bg-[#10b981] selection:text-black">
+    <div className={`flex flex-col bg-bg text-ink selection:bg-[#10b981] selection:text-black ${fullBleed ? 'h-screen max-h-screen overflow-hidden' : 'min-h-full'}`}>
       {/* Persistent Clean White Header with Chevron Progress Tracker (MOM Step 2) */}
       <header className="sticky top-0 z-50 border-b border-line bg-surface/95 backdrop-blur shadow-xs">
         <div className={`flex h-16 items-center justify-between gap-3 px-3 sm:px-6 ${fullBleed ? 'w-full max-w-full' : wide ? 'mx-auto max-w-[1850px]' : 'mx-auto max-w-6xl'}`}>
@@ -278,7 +278,7 @@ export default function Layout({ children, wide, headerAction, onNext, nextLabel
       </header>
 
       {/* Main Page Content */}
-      <main className={`w-full flex-1 ${fullBleed ? 'flex flex-col p-0 m-0 overflow-hidden max-w-full' : `mx-auto px-3 py-5 sm:px-6 ${wide ? 'max-w-[1850px]' : 'max-w-6xl'}`}`}>
+      <main className={`w-full flex-1 ${fullBleed ? 'flex flex-col p-0 m-0 overflow-hidden min-h-0 max-w-full' : `mx-auto px-3 py-5 sm:px-6 ${wide ? 'max-w-[1850px]' : 'max-w-6xl'}`}`}>
         {children}
         {shouldShowJourneyTracker && <DomainJourneyTracker />}
       </main>
