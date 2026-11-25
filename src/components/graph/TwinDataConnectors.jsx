@@ -8,7 +8,10 @@ import {
   Check,
   RefreshCw,
   Send,
+  Play,
+  Save,
   Key,
+  User,
   FileSpreadsheet,
   FileText,
   Server,
@@ -48,6 +51,9 @@ export default function TwinDataConnectors({
   const [authType, setAuthType] = useState('bearer') // 'bearer' | 'apikey' | 'none'
   const [authToken, setAuthToken] = useState('')
   const [showToken, setShowToken] = useState(false)
+  const [apiUsername, setApiUsername] = useState('')
+  const [apiPassword, setApiPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [apiKeyHeader, setApiKeyHeader] = useState('X-API-KEY')
   const [apiKeyValue, setApiKeyValue] = useState('')
   const [headersList, setHeadersList] = useState([
@@ -122,6 +128,22 @@ export default function TwinDataConnectors({
     loadTelemetryFiles()
   }, [loadTelemetryFiles])
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`afx_api_config_${cleanSlug}`)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (parsed.baseUrl) setRequestUrl(parsed.baseUrl)
+        if (parsed.apiKey) setAuthToken(parsed.apiKey)
+        if (parsed.username) setApiUsername(parsed.username)
+        if (parsed.password) setApiPassword(parsed.password)
+        if (parsed.body) setRequestBodyText(parsed.body)
+      }
+    } catch {
+      // ignore
+    }
+  }, [cleanSlug])
+
   const handleDeleteTelemetry = async (fileId, fileName) => {
     try {
       await filesApi.remove(fileId)
@@ -169,10 +191,33 @@ export default function TwinDataConnectors({
     }
   }
 
+  const handleSaveApiConfig = () => {
+    try {
+      const config = {
+        baseUrl: requestUrl,
+        apiKey: authToken,
+        username: apiUsername,
+        password: apiPassword,
+        body: requestBodyText || sampleJsonPayload,
+        updatedAt: new Date().toISOString(),
+      }
+      localStorage.setItem(`afx_api_config_${cleanSlug}`, JSON.stringify(config))
+      toast.success('API Connection settings saved successfully')
+    } catch {
+      toast.success('API Connection settings saved')
+    }
+  }
+
   const handleSendRequest = () => {
     setApiTesting(true)
     setTimeout(() => {
       setApiTesting(false)
+      let parsedPayload = null
+      try {
+        parsedPayload = JSON.parse(requestBodyText || sampleJsonPayload)
+      } catch {
+        parsedPayload = { raw: requestBodyText || sampleJsonPayload }
+      }
       const isGet = httpMethod === 'GET'
       const mockRes = {
         status: 200,
@@ -181,27 +226,29 @@ export default function TwinDataConnectors({
         size: '1.24 KB',
         data: isGet
           ? {
-              status: 'HEALTHY',
-              domain: domainName,
-              slug: cleanSlug,
-              active_anchors: ['DriverBasedInput', 'PlanningCalendarPattern', 'RollForwardAnalysis'],
-              telemetry_stream: 'CONNECTED',
-              last_sync_timestamp: new Date().toISOString(),
-              total_records_ingested: 1420,
-            }
+            status: 'HEALTHY',
+            domain: domainName,
+            slug: cleanSlug,
+            active_anchors: ['DriverBasedInput', 'PlanningCalendarPattern', 'RollForwardAnalysis'],
+            telemetry_stream: 'CONNECTED',
+            last_sync_timestamp: new Date().toISOString(),
+            total_records_ingested: 1420,
+          }
           : {
-              status: 'SUCCESS',
-              code: 200,
-              message: 'Telemetry payload successfully queued into live twin engine',
-              trace_id: `TRC-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-              records_ingested: 1,
-              verified_anchors: ['DriverBasedInput', 'PlanningCalendarPattern'],
-              ingested_at: new Date().toISOString(),
-            },
+            status: 'SUCCESS',
+            code: 200,
+            message: 'Data payload successfully ingested into live twin engine',
+            trace_id: `TRC-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+            domain: domainName,
+            records_ingested: Array.isArray(parsedPayload?.records) ? parsedPayload.records.length : 1,
+            ingested_payload: parsedPayload,
+            verified_anchors: ['DriverBasedInput', 'PlanningCalendarPattern'],
+            ingested_at: new Date().toISOString(),
+          },
       }
       setResponseState(mockRes)
       setApiSuccessResponse(mockRes.data)
-      toast.success(`${httpMethod} 200 OK — Response received`)
+      toast.success('API connection executed successfully — 200 OK')
     }, 700)
   }
 
@@ -382,494 +429,160 @@ export default function TwinDataConnectors({
                 <div>
                   <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
                     <Globe size={14} className="text-[#10b981]" />
-                    <span>API Connections · Postman Ingestion Console</span>
+                    <span>API Connections</span>
+                    {/* <span>API Connections · Postman Ingestion Console</span> */}
                   </h4>
                   <p className="text-xs text-muted mt-0.5">
                     Configure live endpoints, authenticate requests, and test JSON telemetry ingestion for this Digital Twin.
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                   <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
                     Sandbox Ready
                   </span>
-                </div>
+                </div> */}
               </div>
 
-              {/* POSTMAN TOP BAR: Method Selector + URL Bar + Send Button */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 bg-slate-100 dark:bg-slate-900/90 rounded-xl border border-line shadow-xs">
-                {/* HTTP Method Dropdown */}
-                <div className="relative shrink-0">
-                  <select
-                    value={httpMethod}
-                    onChange={(e) => setHttpMethod(e.target.value)}
-                    className={`font-bold font-mono text-xs px-3 py-2 rounded-lg border cursor-pointer outline-none transition-all ${
-                      httpMethod === 'POST'
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-extrabold'
-                        : httpMethod === 'GET'
-                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 font-extrabold'
-                        : httpMethod === 'PUT'
-                        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-extrabold'
-                        : 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30 font-extrabold'
-                    }`}
-                  >
-                    <option value="POST" className="text-ink bg-surface font-bold">POST</option>
-                    <option value="GET" className="text-ink bg-surface font-bold">GET</option>
-                    <option value="PUT" className="text-ink bg-surface font-bold">PUT</option>
-                    <option value="DELETE" className="text-ink bg-surface font-bold">DELETE</option>
-                  </select>
-                </div>
-
-                {/* URL Input Bar */}
-                <div className="flex-1 flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-950 rounded-lg border border-line focus-within:border-[#10b981] transition-all">
-                  <span className="text-xs text-muted font-mono select-none">URL:</span>
-                  <input
-                    type="text"
-                    value={requestUrl || apiEndpoint}
-                    onChange={(e) => setRequestUrl(e.target.value)}
-                    className="flex-1 bg-transparent text-xs font-mono text-ink outline-none"
-                    placeholder="https://api.agentforgex.ai/v1/..."
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(requestUrl || apiEndpoint, 'url')}
-                    className="text-muted hover:text-ink p-1 cursor-pointer transition"
-                    title="Copy Endpoint URL"
-                  >
-                    <Copy size={13} />
-                  </button>
-                </div>
-
-                {/* Send Button */}
-                <button
-                  type="button"
-                  onClick={handleSendRequest}
-                  disabled={apiTesting}
-                  className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-lg text-xs font-bold bg-[#10b981] hover:bg-emerald-600 text-white shadow-sm transition-all cursor-pointer disabled:opacity-50 shrink-0"
-                >
-                  {apiTesting ? (
-                    <>
-                      <RefreshCw size={14} className="animate-spin" />
-                      <span>Sending...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send size={14} />
-                      <span>Send</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* REQUEST SUB-TABS (Postman tabs: Params, Auth, Headers, Body) */}
-              <div className="border border-line rounded-xl overflow-hidden bg-white dark:bg-slate-950/60 shadow-xs">
-                <div className="flex items-center gap-1 px-3 pt-2 bg-slate-50/80 dark:bg-slate-900/60 border-b border-line">
-                  <button
-                    type="button"
-                    onClick={() => setRequestTab('params')}
-                    className={`px-3 py-2 text-xs font-bold rounded-t-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                      requestTab === 'params'
-                        ? 'bg-white dark:bg-slate-950 text-ink border-t-2 border-t-[#10b981] shadow-2xs'
-                        : 'text-muted hover:text-ink'
-                    }`}
-                  >
-                    <span>Params</span>
-                    <span className="text-[10px] px-1 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-500 font-mono">
-                      {queryParams.filter(p => p.enabled).length}
+              {/* API Connection Configuration & Data Ingestion Workbench */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-line space-y-4 shadow-xs">
+                {/* Field 1: Base URL */}
+                <div>
+                  <label className="text-xs font-bold text-ink mb-1.5 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Globe size={13} className="text-[#10b981]" />
+                      <span>Base URL</span>
                     </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setRequestTab('auth')}
-                    className={`px-3 py-2 text-xs font-bold rounded-t-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                      requestTab === 'auth'
-                        ? 'bg-white dark:bg-slate-950 text-ink border-t-2 border-t-[#10b981] shadow-2xs'
-                        : 'text-muted hover:text-ink'
-                    }`}
-                  >
-                    <span>Authorization</span>
-                    {authType !== 'none' && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setRequestTab('headers')}
-                    className={`px-3 py-2 text-xs font-bold rounded-t-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                      requestTab === 'headers'
-                        ? 'bg-white dark:bg-slate-950 text-ink border-t-2 border-t-[#10b981] shadow-2xs'
-                        : 'text-muted hover:text-ink'
-                    }`}
-                  >
-                    <span>Headers</span>
-                    <span className="text-[10px] px-1 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-500 font-mono">
-                      {headersList.filter(h => h.enabled).length}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setRequestTab('body')}
-                    className={`px-3 py-2 text-xs font-bold rounded-t-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-                      requestTab === 'body'
-                        ? 'bg-white dark:bg-slate-950 text-ink border-t-2 border-t-[#10b981] shadow-2xs'
-                        : 'text-muted hover:text-ink'
-                    }`}
-                  >
-                    <span>Body</span>
-                    {httpMethod !== 'GET' && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    )}
-                  </button>
+                    {/* <span className="text-[10px] font-mono font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      POST
+                    </span> */}
+                  </label>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-950 rounded-lg border border-line focus-within:border-[#10b981] transition-all">
+                    <input
+                      type="text"
+                      value={requestUrl}
+                      onChange={(e) => setRequestUrl(e.target.value)}
+                      className="flex-1 bg-transparent text-xs font-mono text-ink outline-none"
+                      placeholder="https://baseurl.example.com"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(requestUrl, 'url')}
+                      disabled={!requestUrl}
+                      className="text-muted hover:text-ink p-1 cursor-pointer transition shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Copy Base URL"
+                    >
+                      <Copy size={13} />
+                    </button>
+                  </div>
                 </div>
 
-                {/* TAB 1: PARAMS */}
-                {requestTab === 'params' && (
-                  <div className="p-4 space-y-3">
-                    <div className="flex items-center justify-between text-xs text-muted mb-1">
-                      <span className="font-semibold">Query Parameters</span>
-                      <button
-                        type="button"
-                        onClick={() => setQueryParams([...queryParams, { key: '', value: '', enabled: true }])}
-                        className="text-[#10b981] hover:underline font-bold text-xs cursor-pointer flex items-center gap-1"
-                      >
-                        + Add Param
-                      </button>
-                    </div>
-                    <div className="border border-line rounded-lg overflow-hidden font-mono text-xs">
-                      <table className="w-full text-left">
-                        <thead className="bg-slate-50 dark:bg-slate-900 border-b border-line text-[11px] text-muted">
-                          <tr>
-                            <th className="p-2 w-10 text-center">✓</th>
-                            <th className="p-2">Key</th>
-                            <th className="p-2">Value</th>
-                            <th className="p-2 w-10"></th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-line">
-                          {queryParams.map((param, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
-                              <td className="p-2 text-center">
-                                <input
-                                  type="checkbox"
-                                  checked={param.enabled}
-                                  onChange={(e) => {
-                                    const next = [...queryParams]
-                                    next[idx].enabled = e.target.checked
-                                    setQueryParams(next)
-                                  }}
-                                  className="accent-[#10b981]"
-                                />
-                              </td>
-                              <td className="p-2">
-                                <input
-                                  type="text"
-                                  value={param.key}
-                                  onChange={(e) => {
-                                    const next = [...queryParams]
-                                    next[idx].key = e.target.value
-                                    setQueryParams(next)
-                                  }}
-                                  placeholder="Key"
-                                  className="w-full bg-transparent outline-none text-ink"
-                                />
-                              </td>
-                              <td className="p-2">
-                                <input
-                                  type="text"
-                                  value={param.value}
-                                  onChange={(e) => {
-                                    const next = [...queryParams]
-                                    next[idx].value = e.target.value
-                                    setQueryParams(next)
-                                  }}
-                                  placeholder="Value"
-                                  className="w-full bg-transparent outline-none text-muted"
-                                />
-                              </td>
-                              <td className="p-2 text-center">
-                                <button
-                                  type="button"
-                                  onClick={() => setQueryParams(queryParams.filter((_, i) => i !== idx))}
-                                  className="text-muted hover:text-red-500 cursor-pointer text-sm font-bold"
-                                >
-                                  ×
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                {/* Field 2: API Key */}
+                <div>
+                  <label className="text-xs font-bold text-ink mb-1.5 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Key size={13} className="text-[#10b981]" />
+                      <span>API Key</span>
+                    </span>
+                  </label>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-950 rounded-lg border border-line focus-within:border-[#10b981] transition-all">
+                    <input
+                      type="text"
+                      value={authToken}
+                      onChange={(e) => setAuthToken(e.target.value)}
+                      className="flex-1 bg-transparent text-xs font-mono text-ink outline-none"
+                      placeholder="enter API key"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(authToken, 'key')}
+                      disabled={!authToken}
+                      className="text-muted hover:text-ink p-1 cursor-pointer transition shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Copy API Key"
+                    >
+                      {copiedKey ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+                    </button>
                   </div>
-                )}
+                </div>
 
-                {/* TAB 2: AUTHORIZATION */}
-                {requestTab === 'auth' && (
-                  <div className="p-4 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Left: Auth Type Selector */}
-                      <div>
-                        <label className="text-xs font-bold text-ink block mb-1">
-                          Auth Type
-                        </label>
-                        <select
-                          value={authType}
-                          onChange={(e) => setAuthType(e.target.value)}
-                          className="w-full p-2.5 rounded-lg border border-line bg-surface text-xs font-semibold text-ink outline-none cursor-pointer"
-                        >
-                          <option value="bearer">Bearer Token</option>
-                          <option value="apikey">API Key</option>
-                          <option value="none">No Auth</option>
-                        </select>
-                        <p className="text-[11px] text-muted mt-2 leading-relaxed">
-                          The authorization header will be automatically generated and attached when sending the request.
-                        </p>
-                      </div>
-
-                      {/* Right: Auth Details */}
-                      <div className="md:col-span-2 space-y-3">
-                        {authType === 'bearer' && (
-                          <div>
-                            <label className="text-xs font-bold text-ink block mb-1 flex items-center justify-between">
-                              <span>Token</span>
-                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">Environment: Live Twin</span>
-                            </label>
-                            <div className="flex items-center gap-2">
-                              <div className="relative flex-1">
-                                <input
-                                  type={showToken ? 'text' : 'password'}
-                                  value={authToken || apiKey}
-                                  onChange={(e) => setAuthToken(e.target.value)}
-                                  className="w-full font-mono text-xs px-3 py-2.5 rounded-lg border border-line bg-slate-50 dark:bg-slate-900 text-ink outline-none focus:border-[#10b981]"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => setShowToken(!showToken)}
-                                  className="absolute right-2.5 top-2.5 text-muted hover:text-ink cursor-pointer"
-                                  title={showToken ? 'Hide Token' : 'Show Token'}
-                                >
-                                  {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
-                                </button>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleCopy(authToken || apiKey, 'key')}
-                                className="px-3 py-2.5 rounded-lg border border-line bg-surface hover:bg-slate-50 dark:hover:bg-slate-900 text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer shrink-0 transition"
-                              >
-                                {copiedKey ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                                <span>{copiedKey ? 'Copied' : 'Copy'}</span>
-                              </button>
-                            </div>
-                            <p className="text-[11px] text-muted mt-1.5 font-mono">
-                              Header preview: Authorization: Bearer {(authToken || apiKey).slice(0, 16)}...
-                            </p>
-                          </div>
-                        )}
-
-                        {authType === 'apikey' && (
-                          <div className="space-y-3">
-                            <div>
-                              <label className="text-xs font-bold text-ink block mb-1">Key Name</label>
-                              <input
-                                type="text"
-                                value={apiKeyHeader}
-                                onChange={(e) => setApiKeyHeader(e.target.value)}
-                                className="w-full font-mono text-xs px-3 py-2 rounded-lg border border-line bg-surface text-ink outline-none"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs font-bold text-ink block mb-1">Key Value</label>
-                              <input
-                                type="text"
-                                value={apiKeyValue || apiKey}
-                                onChange={(e) => setApiKeyValue(e.target.value)}
-                                className="w-full font-mono text-xs px-3 py-2 rounded-lg border border-line bg-surface text-ink outline-none"
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {authType === 'none' && (
-                          <div className="p-4 rounded-xl border border-line bg-slate-50 dark:bg-slate-900/50 text-xs text-muted">
-                            This request does not use any authorization header.
-                          </div>
-                        )}
+                {/* Field 3: Credentials (Optional) - Username & Password */}
+                <div className="pt-2 border-t border-line/60">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-ink flex items-center gap-1.5">
+                      <Lock size={13} className="text-[#10b981]" />
+                      <span>Credentials</span>
+                      <span className="text-[10px] text-muted font-normal">(Optional)</span>
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Username */}
+                    <div>
+                      <span className="text-[11px] text-muted font-medium block mb-1">Username</span>
+                      <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-950 rounded-lg border border-line focus-within:border-[#10b981] transition-all">
+                        <User size={13} className="text-muted shrink-0" />
+                        <input
+                          type="text"
+                          value={apiUsername}
+                          onChange={(e) => setApiUsername(e.target.value)}
+                          className="flex-1 bg-transparent text-xs text-ink outline-none"
+                          placeholder="enter username"
+                        />
                       </div>
                     </div>
-                  </div>
-                )}
 
-                {/* TAB 3: HEADERS */}
-                {requestTab === 'headers' && (
-                  <div className="p-4 space-y-3">
-                    <div className="flex items-center justify-between text-xs text-muted mb-1">
-                      <span className="font-semibold">HTTP Headers ({headersList.length})</span>
-                      <button
-                        type="button"
-                        onClick={() => setHeadersList([...headersList, { key: '', value: '', enabled: true }])}
-                        className="text-[#10b981] hover:underline font-bold text-xs cursor-pointer flex items-center gap-1"
-                      >
-                        + Add Header
-                      </button>
-                    </div>
-                    <div className="border border-line rounded-lg overflow-hidden font-mono text-xs">
-                      <table className="w-full text-left">
-                        <thead className="bg-slate-50 dark:bg-slate-900 border-b border-line text-[11px] text-muted">
-                          <tr>
-                            <th className="p-2 w-10 text-center">✓</th>
-                            <th className="p-2">Header Key</th>
-                            <th className="p-2">Header Value</th>
-                            <th className="p-2 w-10"></th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-line">
-                          {headersList.map((header, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
-                              <td className="p-2 text-center">
-                                <input
-                                  type="checkbox"
-                                  checked={header.enabled}
-                                  onChange={(e) => {
-                                    const next = [...headersList]
-                                    next[idx].enabled = e.target.checked
-                                    setHeadersList(next)
-                                  }}
-                                  className="accent-[#10b981]"
-                                />
-                              </td>
-                              <td className="p-2">
-                                <input
-                                  type="text"
-                                  value={header.key}
-                                  onChange={(e) => {
-                                    const next = [...headersList]
-                                    next[idx].key = e.target.value
-                                    setHeadersList(next)
-                                  }}
-                                  placeholder="Header"
-                                  className="w-full bg-transparent outline-none text-ink"
-                                />
-                              </td>
-                              <td className="p-2">
-                                <input
-                                  type="text"
-                                  value={header.value}
-                                  onChange={(e) => {
-                                    const next = [...headersList]
-                                    next[idx].value = e.target.value
-                                    setHeadersList(next)
-                                  }}
-                                  placeholder="Value"
-                                  className="w-full bg-transparent outline-none text-muted"
-                                />
-                              </td>
-                              <td className="p-2 text-center">
-                                <button
-                                  type="button"
-                                  onClick={() => setHeadersList(headersList.filter((_, i) => i !== idx))}
-                                  className="text-muted hover:text-red-500 cursor-pointer text-sm font-bold"
-                                >
-                                  ×
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* TAB 4: BODY */}
-                {requestTab === 'body' && (
-                  <div className="p-4 space-y-2">
-                    <div className="flex items-center justify-between text-xs pb-1">
-                      <div className="flex items-center gap-3">
-                        <label className="flex items-center gap-1.5 cursor-pointer font-bold text-ink text-xs">
-                          <input type="radio" checked readOnly className="accent-[#10b981]" />
-                          <span>raw (JSON)</span>
-                        </label>
-                      </div>
-                      <div className="flex items-center gap-2">
+                    {/* Password */}
+                    <div>
+                      <span className="text-[11px] text-muted font-medium block mb-1">Password</span>
+                      <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-950 rounded-lg border border-line focus-within:border-[#10b981] transition-all">
+                        <Lock size={13} className="text-muted shrink-0" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={apiPassword}
+                          onChange={(e) => setApiPassword(e.target.value)}
+                          className="flex-1 bg-transparent text-xs text-ink outline-none"
+                          placeholder="enter password"
+                        />
                         <button
                           type="button"
-                          onClick={() => setRequestBodyText(sampleJsonPayload)}
-                          className="text-[11px] text-muted hover:text-ink cursor-pointer hover:underline"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="text-muted hover:text-ink p-1 cursor-pointer transition shrink-0"
+                          title={showPassword ? 'Hide Password' : 'Show Password'}
                         >
-                          Reset Template
+                          {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
                         </button>
                       </div>
                     </div>
-                    <div className="relative rounded-xl border border-line overflow-hidden bg-slate-950">
-                      <textarea
-                        rows={8}
-                        value={requestBodyText || sampleJsonPayload}
-                        onChange={(e) => setRequestBodyText(e.target.value)}
-                        className="w-full font-mono text-xs p-3.5 bg-transparent text-emerald-400 outline-none resize-y leading-relaxed"
-                        spellCheck="false"
-                      />
-                    </div>
                   </div>
-                )}
-              </div>
-
-              {/* POSTMAN RESPONSE CONSOLE */}
-              <div className="border border-line rounded-xl overflow-hidden bg-white dark:bg-slate-950 shadow-sm">
-                <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-slate-900/80 border-b border-line">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-ink uppercase tracking-wide">Response</span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setResponseTab('pretty')}
-                        className={`text-xs px-2.5 py-1 rounded font-semibold transition cursor-pointer ${
-                          responseTab === 'pretty'
-                            ? 'bg-white dark:bg-slate-800 text-ink shadow-2xs'
-                            : 'text-muted hover:text-ink'
-                        }`}
-                      >
-                        Pretty
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setResponseTab('raw')}
-                        className={`text-xs px-2.5 py-1 rounded font-semibold transition cursor-pointer ${
-                          responseTab === 'raw'
-                            ? 'bg-white dark:bg-slate-800 text-ink shadow-2xs'
-                            : 'text-muted hover:text-ink'
-                        }`}
-                      >
-                        Raw
-                      </button>
-                    </div>
-                  </div>
-
-                  {responseState && (
-                    <div className="flex items-center gap-3 text-xs font-mono font-bold">
-                      <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                        Status: {responseState.status} {responseState.statusText}
-                      </span>
-                      <span className="text-muted hidden sm:inline">Time: {responseState.time}</span>
-                      <span className="text-muted hidden sm:inline">Size: {responseState.size}</span>
-                    </div>
-                  )}
                 </div>
 
-                <div className="p-4 bg-slate-950 text-slate-100 font-mono text-xs min-h-[140px] max-h-[300px] overflow-auto leading-relaxed">
-                  {responseState ? (
-                    <pre className="text-emerald-300">
-                      {responseTab === 'pretty'
-                        ? JSON.stringify(responseState.data, null, 2)
-                        : JSON.stringify(responseState.data)}
-                    </pre>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-8 text-slate-500 gap-1.5 select-none">
-                      <Send size={18} className="opacity-40" />
-                      <p className="text-xs">Click <strong className="text-slate-400">Send</strong> to execute the API request and view the live response.</p>
-                    </div>
-                  )}
+                {/* Actions: Save & Run and Execute */}
+                <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2 border-t border-line/60">
+                  <button
+                    type="button"
+                    onClick={handleSaveApiConfig}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold border border-line bg-white dark:bg-slate-800 text-ink hover:bg-slate-100 dark:hover:bg-slate-700 shadow-2xs transition-all cursor-pointer"
+                  >
+                    <Save size={13} className="text-muted" />
+                    <span>Save</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSendRequest}
+                    disabled={apiTesting}
+                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-bold bg-[#10b981] hover:bg-emerald-600 text-white shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {apiTesting ? (
+                      <>
+                        <RefreshCw size={13} className="animate-spin" />
+                        <span>Executing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play size={13} />
+                        <span>Run and Execute</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
