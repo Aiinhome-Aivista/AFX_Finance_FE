@@ -1348,7 +1348,7 @@ export default function Finalize() {
               </div>
               <div className="text-center mt-2">
                 <p className="text-sm font-semibold text-ink">Fetching Knowledge Graph...</p>
-                <p className="text-xs text-muted mt-1">ontology nodes, edges and governance definitions</p>
+                {/* <p className="text-xs text-muted mt-1">ontology nodes, edges and governance definitions</p> */}
               </div>
             </div>
           )}
