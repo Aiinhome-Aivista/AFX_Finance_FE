@@ -137,6 +137,7 @@ export default function TelemetryUploadZone({
         onFileUploaded?.(uploaded)
         onProcessingUpdate?.(file.name, 'parsing')
         loadFiles()
+        window.dispatchEvent(new CustomEvent('afx_journey_refresh'))
       } catch (err) {
         setQueue((q) =>
           q.map((item) =>
@@ -154,6 +155,7 @@ export default function TelemetryUploadZone({
       await filesApi.remove(fileId)
       toast.success(`Deleted ${fileName}`)
       loadFiles()
+      window.dispatchEvent(new CustomEvent('afx_journey_refresh'))
     } catch (err) {
       toast.error(err.message)
     }

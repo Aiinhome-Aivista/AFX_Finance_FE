@@ -241,22 +241,9 @@ export default function FinanceWorkspaceSelection() {
         sessionStorage.setItem('afx_current_workspace', my.name)
         sessionStorage.setItem('afx_active_model_name', my.name)
         sessionStorage.removeItem('afx_fresh_session')
-        const queryParams = `?wf=${my.workflow_id || ''}&model=${encodeURIComponent(my.name)}`
+        const queryParams = `?model=${encodeURIComponent(my.name)}${my.workflow_id ? `&wf=${my.workflow_id}` : ''}`
 
-        if (my.stage === 'twin' || my.isTwin) {
-          nav(`/finance/${targetSlug}/twin${queryParams}`, {
-            state: { modelName: my.name, model: my },
-          })
-          return
-        }
-        if (my.stage === 'finalize') {
-          nav(`/finance/${targetSlug}/finalize${queryParams}`, {
-            state: { modelName: my.name, model: my },
-          })
-          return
-        }
-
-        nav(`/finance/${targetSlug}${queryParams}`, {
+        nav(`/finance${queryParams}`, {
           state: { modelName: my.name, model: my },
         })
         return
@@ -366,7 +353,7 @@ export default function FinanceWorkspaceSelection() {
       setNewModalOpen(false)
       toast.success(`Workspace "${cleanName}" created and registered in database!`)
 
-      const targetUrl = `/finance?model=${encodeURIComponent(cleanName)}${res?.workflow_id ? `&wf=${res.workflow_id}` : ''}`
+      const targetUrl = `/finance?model=${encodeURIComponent(cleanName)}`
       nav(targetUrl, { replace: true })
     } catch (err) {
       toast.error('Failed creating workspace in database: ' + (err.message || String(err)))
@@ -515,9 +502,9 @@ export default function FinanceWorkspaceSelection() {
                             )}
                           </div>
                         </div>
-                        <p className="text-xs text-mute mt-1">
+                        {/* <p className="text-xs text-mute mt-1">
                           Domain: {(m.domainName || m.slug?.replace(/-/g, ' ') || '').replace(/\s*[·-]\s*Governed Architecture/i, '')}
-                        </p>
+                        </p> */}
                         <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
                           <span>Published on {m.publishedAt ? new Date(m.publishedAt).toLocaleDateString() : 'Recent'}</span>
                           <span className="text-[#10b981] font-semibold">Explore Digital Twin →</span>
@@ -544,7 +531,6 @@ export default function FinanceWorkspaceSelection() {
                   </div>
                   <div>
                     <h2 className="text-sm font-bold text-ink">My Finance Models</h2>
-                    <p className="text-xs text-mute">Models saved via "Save As"</p>
                   </div>
                 </div>
                 <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-surface2 border border-line text-mute">
@@ -574,9 +560,9 @@ export default function FinanceWorkspaceSelection() {
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <h3 className="text-sm font-bold text-ink">{m.name.replace(/_/g, ' ')}</h3>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/10 text-amber-600 border-amber-500/30">
+                            {/* <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/10 text-amber-600 border-amber-500/30">
                               Saved Snapshot
-                            </span>
+                            </span> */}
                             <button
                               type="button"
                               onClick={(e) => handleDeleteSavedModel(e, m.name)}
@@ -587,9 +573,6 @@ export default function FinanceWorkspaceSelection() {
                             </button>
                           </div>
                         </div>
-                        <p className="text-xs text-mute mt-1">
-                          Domain: {m.domainName || (m.slug ? m.slug.replace(/-/g, ' ') : ' ')}
-                        </p>
                         <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
                           <span>Saved on {m.savedAt ? new Date(m.savedAt).toLocaleDateString() : (m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'Recent')}</span>
                           <button
@@ -682,9 +665,6 @@ export default function FinanceWorkspaceSelection() {
                             )}
                           </div>
                         </div>
-                        <p className="text-xs text-mute mt-1">
-                          Domain: {(m.domainName || m.slug?.replace(/-/g, ' ') || '').replace(/\s*[·-]\s*Governed Architecture/i, '')}
-                        </p>
                         <div className="mt-3 flex items-center justify-between text-[11px] text-mute pt-2 border-t border-line/40">
                           <span>Published on {m.publishedAt ? new Date(m.publishedAt).toLocaleDateString() : 'Recent'}</span>
                           <span className="text-[#10b981] font-semibold">Explore Digital Twin →</span>
@@ -712,8 +692,8 @@ export default function FinanceWorkspaceSelection() {
                     Published Twin
                   </span>
                 ) : (
-                  <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/30">
-                    Saved Snapshot
+                  <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold  text-amber-600 ">
+                    {/* Saved Snapshot */}
                   </span>
                 )}
               </span>

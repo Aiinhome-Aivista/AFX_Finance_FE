@@ -1051,6 +1051,7 @@ export default function Finalize() {
       toast.success('Workspace Digital Twin finalized & governed! Enterprise workflow complete.')
       setDlg(null)
       updateDomainWorkflow(slug, { isFinalized: true })
+      window.dispatchEvent(new CustomEvent('afx_journey_refresh'))
       navigate(`/finance/${slug}/twin${wsQuery}`)
     } catch (e) {
       toast.error(e.message)
@@ -1072,6 +1073,7 @@ export default function Finalize() {
         isGapMode: false,
         viewMode: 'chat',
       })
+      window.dispatchEvent(new CustomEvent('afx_journey_refresh'))
       await Promise.all([wf.reload(), fin.reload(), g.reload()])
       navigate(`/finance/${slug}${wsQuery}`)
     } catch (e) {

@@ -101,12 +101,12 @@ export default function DomainJourneyTracker({ className = '' }) {
   useEffect(() => {
     const handleRefresh = () => loadJourney()
     window.addEventListener('afx_journey_refresh', handleRefresh)
-    window.addEventListener('focus', handleRefresh)
-    const interval = setInterval(handleRefresh, 6000)
+    // window.addEventListener('focus', handleRefresh)
+    // const interval = setInterval(handleRefresh, 6000)
     return () => {
       window.removeEventListener('afx_journey_refresh', handleRefresh)
-      window.removeEventListener('focus', handleRefresh)
-      clearInterval(interval)
+      // window.removeEventListener('focus', handleRefresh)
+      // clearInterval(interval)
     }
   }, [loadJourney])
 

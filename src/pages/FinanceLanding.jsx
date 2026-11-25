@@ -647,7 +647,7 @@ export default function FinanceLanding() {
                   {selectedNode.d !== 'spine' && DOMAIN_SLUGS[selectedNode.d] && (() => {
                     const targetSlug = DOMAIN_SLUGS[selectedNode.d]
                     const activeModel = searchParams.get('model') || sessionStorage.getItem('afx_current_workspace') || sessionStorage.getItem(`afx_active_model_${targetSlug}`)
-                    const activeWf = searchParams.get('wf') || (activeModel ? sessionStorage.getItem(`afx_active_wf_${targetSlug}`) : null)
+                    const activeWf = sessionStorage.getItem(`afx_active_wf_${targetSlug}`) || null
                     const isExplicitFresh = searchParams.get('fresh') === '1' && !activeModel
                     let targetUrl = `/finance/${targetSlug}`
                     if (activeModel) {
