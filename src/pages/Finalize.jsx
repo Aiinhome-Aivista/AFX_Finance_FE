@@ -11,6 +11,7 @@ import {
   History,
   Lock,
   MessageSquarePlus,
+  Network,
   Save,
   ShieldAlert,
   X,
@@ -933,6 +934,14 @@ export default function Finalize() {
     }
   }, [wsReview, effectiveBaseGraph])
 
+  const isGraphLoading = Boolean(
+    wsReviewLoading ||
+    wf.loading ||
+    g.loading ||
+    updatingGraph ||
+    (effectiveDisplayGraph.nodes.length === 0 && !wsReview)
+  )
+
   const d = useMemo(() => {
     if (fin.data) return fin.data
     return {
@@ -1329,6 +1338,20 @@ export default function Finalize() {
             onBackgroundClick={() => setDomainTooltip(null)}
             className="w-full h-full"
           />
+
+          {/* Centered Knowledge Graph Loader (Matches 1st Screenshot) */}
+          {isGraphLoading && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-surface/90 backdrop-blur-xs transition-opacity duration-300 select-none">
+              <div className="relative flex items-center justify-center">
+                <div className="h-14 w-14 rounded-full border-4 border-brand/20 border-t-brand animate-spin" />
+                <Network className="absolute text-brand animate-pulse" size={20} />
+              </div>
+              <div className="text-center mt-2">
+                <p className="text-sm font-semibold text-ink">Fetching Knowledge Graph...</p>
+                <p className="text-xs text-muted mt-1">ontology nodes, edges and governance definitions</p>
+              </div>
+            </div>
+          )}
 
           {/* Interactive Domain Tooltip Popover */}
           {domainTooltip && (

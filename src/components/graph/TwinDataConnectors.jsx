@@ -657,8 +657,11 @@ export default function TwinDataConnectors({
                     <p className="text-xs font-bold text-ink">
                       <span className="text-[#10b981] hover:underline">Click to browse</span> or drag and drop your CSV file here
                     </p>
-                    <p className="text-[11px] text-muted">
+                    {/* <p className="text-[11px] text-muted">
                       Supports .CSV only (up to 100MB) · Directly ingested into workspace database {dbInfo?.db_name ? `(${dbInfo.db_name})` : ''}
+                    </p> */}
+                    <p className="text-[11px] text-muted">
+                      Supports .CSV only (up to 25MB)
                     </p>
                   </div>
                 )}
@@ -738,12 +741,12 @@ export default function TwinDataConnectors({
                               <span>{(tf.size_bytes / 1024).toFixed(1)} KB</span>
                               <span>•</span>
                               <span className="text-emerald-600 dark:text-emerald-400 font-medium">Ingested into Workspace DB</span>
-                              {tf.created_at && (
+                              {/* {tf.created_at && (
                                 <>
                                   <span>•</span>
                                   <span>{new Date(tf.created_at).toLocaleTimeString()}</span>
                                 </>
-                              )}
+                              )} */}
                             </p>
                           </div>
                         </div>
