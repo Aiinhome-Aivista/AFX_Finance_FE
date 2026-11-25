@@ -490,7 +490,7 @@ export default function TwinDataConnectors({
                       value={authToken}
                       onChange={(e) => setAuthToken(e.target.value)}
                       className="flex-1 bg-transparent text-xs font-mono text-ink outline-none"
-                      placeholder="enter API key"
+                      placeholder="Enter API Key"
                     />
                     <button
                       type="button"
@@ -524,7 +524,7 @@ export default function TwinDataConnectors({
                           value={apiUsername}
                           onChange={(e) => setApiUsername(e.target.value)}
                           className="flex-1 bg-transparent text-xs text-ink outline-none"
-                          placeholder="enter username"
+                          placeholder="Enter Username"
                         />
                       </div>
                     </div>
@@ -539,7 +539,7 @@ export default function TwinDataConnectors({
                           value={apiPassword}
                           onChange={(e) => setApiPassword(e.target.value)}
                           className="flex-1 bg-transparent text-xs text-ink outline-none"
-                          placeholder="enter password"
+                          placeholder="Enter Password"
                         />
                         <button
                           type="button"
