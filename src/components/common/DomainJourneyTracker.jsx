@@ -1,8 +1,46 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
-import { CheckCircle2, Compass, MessageSquare, Upload, FileCheck, Layers, X, Sparkles, Database, FileText } from 'lucide-react'
+import {
+  CheckCircle2,
+  Compass,
+  MessageSquare,
+  Upload,
+  FileCheck,
+  Layers,
+  X,
+  Sparkles,
+  Database,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  HelpCircle,
+  FileSpreadsheet,
+  FileCode,
+  Bot,
+  User
+} from 'lucide-react'
 import { domains } from '../../api'
 import { useAuth } from '../../context/AuthContext'
+
+function formatBytes(bytes, decimals = 1) {
+  if (!bytes || bytes === 0) return '0 B'
+  const k = 1024
+  const dm = decimals < 0 ? 0 : decimals
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+}
+
+function getFileIcon(ext) {
+  const cleanExt = (ext || '').toLowerCase().replace('.', '')
+  if (['csv', 'xlsx', 'xls', 'tsv'].includes(cleanExt)) {
+    return <FileSpreadsheet size={15} className="text-emerald-500 shrink-0" />
+  }
+  if (['json', 'sql', 'xml'].includes(cleanExt)) {
+    return <FileCode size={15} className="text-amber-500 shrink-0" />
+  }
+  return <FileText size={15} className="text-sky-500 shrink-0" />
+}
 
 export default function DomainJourneyTracker({ className = '' }) {
   const [searchParams] = useSearchParams()
@@ -182,11 +220,11 @@ export default function DomainJourneyTracker({ className = '' }) {
           onClick={() => setActiveModalItem(null)}
         >
           <div
-            className="relative w-full max-w-lg rounded-2xl border border-line bg-surface p-6 shadow-2xl space-y-5 animate-scaleIn"
+            className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl border border-line bg-surface p-6 shadow-2xl animate-scaleIn"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-start justify-between gap-4 pb-4 border-b border-line">
+            <div className="flex items-start justify-between gap-4 pb-4 border-b border-line shrink-0">
               <div className="flex items-center gap-3">
                 <span
                   className="px-3 py-1.5 rounded-xl text-sm font-black tracking-wide border shadow-2xs"
@@ -218,7 +256,7 @@ export default function DomainJourneyTracker({ className = '' }) {
             </div>
 
             {/* Checkpoint Status Banner */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-surface2/60 border border-line">
+            <div className="flex items-center justify-between p-3.5 mt-4 rounded-xl bg-surface2/60 border border-line shrink-0">
               <span className="text-xs font-semibold text-muted">Current Checkpoint:</span>
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold border ${activeModalItem.checkpoint_key === 'finalized'
@@ -235,72 +273,172 @@ export default function DomainJourneyTracker({ className = '' }) {
               </span>
             </div>
 
-            {/* Details List */}
-            <div className="space-y-3">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto space-y-4 my-4 pr-1">
               <h4 className="text-xs font-bold uppercase tracking-wider text-muted">
                 Completed Actions in this Domain
               </h4>
-              <div className="space-y-2 text-xs text-ink">
-                <div className="flex items-start gap-3 p-3 rounded-xl border border-line bg-surface2/30">
-                  <span className="mt-0.5 text-brand">
-                    <Sparkles size={16} />
-                  </span>
-                  <div>
-                    <strong className="block font-semibold">Model Status</strong>
-                    <span className="text-muted">
-                      {activeModalItem.checkpoint_key === 'finalized'
-                        ? 'Model finalized and published as a governed digital twin.'
-                        : 'Domain ontology customized and currently in active development.'}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-xl border border-line bg-surface2/30">
-                  <span className="mt-0.5 text-sky-500">
-                    <Database size={16} />
+              {/* Model Status */}
+              <div className="flex items-start gap-3 p-3.5 rounded-xl border border-line bg-surface2/30">
+                <span className="mt-0.5 text-brand shrink-0">
+                  <Sparkles size={16} />
+                </span>
+                <div>
+                  <strong className="block font-semibold text-xs text-ink">Model Status</strong>
+                  <span className="text-xs text-muted">
+                    {activeModalItem.checkpoint_key === 'finalized'
+                      ? 'Model finalized and published as a governed digital twin.'
+                      : 'Domain ontology customized and currently in active development.'}
                   </span>
-                  <div>
-                    <strong className="block font-semibold">Data & Telemetry Ingestion</strong>
-                    <span className="text-muted">
-                      {activeModalItem.files_count > 0
-                        ? `${activeModalItem.files_count} dataset/spreadsheet file(s) uploaded and parsed.`
-                        : 'No external dataset files uploaded yet.'}
-                    </span>
-                  </div>
                 </div>
+              </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-xl border border-line bg-surface2/30">
-                  <span className="mt-0.5 text-indigo-500">
-                    <MessageSquare size={16} />
-                  </span>
-                  <div>
-                    <strong className="block font-semibold">Business Q&A & Interview</strong>
-                    <span className="text-muted">
-                      {activeModalItem.user_messages_count > 0
-                        ? `${activeModalItem.user_messages_count} business question answer(s) recorded in discovery.`
-                        : 'No interactive answers submitted yet.'}
-                    </span>
-                  </div>
-                </div>
-
-                {activeModalItem.proposals_count > 0 && (
-                  <div className="flex items-start gap-3 p-3 rounded-xl border border-line bg-surface2/30">
-                    <span className="mt-0.5 text-amber-500">
-                      <FileCheck size={16} />
+              {/* Data & Telemetry Ingestion (Uploaded Files Section) */}
+              <div className="p-3.5 rounded-xl border border-line bg-surface2/30 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-sky-500 shrink-0">
+                      <Database size={16} />
                     </span>
                     <div>
-                      <strong className="block font-semibold">Change Proposals</strong>
-                      <span className="text-muted">
-                        {activeModalItem.proposals_count} structural change proposal(s) processed.
+                      <strong className="block font-semibold text-xs text-ink">Data & Telemetry Ingestion</strong>
+                      <span className="text-[11px] text-muted">
+                        {activeModalItem.files_count > 0
+                          ? `${activeModalItem.files_count} dataset/spreadsheet file(s) uploaded and parsed.`
+                          : 'No external dataset files uploaded yet.'}
                       </span>
                     </div>
                   </div>
+                  {activeModalItem.uploaded_files_list && activeModalItem.uploaded_files_list.length > 0 && (
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200 dark:border-sky-800">
+                      {activeModalItem.uploaded_files_list.length} file{activeModalItem.uploaded_files_list.length > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+
+                {/* Uploaded Files Detailed List */}
+                {activeModalItem.uploaded_files_list && activeModalItem.uploaded_files_list.length > 0 && (
+                  <div className="mt-2 space-y-2 pt-2 border-t border-line/60">
+                    {activeModalItem.uploaded_files_list.map((f, idx) => (
+                      <div
+                        key={f.id || idx}
+                        className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-line bg-surface hover:bg-surface2/60 transition text-xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {getFileIcon(f.ext || f.original_name?.split('.').pop())}
+                          <div className="min-w-0">
+                            <p className="font-semibold text-ink truncate text-xs" title={f.original_name}>
+                              {f.original_name}
+                            </p>
+                            <p className="text-[10px] text-muted flex items-center gap-2 mt-0.5">
+                              {f.size_bytes ? <span>{formatBytes(f.size_bytes)}</span> : null}
+                              {f.stage && <span className="capitalize">• {f.stage.replace(/_/g, ' ')}</span>}
+                              {f.created_at && (
+                                <span>
+                                  • {new Date(f.created_at).toLocaleDateString()}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        {f.status && (
+                          <span className="shrink-0 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-surface2 text-muted border border-line">
+                            {f.status}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
+
+              {/* Business Input Section */}
+              <div className="p-3.5 rounded-xl border border-line bg-surface2/30 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-indigo-500 shrink-0">
+                      <MessageSquare size={16} />
+                    </span>
+                    <div>
+                      <strong className="block font-semibold text-xs text-ink">Business Input</strong>
+                      <span className="text-[11px] text-muted">
+                        {activeModalItem.user_messages_count > 0
+                          ? `${activeModalItem.user_messages_count} answer(s) recorded in discovery.`
+                          : 'No business inputs submitted yet.'}
+                      </span>
+                    </div>
+                  </div>
+                  {activeModalItem.qa_list && activeModalItem.qa_list.filter((qa) => qa.answer && qa.answer.trim()).length > 0 && (
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold border border-indigo-200 dark:border-indigo-800">
+                      {activeModalItem.qa_list.filter((qa) => qa.answer && qa.answer.trim()).length} Q&A
+                    </span>
+                  )}
+                </div>
+
+                {/* Q&A Chat Conversation Thread (Only answered questions) */}
+                {activeModalItem.qa_list && activeModalItem.qa_list.filter((qa) => qa.answer && qa.answer.trim()).length > 0 && (
+                  <div className="mt-2 space-y-3 pt-3 border-t border-line/60">
+                    {activeModalItem.qa_list
+                      .filter((qa) => qa.answer && qa.answer.trim())
+                      .map((qa, idx) => (
+                        <div
+                          key={qa.id || idx}
+                          className="space-y-2.5"
+                        >
+                          {/* Question (Assistant message bubble) */}
+                          <div className="flex gap-2.5 items-start">
+                            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-surface2 text-brand border border-line text-xs font-semibold shadow-2xs">
+                              <Bot size={14} />
+                            </span>
+                            <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-brand/30 bg-brand/5 dark:bg-brand/10 px-3.5 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-2xs text-ink">
+                              <p className="whitespace-pre-wrap font-medium">
+                                {qa.question}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Answer (User message bubble) */}
+                          <div className="flex gap-2.5 flex-row-reverse items-start">
+                            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-brand text-white shadow-brand/20 text-xs font-semibold shadow-2xs">
+                              <User size={14} />
+                            </span>
+                            <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-brand text-white px-3.5 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-2xs">
+                              <p className="whitespace-pre-wrap font-medium">
+                                {qa.answer}
+                              </p>
+                              {qa.answered_at && (
+                                <span className="block text-[10px] text-white/75 mt-1 text-right">
+                                  {new Date(qa.answered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}{' '}
+                                  · {new Date(qa.answered_at).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Proposals Count if any */}
+              {activeModalItem.proposals_count > 0 && (
+                <div className="flex items-start gap-3 p-3.5 rounded-xl border border-line bg-surface2/30">
+                  <span className="mt-0.5 text-amber-500 shrink-0">
+                    <FileCheck size={16} />
+                  </span>
+                  <div>
+                    <strong className="block font-semibold text-xs text-ink">Change Proposals</strong>
+                    <span className="text-xs text-muted">
+                      {activeModalItem.proposals_count} structural change proposal(s) processed.
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer */}
-            <div className="pt-3 border-t border-line flex justify-end">
+            <div className="pt-3 border-t border-line flex justify-end shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveModalItem(null)}

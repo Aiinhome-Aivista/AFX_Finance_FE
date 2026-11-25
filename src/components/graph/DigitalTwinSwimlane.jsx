@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Play, Pause, RotateCcw, AlertTriangle } from 'lucide-react'
+import { Play, Pause, RotateCcw, AlertTriangle, ShieldAlert, UserCheck, Clock, CheckCircle } from 'lucide-react'
 
 function esc(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -619,29 +619,31 @@ function buildSwimlaneSvgString(model, opts = {}) {
     }
 
     const tip = esc(s.label) + (s.hitl ? ' — HITL: ' + esc(s.hitlWhy || 'approval') : '') + (s.agent ? ' — agent step' : '')
+    const hitlAttr = s.hitl ? ` data-hitl="1" data-step-idx="${i}" style="cursor:pointer;filter:drop-shadow(0 2px 4px rgba(245,158,11,0.15))"` : ''
 
     if (s.type === 'decision') {
-      sv.push(`<polygon data-step="${i}" points="${x},${y - 30} ${x + 74},${y} ${x},${y + 30} ${x - 74},${y}" fill="${fill}" stroke="${stroke}" stroke-width="1.8"${s.hitl ? ' stroke-dasharray="5 3"' : ''} style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.06))"><title>${tip}</title></polygon>`)
+      sv.push(`<g class="swimlane-node-group"${hitlAttr}><polygon data-step="${i}" points="${x},${y - 30} ${x + 74},${y} ${x},${y + 30} ${x - 74},${y}" fill="${fill}" stroke="${stroke}" stroke-width="1.8"${s.hitl ? ' stroke-dasharray="5 3"' : ''} style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.06))"><title>${tip}</title></polygon>`)
       const wd = wrap(s.label, 17).slice(0, 2)
       wd.forEach((w, k) => {
-        sv.push(`<text x="${x}" y="${y - 4 + k * 11 + (wd.length === 1 ? 4 : 0)}" text-anchor="middle" style="font:700 8.8px Inter,system-ui;fill:${txtFill}">${esc(w)}</text>`)
+        sv.push(`<text x="${x}" y="${y - 4 + k * 11 + (wd.length === 1 ? 4 : 0)}" text-anchor="middle" style="font:700 8.8px Inter,system-ui;fill:${txtFill};pointer-events:none">${esc(w)}</text>`)
       })
       let dc = null
       if (s.hitl) dc = ['#FEF3C7', '#B45309', 'HITL: ' + (s.hitlWhy || 'approval').slice(0, 16)]
       else if (isAgent) dc = ['#EDE9FE', '#6D28D9', 'AGENT — autonomous']
       else if (s.act === 'assist') dc = ['#EDE9FE', '#6D28D9', 'Assist · human leads']
       if (dc) {
-        sv.push(`<rect x="${x - 52}" y="${y + 31}" width="104" height="12" rx="6" fill="${dc[0]}" stroke="#E2E8F0"/><text x="${x}" y="${y + 40}" text-anchor="middle" style="font:700 7.4px Inter,system-ui;fill:${dc[1]}">${esc(dc[2])}</text>`)
+        sv.push(`<rect x="${x - 52}" y="${y + 31}" width="104" height="12" rx="6" fill="${dc[0]}" stroke="#E2E8F0"/><text x="${x}" y="${y + 40}" text-anchor="middle" style="font:700 7.4px Inter,system-ui;fill:${dc[1]};pointer-events:none">${esc(dc[2])}</text>`)
       }
+      sv.push(`</g>`)
     } else {
-      sv.push(`<rect data-step="${i}" x="${x - BW / 2}" y="${y - BH / 2}" width="${BW}" height="${BH}" rx="9" fill="${fill}" stroke="${stroke}" stroke-width="${s.type === 'approval' ? 2.4 : 1.6}"${s.hitl ? ' stroke-dasharray="5 3"' : ''} style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.05))"><title>${tip}</title></rect>`)
+      sv.push(`<g class="swimlane-node-group"${hitlAttr}><rect data-step="${i}" x="${x - BW / 2}" y="${y - BH / 2}" width="${BW}" height="${BH}" rx="9" fill="${fill}" stroke="${stroke}" stroke-width="${s.type === 'approval' ? 2.4 : 1.6}"${s.hitl ? ' stroke-dasharray="5 3"' : ''} style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.05))"><title>${tip}</title></rect>`)
       if (s.type === 'approval') {
         sv.push(`<rect x="${x - BW / 2}" y="${y - BH / 2}" width="${BW}" height="6" rx="3" fill="${stroke}"/>`)
       }
       const lines = wrap(s.label, 22).slice(0, (s.hitl || s.agent || s.act === 'assist') ? 2 : 3)
       const sy = y - (lines.length - 1) * 5.5 - ((s.hitl || s.act === 'assist' || isAgent) ? 6 : 0) + (s.type === 'approval' ? 2 : 0)
       lines.forEach((w, k) => {
-        sv.push(`<text x="${x}" y="${sy + k * 11}" text-anchor="middle" style="font:700 9.4px Inter,system-ui;fill:${txtFill}">${esc(w)}</text>`)
+        sv.push(`<text x="${x}" y="${sy + k * 11}" text-anchor="middle" style="font:700 9.4px Inter,system-ui;fill:${txtFill};pointer-events:none">${esc(w)}</text>`)
       })
       const chipY = y + BH / 2 - 16
       let cc = null
@@ -649,8 +651,9 @@ function buildSwimlaneSvgString(model, opts = {}) {
       else if (isAgent) cc = ['#EDE9FE', '#5B21B6', 'AGENT — autonomous']
       else if (s.act === 'assist') cc = ['#EDE9FE', '#6D28D9', 'AGENT-ASSISTED · human leads']
       if (cc) {
-        sv.push(`<rect x="${x - BW / 2 + 6}" y="${chipY}" width="${BW - 12}" height="13" rx="6.5" fill="${cc[0]}"/><text x="${x}" y="${chipY + 9.5}" text-anchor="middle" style="font:700 7.6px Inter,system-ui;fill:${cc[1]}">${esc(cc[2])}</text>`)
+        sv.push(`<rect x="${x - BW / 2 + 6}" y="${chipY}" width="${BW - 12}" height="13" rx="6.5" fill="${cc[0]}"/><text x="${x}" y="${chipY + 9.5}" text-anchor="middle" style="font:700 7.6px Inter,system-ui;fill:${cc[1]};pointer-events:none">${esc(cc[2])}</text>`)
       }
+      sv.push(`</g>`)
     }
 
     // Step index number
@@ -676,6 +679,7 @@ export default function DigitalTwinSwimlane({
   const [internalFitMode, setInternalFitMode] = useState('fit')
   const fitMode = propFitMode !== undefined ? propFitMode : internalFitMode
   const setFitMode = propSetFitMode || setInternalFitMode
+  const [activeTooltip, setActiveTooltip] = useState(null)
 
   const model = useMemo(() => {
     return getDynamicTwinModel({ domainName, slug, nodes })
@@ -736,6 +740,76 @@ export default function DigitalTwinSwimlane({
       }
     }
   }, [fitMode, svgWidth, svgHtml])
+
+  // Attach hover & click event listeners for highlighted HITL/escalation boxes
+  useEffect(() => {
+    if (!containerRef.current) return
+    const container = containerRef.current
+    const svg = container.querySelector('svg')
+    if (!svg) return
+
+    const triggerTooltip = (group) => {
+      if (!group) return
+      const stepIdx = Number(group.getAttribute('data-step-idx'))
+      const step = TW[stepIdx]
+      if (!step) return
+
+      const rect = group.getBoundingClientRect()
+      const containerRect = container.getBoundingClientRect()
+
+      // Calculate relative position inside the scrollable container
+      const left = rect.left - containerRect.left + container.scrollLeft + rect.width / 2
+      const top = rect.top - containerRect.top + container.scrollTop
+      const bottom = top + rect.height
+
+      // If the node is too close to the top of the container (< 230px),
+      // place tooltip below the node so it never gets clipped above!
+      const placeBelow = (rect.top - containerRect.top) < 220
+
+      setActiveTooltip({
+        step,
+        stepIdx,
+        x: left,
+        y: placeBelow ? bottom : top,
+        placeBelow,
+      })
+    }
+
+    const handleMouseEnter = (e) => {
+      const group = e.target.closest('[data-hitl="1"]')
+      triggerTooltip(group)
+    }
+
+    const handleClick = (e) => {
+      const group = e.target.closest('[data-hitl="1"]')
+      if (!group) return
+      e.stopPropagation()
+      triggerTooltip(group)
+    }
+
+    const handleMouseLeave = (e) => {
+      const related = e.relatedTarget
+      if (related && related.closest && (related.closest('.escalation-tooltip-card') || related.closest('[data-hitl="1"]'))) {
+        return
+      }
+      setActiveTooltip(null)
+    }
+
+    const hitlElements = svg.querySelectorAll('[data-hitl="1"]')
+    hitlElements.forEach((el) => {
+      el.addEventListener('mouseenter', handleMouseEnter)
+      el.addEventListener('mouseleave', handleMouseLeave)
+      el.addEventListener('click', handleClick)
+    })
+
+    return () => {
+      hitlElements.forEach((el) => {
+        el.removeEventListener('mouseenter', handleMouseEnter)
+        el.removeEventListener('mouseleave', handleMouseLeave)
+        el.removeEventListener('click', handleClick)
+      })
+    }
+  }, [svgHtml, TW])
 
   const twLane = (i) => TW[i].lane
   const twCap = (lane) => {
@@ -1041,11 +1115,11 @@ export default function DigitalTwinSwimlane({
   }
 
   return (
-    <div className="w-full flex flex-col font-sans text-slate-800 bg-white select-none">
+    <div className="relative w-full flex flex-col font-sans text-slate-800 bg-white select-none">
       {/* Main Swimlane SVG Canvas (Pure White Background) */}
       <div
         ref={containerRef}
-        className="w-full bg-white overflow-x-auto overflow-y-auto"
+        className="relative w-full bg-white overflow-x-auto overflow-y-auto"
         style={{
           minHeight: '520px',
           maxHeight: 'calc(100vh - 360px)',
@@ -1063,6 +1137,108 @@ export default function DigitalTwinSwimlane({
           }}
           dangerouslySetInnerHTML={{ __html: svgHtml }}
         />
+
+        {/* Hover & Click Tooltip Card for Escalation / HITL Nodes */}
+        {activeTooltip && (
+          <div
+            className="escalation-tooltip-card absolute z-50 pointer-events-auto transition-all duration-200 animate-in fade-in zoom-in-95"
+            style={{
+              left: `${activeTooltip.x}px`,
+              top: `${activeTooltip.placeBelow ? activeTooltip.y + 14 : activeTooltip.y - 14}px`,
+              transform: activeTooltip.placeBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
+            }}
+            onMouseEnter={() => {}}
+            onMouseLeave={() => setActiveTooltip(null)}
+          >
+            {/* Top Arrow Pointer when placed below the node */}
+            {activeTooltip.placeBelow && (
+              <div className="w-0 h-0 border-x-6 border-x-transparent border-b-6 border-b-amber-300 mx-auto" />
+            )}
+
+            <div className="w-80 rounded-xl border border-amber-300 bg-white p-3.5 shadow-xl text-slate-800 text-xs space-y-2.5">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-2 border-b border-amber-100 pb-2">
+                <div className="flex items-center gap-1.5 text-amber-700 font-bold">
+                  <ShieldAlert size={16} className="text-amber-500 shrink-0" />
+                  <span className="text-xs uppercase tracking-wider">Policy Escalation Point</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                    Step {activeTooltip.stepIdx + 1}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setActiveTooltip(null)
+                    }}
+                    className="text-slate-400 hover:text-slate-700 font-bold px-1 rounded hover:bg-slate-100 text-xs leading-none"
+                    title="Close"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Title & Description */}
+              <div>
+                <h5 className="font-bold text-slate-900 text-sm leading-snug">
+                  {activeTooltip.step.label}
+                </h5>
+                <p className="text-[11px] text-slate-600 mt-1">
+                  {activeTooltip.step.hitlWhy === 'policy tolerance check'
+                    ? 'Automated pipeline halts when metrics exceed defined tolerance limits or policy thresholds.'
+                    : `Manual governance required: ${activeTooltip.step.hitlWhy || 'Mandatory policy approval'}`}
+                </p>
+              </div>
+
+              {/* Specific Escalation Parameters */}
+              <div className="bg-amber-50/70 border border-amber-200/80 rounded-lg p-2.5 space-y-1.5 text-[11px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Assigned Role:</span>
+                  <span className="font-bold text-slate-800 flex items-center gap-1">
+                    <UserCheck size={12} className="text-amber-600" />
+                    {activeTooltip.step.lane}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Trigger Rule:</span>
+                  <span className="font-semibold text-amber-800">
+                    Variance &gt; 5% or Policy Breach
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Approval SLA:</span>
+                  <span className="font-semibold text-slate-700 flex items-center gap-1">
+                    <Clock size={12} className="text-slate-500" />
+                    4 Hours
+                  </span>
+                </div>
+                {activeTooltip.step.icom && (
+                  <div className="flex items-center justify-between pt-1 border-t border-amber-200/50">
+                    <span className="text-slate-500 font-medium">Governance Node:</span>
+                    <span className="font-bold text-emerald-700">
+                      {activeTooltip.step.icom}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Status footer */}
+              <div className="flex items-center justify-between pt-1 text-[10px] text-slate-500">
+                <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                  <CheckCircle size={11} /> Governed Twin Active
+                </span>
+                <span className="italic">HITL Policy Validated</span>
+              </div>
+            </div>
+
+            {/* Bottom Arrow Pointer when placed above the node */}
+            {!activeTooltip.placeBelow && (
+              <div className="w-0 h-0 border-x-6 border-x-transparent border-t-6 border-t-amber-300 mx-auto" />
+            )}
+          </div>
+        )}
       </div>
 
 
