@@ -50,7 +50,7 @@ export default function ChevronTracker() {
   const { domainMap } = useWorkflow()
 
   // Extract slug from /finance/:slug/...
-  const { currentStep, slug: effectiveSlug, isDomainActive, isDomainFinalized } = useMemo(() => {
+  const { currentStep, slug: effectiveSlug } = useMemo(() => {
     const parts = path.split('/').filter(Boolean)
     const nonSlugKeywords = ['overview', 'models', 'telemetry', 'apps']
     let extractedSlug = null
@@ -91,15 +91,9 @@ export default function ChevronTracker() {
       step = 2
     }
 
-    const isFinalized = Boolean(
-      (resolvedSlug && domainMap[resolvedSlug]?.isFinalized) || twinPage
-    )
-
     return {
       currentStep: step,
       slug: resolvedSlug,
-      isDomainActive: Boolean(extractedSlug),
-      isDomainFinalized: isFinalized,
     }
   }, [path, location.search, domainMap])
 
@@ -111,24 +105,7 @@ export default function ChevronTracker() {
       {STAGES.map((stage) => {
         const isActive = stage.id === currentStep
         const isCompleted = stage.id < currentStep
-
-        // Locking Rules:
-        // 1. In fresh workspace / Macro Overview (Step 1): Steps 2-5 are locked until a domain is selected.
-        // 2. Once a domain is started: Steps 1-4 are unlocked; Step 5 (Finalize Digital Twin) is locked until finalized.
-        let isLocked = false
-        let lockTitle = ''
-
-        if (!isDomainActive) {
-          if (stage.id > 1) {
-            isLocked = true
-            lockTitle = 'Select a domain from the overview graph below to start'
-          }
-        } else if (stage.id === 5) {
-          if (!isDomainFinalized) {
-            isLocked = true
-            lockTitle = "Complete Review and click 'Next: Finalize Twin' to unlock the Digital Twin"
-          }
-        }
+        const isLocked = !effectiveSlug && stage.id > 1
 
         // Enhanced High-End Styling (preserves exact chevron shape with modern depth):
         let outerBg = 'bg-slate-200/90 dark:bg-slate-600/70'
@@ -225,8 +202,8 @@ export default function ChevronTracker() {
           return (
             <div
               key={stage.id}
-              className="cursor-not-allowed opacity-45 shrink-0 select-none"
-              title={lockTitle || 'Step locked: Complete previous steps first'}
+              className="cursor-not-allowed opacity-55 shrink-0"
+              title="Step locked: Complete previous steps first"
             >
               {content}
             </div>
