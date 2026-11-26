@@ -1106,12 +1106,54 @@ export default function Finalize() {
     return searchParams.get('model') || (slug ? sessionStorage.getItem(`afx_active_model_${slug}`) : null) || sessionStorage.getItem('afx_current_workspace') || sessionStorage.getItem('afx_active_model_name') || ''
   }, [searchParams, slug])
 
-  const handleSaveProgress = () => {
-    if (activeWorkspaceName) {
-      executeSaveAs(activeWorkspaceName, 'overwrite')
-    } else {
-      setSaveAsOpen(true)
+  const performAutoSave = useCallback((modelNameOverride) => {
+    try {
+      const modelName = modelNameOverride || activeWorkspaceName || sessionStorage.getItem('afx_current_workspace') || sessionStorage.getItem('afx_active_model_name') || (d?.name ? `${d.name} Model` : 'Workspace Model')
+      const now = new Date()
+      const currentWf = searchParams.get('wf')
+      const nodes = graphDataWithGaps.nodes || []
+      const edges = graphDataWithGaps.edges || []
+
+      if (!nodes || nodes.length === 0) return
+
+      domains.saveCustomModel({
+        name: modelName,
+        slug,
+        wf: currentWf || undefined,
+        domainName: d?.name,
+        nodes,
+        edges,
+        savedAt: now.toISOString(),
+        createdAt: now.toISOString(),
+      }).then((res) => {
+        sessionStorage.removeItem('afx_fresh_session')
+        sessionStorage.setItem('afx_current_workspace', modelName)
+        sessionStorage.setItem('afx_active_model_name', modelName)
+        if (slug) {
+          sessionStorage.setItem(`afx_active_model_${slug}`, modelName)
+        }
+        if (res?.workflow_id && slug) {
+          sessionStorage.setItem(`afx_active_wf_${slug}`, String(res.workflow_id))
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('afx_journey_refresh'))
+        }
+      }).catch((err) => console.warn('Finalize auto-save silent warning:', err))
+    } catch (e) {
+      console.warn('Finalize auto-save execution error:', e)
     }
+  }, [activeWorkspaceName, d?.name, slug, graphDataWithGaps.nodes, graphDataWithGaps.edges, searchParams])
+
+  useEffect(() => {
+    if (!graphDataWithGaps.nodes?.length) return
+    const timer = setTimeout(() => {
+      performAutoSave()
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [graphDataWithGaps.nodes, graphDataWithGaps.edges, performAutoSave])
+
+  const handleSaveProgress = () => {
+    performAutoSave()
   }
 
   const handleSaveAs = () => {
@@ -1299,25 +1341,11 @@ export default function Finalize() {
               <span>Edit Model</span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleSaveProgress}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs bg-[#10b981] hover:bg-[#059669] text-[#0b1320]"
-              title={activeWorkspaceName ? `Save progress to "${activeWorkspaceName.replace(/_/g, ' ')}"` : 'Save workspace'}
-            >
-              <Save size={14} />
-              <span>{activeWorkspaceName ? 'Save Progress' : 'Save'}</span>
-            </button>
-            {activeWorkspaceName && (
-              <button
-                type="button"
-                onClick={handleSaveAs}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-2xs border border-line bg-surface hover:bg-surface2 text-muted hover:text-ink"
-                title="Save as a new workspace version"
-              >
-                <span>Save As...</span>
-              </button>
-            )}
+            {/* Auto-Save Status Indicator */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-surface2/60 border border-line text-muted text-[11px] font-medium shrink-0">
+              <CheckCircle2 size={12} className="text-[#10b981]" />
+              <span>Auto-saved</span>
+            </div>
           </div>
         </div>
       </div>
