@@ -350,11 +350,11 @@ export default function DigitalTwinExplorer() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
           <div className="space-y-1">
             <Link
-              to="/finance/models"
+              to={`/finance/${slug}/finalize${location.search || ''}`}
               className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink font-semibold transition"
             >
               <ArrowLeft size={14} />
-              <span>Back to Finance Workspace</span>
+              <span>Back to Review</span>
             </Link>
 
             <div className="flex flex-wrap items-center gap-2.5">
