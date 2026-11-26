@@ -748,8 +748,27 @@ export default function Finalize() {
     }
   }, [slug, wfParam, modelParam, searchParams, setSearchParams])
 
-  const wf = useAsync(() => domains.workflow(slug, wfParam), [slug, wfParam])
-  const fin = useAsync(() => graphs.finalization(slug, wfParam), [slug, wfParam], { immediate: false })
+  const wf = useAsync(async () => {
+    try {
+      return await domains.workflow(slug, wfParam)
+    } catch (err) {
+      if (wfParam) {
+        return await domains.workflow(slug, undefined)
+      }
+      throw err
+    }
+  }, [slug, wfParam])
+
+  const fin = useAsync(async () => {
+    try {
+      return await graphs.finalization(slug, wfParam)
+    } catch (err) {
+      if (wfParam) {
+        return await graphs.finalization(slug, undefined)
+      }
+      throw err
+    }
+  }, [slug, wfParam], { immediate: false })
   const g = useAsync(() => domains.graph(slug, false), [slug])
 
   const [wsReview, setWsReview] = useState(null)
@@ -1224,20 +1243,13 @@ export default function Finalize() {
   }
 
   const nextConfig = useMemo(() => {
-    if (finalized) {
-      return {
-        label: 'Next: Digital Twin',
-        onNext: () => navigate(`/finance/${slug}/twin${wsQuery}`),
-      }
-    }
     return {
       label: 'Next: Finalize Twin',
       onNext: () => {
-        setAck(false)
-        setDlg('finalize')
+        navigate(`/finance/${slug}/twin${wsQuery}`)
       },
     }
-  }, [finalized, slug, navigate])
+  }, [slug, navigate, wsQuery])
 
   const backToBusinessUrl = useMemo(() => {
     const curModel = searchParams.get('model') || (slug ? sessionStorage.getItem(`afx_active_model_${slug}`) : null) || sessionStorage.getItem('afx_current_workspace')
@@ -1340,12 +1352,6 @@ export default function Finalize() {
               <Edit3 size={14} className="text-brand" />
               <span>Edit Model</span>
             </button>
-
-            {/* Auto-Save Status Indicator */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-surface2/60 border border-line text-muted text-[11px] font-medium shrink-0">
-              <CheckCircle2 size={12} className="text-[#10b981]" />
-              <span>Auto-saved</span>
-            </div>
           </div>
         </div>
       </div>
@@ -1706,25 +1712,6 @@ export default function Finalize() {
       </div>
 
       {/* Confirmation Dialogs */}
-      <ConfirmDialog
-        open={dlg === 'finalize'}
-        title="Finalize Enterprise Digital Twin?"
-        confirmLabel="Finalize as Digital Twin"
-        busy={busy}
-        onCancel={() => setDlg(null)}
-        onConfirm={doFinalize}
-      >
-        <p className="text-xs leading-relaxed text-ink">
-          This locks <strong>Current "{domainName}" Template</strong> as your official Enterprise Digital Twin. All discovered entities, business rules, and dimensions will be permanently governed for financial modeling.
-        </p>
-        {/* {(d?.validation?.warnings?.length || 0) > 0 && (
-          <label className="mt-3 flex items-start gap-2 text-xs text-ink">
-            <input type="checkbox" className="mt-0.5 accent-[#10b981]" checked={ack} onChange={(e) => setAck(e.target.checked)} />
-            <span>I have reviewed the {d.validation.warnings.length} warning(s) and want to finalize anyway.</span>
-          </label>
-        )} */}
-      </ConfirmDialog>
-
       <ConfirmDialog
         open={dlg === 'reopen'}
         title="Re-open Ontology for Editing?"

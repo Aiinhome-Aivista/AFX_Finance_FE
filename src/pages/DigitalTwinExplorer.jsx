@@ -62,10 +62,41 @@ export default function DigitalTwinExplorer() {
           setWorkedDomains(res.journey)
         }
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [activeModelName])
-  const wf = useAsync(() => domains.workflow(slug, wfParam), [slug, wfParam])
-  const fin = useAsync(() => graphs.finalization(slug, wfParam), [slug, wfParam])
+  const wf = useAsync(async () => {
+    try {
+      return await domains.workflow(slug, wfParam)
+    } catch (err) {
+      if (wfParam) {
+        return await domains.workflow(slug, undefined)
+      }
+      throw err
+    }
+  }, [slug, wfParam])
+
+  const fin = useAsync(async () => {
+    try {
+      return await graphs.finalization(slug, wfParam)
+    } catch (err) {
+      if (wfParam) {
+        return await graphs.finalization(slug, undefined)
+      }
+      throw err
+    }
+  }, [slug, wfParam])
+
+  useEffect(() => {
+    if (wf.data?.id && cleanSlug) {
+      sessionStorage.setItem(`afx_active_wf_${cleanSlug}`, String(wf.data.id))
+      const curParam = searchParams.get('wf')
+      if (curParam && curParam !== String(wf.data.id)) {
+        const next = new URLSearchParams(window.location.search)
+        next.set('wf', String(wf.data.id))
+        setSearchParams(next, { replace: true })
+      }
+    }
+  }, [wf.data?.id, cleanSlug, searchParams, setSearchParams])
 
   const [switchingToSlug, setSwitchingToSlug] = useState(null)
 
@@ -108,8 +139,9 @@ export default function DigitalTwinExplorer() {
 
   const d = fin.data
   const finalized = Boolean(wf.data?.finalized_version_number)
+  const [justFinalized, setJustFinalized] = useState(false)
 
-  const [dbStatus, setDbStatus] = useState({ ready: false, status: 'LOCKED', db_name: null })
+  const [dbStatus, setDbStatus] = useState({ ready: false, status: 'LOCKED', db_name: null, is_finalized: false })
   const [loadingDbStatus, setLoadingDbStatus] = useState(true)
 
   const checkDbStatus = useCallback(async (forcedWf, forcedModel) => {
@@ -162,6 +194,7 @@ export default function DigitalTwinExplorer() {
 
   useEffect(() => {
     setGapGraph(null)
+    setJustFinalized(false)
   }, [slug])
 
   useEffect(() => {
@@ -253,6 +286,33 @@ export default function DigitalTwinExplorer() {
     return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
   }, [searchParams, dbStatus?.workspace_name, location.state, cleanSlug])
 
+  const isFinalized = useMemo(() => {
+    if (justFinalized) return true
+
+    // 1. Workflow itself is finalized in backend
+    if (Boolean(wf.data?.finalized_version_number) || wf.data?.status === 'PUBLISHED') {
+      return true
+    }
+
+    // 2. Explicitly confirmed by backend workspace_db_status
+    if (dbStatus?.is_finalized) {
+      return true
+    }
+
+    // 3. LocalStorage persistence for this workspace model
+    const sp = new URLSearchParams(window.location.search)
+    const isFresh = sp.get('fresh') === '1' || sessionStorage.getItem('afx_fresh_session') === 'true'
+    if (!isFresh) {
+      const clean = String(cleanSlug || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const effModel = defaultSaveName
+      if (clean && effModel && localStorage.getItem(`afx_finalized_${effModel}_${clean}`) === 'true') {
+        return true
+      }
+    }
+
+    return false
+  }, [justFinalized, wf.data?.finalized_version_number, wf.data?.status, dbStatus?.is_finalized, defaultSaveName, cleanSlug])
+
   const handleSaveAs = () => {
     executeSaveAs(defaultSaveName, 'overwrite')
   }
@@ -285,6 +345,9 @@ export default function DigitalTwinExplorer() {
         domainName: domainName,
         nodes: payload.nodes,
         edges: payload.edges,
+        stage: 'twin',
+        is_finalized: true,
+        status: 'PUBLISHED',
         savedAt: payload.savedAt,
         createdAt: payload.createdAt,
       }).then((res) => {
@@ -299,6 +362,21 @@ export default function DigitalTwinExplorer() {
           sessionStorage.setItem(`afx_active_model_${cleanSlug}`, modelName)
           sessionStorage.removeItem('afx_fresh_session')
         }
+        // Mark as finalized in current component state
+        setJustFinalized(true)
+        if (cleanSlug) {
+          try {
+            localStorage.setItem(`afx_finalized_${cleanSlug}`, 'true')
+            sessionStorage.setItem(`afx_finalized_${cleanSlug}`, 'true')
+            if (modelName) {
+              localStorage.setItem(`afx_workspace_finalized_${modelName}`, 'true')
+              localStorage.setItem(`afx_finalized_${modelName}_${cleanSlug}`, 'true')
+            }
+          } catch (_) {}
+        }
+        updateDomainWorkflow(slug, { isFinalized: true })
+        window.dispatchEvent(new CustomEvent('afx_journey_refresh'))
+
         // Instantly unlock CSV Telemetry Ingestion in UI!
         setDbStatus({
           ready: true,
@@ -307,6 +385,7 @@ export default function DigitalTwinExplorer() {
           workflow_id: wfId,
           workspace_name: modelName,
           tables: [],
+          is_finalized: true,
         })
         checkDbStatus(wfId, modelName)
       }).catch((err) => console.warn('Backend custom model save warning:', err))
@@ -387,20 +466,22 @@ export default function DigitalTwinExplorer() {
             <button
               type="button"
               onClick={handleSaveAs}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs ${
-                dbStatus.ready && (dbStatus.workspace_name || wf.data?.name)
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 border border-emerald-500'
-                  : 'btn-ghost border-[#10b981] text-[#10b981] hover:bg-[#10b981]/10'
-              }`}
-              title="Finalize & Save this model to create a dedicated workspace database and unlock telemetry upload"
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs ${isFinalized
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 border border-emerald-500'
+                : 'btn-ghost border-[#10b981] text-[#10b981] hover:bg-[#10b981]/10'
+                }`}
+              title={isFinalized
+                ? "Digital Twin is finalized & saved"
+                : "Finalize & Save this model to create a dedicated workspace database and unlock telemetry upload"
+              }
             >
-              {dbStatus.ready && (dbStatus.workspace_name || wf.data?.name) ? (
+              {isFinalized ? (
                 <CheckCircle2 size={14} className="text-white" />
               ) : (
                 <Save size={14} className="text-[#10b981]" />
               )}
               <span>
-                {dbStatus.ready && (dbStatus.workspace_name || wf.data?.name)
+                {isFinalized
                   ? 'Finalized & Saved'
                   : 'Finalize & Save'}
               </span>
@@ -424,11 +505,10 @@ export default function DigitalTwinExplorer() {
                   type="button"
                   disabled={isThisTabLoading}
                   onClick={() => handleTabSwitch(d)}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border shadow-2xs ${
-                    isActive
-                      ? 'bg-brand text-white border-brand shadow-brand/20'
-                      : 'bg-surface hover:bg-surface2 text-ink border-line hover:border-brand/40'
-                  } ${isThisTabLoading ? 'opacity-90' : ''}`}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border shadow-2xs ${isActive
+                    ? 'bg-brand text-white border-brand shadow-brand/20'
+                    : 'bg-surface hover:bg-surface2 text-ink border-line hover:border-brand/40'
+                    } ${isThisTabLoading ? 'opacity-90' : ''}`}
                 >
                   {isThisTabLoading ? (
                     <Loader2 size={12} className="animate-spin text-current" />
@@ -526,7 +606,7 @@ export default function DigitalTwinExplorer() {
         <TwinDataConnectors
           slug={cleanSlug}
           domainName={domainName}
-          isFinalized={Boolean(dbStatus.ready && (dbStatus.workspace_name || wf.data?.name))}
+          isFinalized={isFinalized}
           dbInfo={dbStatus}
           onRequireFinalize={handleSaveAs}
         />
