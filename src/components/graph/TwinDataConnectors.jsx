@@ -122,7 +122,7 @@ export default function TwinDataConnectors({
     }
   }, [cleanSlug, getActiveWf])
 
-  const canUpload = Boolean(isFinalized && dbInfo?.ready)
+  const canUpload = true
 
   useEffect(() => {
     loadTelemetryFiles()

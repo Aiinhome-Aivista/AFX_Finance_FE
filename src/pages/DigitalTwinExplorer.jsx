@@ -242,16 +242,19 @@ export default function DigitalTwinExplorer() {
   const [saveAsOpen, setSaveAsOpen] = useState(false)
 
   const defaultSaveName = useMemo(() => {
-    if (location.state?.modelName) {
-      return location.state.modelName
-    }
+    const spModel = searchParams.get('model')
+    if (spModel) return spModel
+    if (dbStatus?.workspace_name) return dbStatus.workspace_name
+    if (location.state?.modelName) return location.state.modelName
+    const stored = sessionStorage.getItem('afx_current_workspace') || (cleanSlug ? sessionStorage.getItem(`afx_active_model_${cleanSlug}`) : null)
+    if (stored) return stored
     const now = new Date()
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     return `Finance_Model_${monthNames[now.getMonth()]}_${String(now.getFullYear()).slice(-2)}`
-  }, [location.state])
+  }, [searchParams, dbStatus?.workspace_name, location.state, cleanSlug])
 
   const handleSaveAs = () => {
-    setSaveAsOpen(true)
+    executeSaveAs(defaultSaveName, 'overwrite')
   }
 
   const executeSaveAs = (modelName, mode = 'overwrite') => {
