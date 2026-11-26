@@ -1,10 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import {
-  CheckCircle2,
   Compass,
   MessageSquare,
-  Upload,
   FileCheck,
   Layers,
   X,
@@ -182,24 +180,9 @@ export default function DomainJourneyTracker({ className = '' }) {
                       {item.domain_code}
                     </span>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2.5 flex-wrap">
-                        <h4 className="text-sm font-bold text-ink">
-                          {item.domain_name}
-                        </h4>
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border ${item.checkpoint_key === 'finalized'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                            : item.checkpoint_key === 'data_input'
-                              ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800'
-                              : 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800'
-                            }`}
-                        >
-                          {item.checkpoint_key === 'finalized' && <CheckCircle2 size={12} />}
-                          {item.checkpoint_key === 'data_input' && <Upload size={12} />}
-                          {item.checkpoint_key === 'business_input' && <MessageSquare size={12} />}
-                          <span>{item.checkpoint}</span>
-                        </span>
-                      </div>
+                      <h4 className="text-sm font-bold text-ink">
+                        {item.domain_name}
+                      </h4>
                       <p className="text-xs text-muted mt-1 font-medium">
                         {shortSummary}
                       </p>
@@ -253,24 +236,6 @@ export default function DomainJourneyTracker({ className = '' }) {
               >
                 <X size={18} />
               </button>
-            </div>
-
-            {/* Checkpoint Status Banner */}
-            <div className="flex items-center justify-between p-3.5 mt-4 rounded-xl bg-surface2/60 border border-line shrink-0">
-              <span className="text-xs font-semibold text-muted">Current Checkpoint:</span>
-              <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold border ${activeModalItem.checkpoint_key === 'finalized'
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                  : activeModalItem.checkpoint_key === 'data_input'
-                    ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800'
-                    : 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800'
-                  }`}
-              >
-                {activeModalItem.checkpoint_key === 'finalized' && <CheckCircle2 size={14} />}
-                {activeModalItem.checkpoint_key === 'data_input' && <Upload size={14} />}
-                {activeModalItem.checkpoint_key === 'business_input' && <MessageSquare size={14} />}
-                <span>{activeModalItem.checkpoint}</span>
-              </span>
             </div>
 
             {/* Scrollable Content */}
