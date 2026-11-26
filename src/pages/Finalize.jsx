@@ -1680,7 +1680,7 @@ export default function Finalize() {
         </section>
 
         {/* Change History Section */}
-        <section className="card p-4 border border-line">
+        {/* <section className="card p-4 border border-line">
           <h2 className="flex items-center gap-2 font-semibold text-sm text-ink">
             <History size={16} /> Change History
           </h2>
@@ -1705,7 +1705,7 @@ export default function Finalize() {
               </li>
             ))}
           </ul>
-        </section>
+        </section> */}
 
         {/* Domain Journey Tracker Section */}
         <DomainJourneyTracker className="mt-4" />
