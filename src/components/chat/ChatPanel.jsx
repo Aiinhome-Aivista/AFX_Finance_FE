@@ -9,6 +9,7 @@ import {
   Lock,
   MessageSquare,
   Send,
+  ShieldCheck,
   SkipForward,
   Sparkles,
   User,
@@ -17,6 +18,39 @@ import {
 import { Spinner, Loading } from '../common/States'
 import ConfirmDialog from '../common/ConfirmDialog'
 import { chat, graphs } from '../../api'
+
+// [MODEL-EVAL | 2026-11-28 12:05 IST] Model Eval runs inside this chatbox (no separate window): the backend evaluates
+// every answer before it reaches the K graph; the reply text carries held changes + fixes, and this chip shows the verdict.
+const EVAL_STYLE = {
+  pass: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border-emerald-500/35',
+  warn: 'bg-amber-500/12 text-amber-700 dark:text-amber-300 border-amber-500/35',
+  fail: 'bg-red-500/12 text-red-700 dark:text-red-300 border-red-500/35',
+  blocked: 'bg-red-600/15 text-red-800 dark:text-red-300 border-red-600/45',
+}
+// [MODEL-EVAL | 2026-11-28 12:40 IST] plain-language labels for non-technical users (score only in the tooltip)
+const EVAL_LABEL = {
+  pass: 'Quick check: all good',
+  warn: 'Quick check: a few notes',
+  fail: 'Quick check: some changes not added',
+  blocked: 'Quick check: not saved',
+}
+function EvalChip({ evalMeta }) {
+  const s = evalMeta.summary || {}
+  return (
+    <span className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-line/60 pt-1.5 text-[10px] text-muted">
+      <span
+        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-bold ${EVAL_STYLE[evalMeta.verdict] || EVAL_STYLE.warn}`}
+        title={`Model Eval score ${evalMeta.score}/100`}
+      >
+        <ShieldCheck size={11} />
+        {EVAL_LABEL[evalMeta.verdict] || 'Quick check'}
+      </span>
+      <span>
+        {s.ops_approved ?? 0} added{s.ops_held ? ` · ${s.ops_held} not added` : ''}
+      </span>
+    </span>
+  )
+}
 import { useToast } from '../../context/ToastContext'
 import { useWorkflow } from '../../context/WorkflowContext'
 
@@ -201,6 +235,11 @@ export default function ChatPanel({
 
   const merge = (r) => {
     setSnap((s) => ({ ...r, messages: [...(s?.messages || []), ...r.messages] }))
+    // [MODEL-EVAL | 2026-11-28 12:05 IST] flag held changes; details are in the chatbot's reply in this chatbox
+    const ev = r?.model_eval
+    if (ev && (ev.summary?.ops_held > 0 || ev.verdict === 'blocked')) {
+      toast.error(`${ev.summary?.ops_held || 0} change(s) were not added — the chatbot reply explains why.`)
+    }
     if (r?.graph_updated || r?.graph) {
       onGraphUpdate?.(r)
     }
@@ -418,6 +457,10 @@ export default function ChatPanel({
                   </span>
                 )}
                 <span className="whitespace-pre-wrap">{formatCleanContent(m.content || m.text)}</span>
+                {/* [MODEL-EVAL | 2026-11-28 12:05 IST] verdict for the changes derived from this input */}
+                {!isUser && m.meta?.model_eval?.verdict && (m.meta.model_eval.summary?.ops_total > 0 || m.meta.model_eval.summary?.fails > 0) && (
+                  <EvalChip evalMeta={m.meta.model_eval} />
+                )}
               </div>
             </div>
           )
